@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartCamper - Дашборд</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      .status {
+        background: #e8f5e8;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+        border-left: 4px solid #4caf50;
+      }
+      .api-test {
+        background: #f0f8ff;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+        border-left: 4px solid #2196f3;
+      }
+      button {
+        background: #2196f3;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #1976d2;
+      }
+      #result {
+        background: #f9f9f9;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🏕️ SmartCamper - Дашборд</h1>
+
+      <div class="status">
+        <h3>✅ Backend сървърът работи!</h3>
+        <p>Express.js сървър с MQTT broker е стартиран успешно.</p>
+      </div>
+
+      <div class="api-test">
+        <h3>🧪 Тестване на API</h3>
+        <p>Натиснете бутоните за да тествате различните API endpoints:</p>
+
+        <button onclick="testAPI('/api/status')">Статус на системата</button>
+        <button onclick="testAPI('/api/sensors')">Всички сензори</button>
+        <button onclick="testAPI('/api/sensors/temperature')">
+          Температура
+        </button>
+        <button onclick="testAPI('/api/sensors/humidity')">Влажност</button>
+
+        <div id="result"></div>
+      </div>
+
+      <div class="status">
+        <h3>📡 MQTT Broker</h3>
+        <p>MQTT broker работи на порт 1883</p>
+        <p>ESP32 модулите могат да се свържат и да изпращат данни.</p>
+      </div>
+    </div>
+
+    <script>
+      async function testAPI(endpoint) {
+        const resultDiv = document.getElementById("result");
+        resultDiv.textContent = "Зареждане...";
+
+        try {
+          const response = await fetch(endpoint);
+          const data = await response.json();
+
+          resultDiv.textContent = `✅ ${endpoint}\n${JSON.stringify(
+            data,
+            null,
+            2
+          )}`;
+        } catch (error) {
+          resultDiv.textContent = `❌ Грешка: ${error.message}`;
+        }
+      }
+    </script>
+  </body>
+</html>
