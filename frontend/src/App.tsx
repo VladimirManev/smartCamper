@@ -1,27 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { CssBaseline, Box, Typography, Paper, Chip } from "@mui/material";
 import {
-  CssBaseline,
-  AppBar,
-  Toolbar,
-  Typography,
-  Container,
-  Card,
-  CardContent,
-  Box,
-  Chip,
-  LinearProgress,
-} from "@mui/material";
+  Thermostat as ThermostatIcon,
+  Opacity as OpacityIcon,
+  WaterDrop as WaterDropIcon,
+  Battery90 as BatteryIcon,
+  Settings as SettingsIcon,
+  AccessTime as ClockIcon,
+  CalendarToday as CalendarIcon,
+  Wifi as WifiIcon,
+  WifiOff as WifiOffIcon,
+} from "@mui/icons-material";
 
 const theme = createTheme({
   palette: {
-    mode: "dark",
+    mode: "light",
     primary: {
-      main: "#4caf50",
+      main: "#1976d2",
     },
     secondary: {
-      main: "#2196f3",
+      main: "#dc004e",
     },
+    background: {
+      default: "#ffffff",
+      paper: "#ffffff",
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
   },
 });
 
@@ -40,6 +47,7 @@ interface AllSensorData {
 
 function App() {
   const [apiConnected, setApiConnected] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [sensorData, setSensorData] = useState<AllSensorData>({
     temperature: {},
     humidity: {},
@@ -48,6 +56,11 @@ function App() {
   });
 
   useEffect(() => {
+    // Обновяване на часа всяка секунда
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
     // Проверка на API връзката и зареждане на данни
     const loadData = async () => {
       try {
@@ -55,7 +68,6 @@ function App() {
         if (response.ok) {
           setApiConnected(true);
 
-          // Зареждане на сензорни данни
           const sensorsResponse = await fetch(
             "http://localhost:3000/api/sensors"
           );
@@ -73,191 +85,227 @@ function App() {
     };
 
     loadData();
+    const dataInterval = setInterval(loadData, 5000);
 
-    // Обновяване на данните на всеки 5 секунди
-    const interval = setInterval(loadData, 5000);
-
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(timeInterval);
+      clearInterval(dataInterval);
+    };
   }, []);
 
   const getStatusColor = (connected: boolean) =>
     connected ? "success" : "error";
 
-  // Безопасни функции за достъп до данни
   const getTemperatureData = () => sensorData?.temperature || {};
   const getHumidityData = () => sensorData?.humidity || {};
   const getWaterLevelData = () => sensorData?.waterLevel || {};
   const getBatteryData = () => sensorData?.battery || {};
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("bg-BG", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("bg-BG", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const menuItems = [
+    {
+      icon: <ThermostatIcon sx={{ fontSize: 40, color: "#ff6b35" }} />,
+      title: "Температура",
+      value: Object.values(getTemperatureData())[0]?.value || 0,
+      unit: "°C",
+      color: "#ff6b35",
+    },
+    {
+      icon: <OpacityIcon sx={{ fontSize: 40, color: "#4ecdc4" }} />,
+      title: "Влажност",
+      value: Object.values(getHumidityData())[0]?.value || 0,
+      unit: "%",
+      color: "#4ecdc4",
+    },
+    {
+      icon: <WaterDropIcon sx={{ fontSize: 40, color: "#45b7d1" }} />,
+      title: "Вода",
+      value: Object.values(getWaterLevelData())[0]?.value || 0,
+      unit: "%",
+      color: "#45b7d1",
+    },
+    {
+      icon: <BatteryIcon sx={{ fontSize: 40, color: "#96ceb4" }} />,
+      title: "Батерия",
+      value: Object.values(getBatteryData())[0]?.value || 0,
+      unit: "%",
+      color: "#96ceb4",
+    },
+    {
+      icon: (
+        <Box sx={{ textAlign: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 1,
+            }}
+          >
+            {apiConnected ? (
+              <WifiIcon sx={{ fontSize: 24, color: "#4caf50", mr: 1 }} />
+            ) : (
+              <WifiOffIcon sx={{ fontSize: 24, color: "#f44336", mr: 1 }} />
+            )}
+            <Typography
+              variant="caption"
+              sx={{ color: apiConnected ? "#4caf50" : "#f44336" }}
+            >
+              API {apiConnected ? "Онлайн" : "Офлайн"}
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <WifiIcon sx={{ fontSize: 24, color: "#4caf50", mr: 1 }} />
+            <Typography variant="caption" sx={{ color: "#4caf50" }}>
+              MQTT Онлайн
+            </Typography>
+          </Box>
+        </Box>
+      ),
+      title: "Статус",
+      value: null,
+      unit: "",
+      color: "#2c3e50",
+    },
+    {
+      icon: <ClockIcon sx={{ fontSize: 40, color: "#f7dc6f" }} />,
+      title: "Час",
+      value: null,
+      unit: "",
+      color: "#f7dc6f",
+      customContent: (
+        <Typography
+          variant="h6"
+          sx={{ color: "#f7dc6f", fontWeight: 700, fontFamily: "monospace" }}
+        >
+          {formatTime(currentTime)}
+        </Typography>
+      ),
+    },
+    {
+      icon: <CalendarIcon sx={{ fontSize: 40, color: "#dda0dd" }} />,
+      title: "Дата",
+      value: null,
+      unit: "",
+      color: "#dda0dd",
+      customContent: (
+        <Box sx={{ textAlign: "center" }}>
+          <Typography variant="h6" sx={{ color: "#dda0dd", fontWeight: 700 }}>
+            {currentTime.getDate()}
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#dda0dd" }}>
+            {currentTime.toLocaleDateString("bg-BG", { month: "short" })}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      icon: <SettingsIcon sx={{ fontSize: 40, color: "#a8a8a8" }} />,
+      title: "Настройки",
+      value: null,
+      unit: "",
+      color: "#a8a8a8",
+    },
+  ];
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            🏕️ SmartCamper - Дашборд
-          </Typography>
-          <Chip
-            label={`API: ${apiConnected ? "Онлайн" : "Офлайн"}`}
-            color={getStatusColor(apiConnected)}
-            size="small"
-          />
-        </Toolbar>
-      </AppBar>
 
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        {/* Статус на системата */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Статус на системата
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <Chip
-                label={`API: ${apiConnected ? "Онлайн" : "Офлайн"}`}
-                color={getStatusColor(apiConnected)}
-              />
-              <Chip label="ESP32: Активен" color="success" />
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={apiConnected ? 100 : 50}
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Сензорни данни */}
+      {/* Основен контейнер */}
+      <Box
+        sx={{
+          minHeight: "100vh",
+          background: "#ffffff",
+          padding: 2,
+        }}
+      >
+        {/* iPhone-стил меню с икони */}
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gridTemplateColumns: {
+              xs: "repeat(3, 1fr)",
+              sm: "repeat(4, 1fr)",
+              md: "repeat(4, 1fr)",
+            },
             gap: 3,
+            maxWidth: 1200,
+            margin: "0 auto",
           }}
         >
-          {/* Температура */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                🌡️ Температура
+          {menuItems.map((item, index) => (
+            <Paper
+              key={index}
+              sx={{
+                aspectRatio: "1 / 1",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#ffffff",
+                borderRadius: 4,
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                transition: "all 0.3s ease",
+                cursor: "pointer",
+                "&:hover": {
+                  transform: "translateY(-5px)",
+                  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.15)",
+                },
+              }}
+            >
+              <Box sx={{ mb: 1 }}>{item.icon}</Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  color: "#2c3e50",
+                  textAlign: "center",
+                  mb: 0.5,
+                }}
+              >
+                {item.title}
               </Typography>
-              {Object.entries(getTemperatureData()).map(([deviceId, data]) => (
-                <Box key={deviceId} sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {deviceId === "living" ? "Жилищна зона" : deviceId}
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {data.value.toFixed(1)}°C
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Последна актуализация:{" "}
-                    {new Date(data.timestamp).toLocaleTimeString()}
-                  </Typography>
-                </Box>
-              ))}
-              {Object.keys(getTemperatureData()).length === 0 && (
-                <Typography color="text.secondary">
-                  Няма данни за температура
+              {item.customContent ? (
+                item.customContent
+              ) : item.value !== null ? (
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    color: item.color,
+                  }}
+                >
+                  {item.value.toFixed(1)}
+                  {item.unit}
                 </Typography>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Влажност */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                💧 Влажност
-              </Typography>
-              {Object.entries(getHumidityData()).map(([deviceId, data]) => (
-                <Box key={deviceId} sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {deviceId === "living" ? "Жилищна зона" : deviceId}
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {data.value.toFixed(1)}%
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Последна актуализация:{" "}
-                    {new Date(data.timestamp).toLocaleTimeString()}
-                  </Typography>
-                </Box>
-              ))}
-              {Object.keys(getHumidityData()).length === 0 && (
-                <Typography color="text.secondary">
-                  Няма данни за влажност
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Ниво на водата */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                🚰 Ниво на водата
-              </Typography>
-              {Object.entries(getWaterLevelData()).map(([deviceId, data]) => (
-                <Box key={deviceId} sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {deviceId === "tank" ? "Резервоар" : deviceId}
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {data.value.toFixed(1)}%
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={data.value}
-                    sx={{ height: 8, borderRadius: 4, mb: 1 }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    Последна актуализация:{" "}
-                    {new Date(data.timestamp).toLocaleTimeString()}
-                  </Typography>
-                </Box>
-              ))}
-              {Object.keys(getWaterLevelData()).length === 0 && (
-                <Typography color="text.secondary">
-                  Няма данни за ниво на водата
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Батерия */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                🔋 Батерия
-              </Typography>
-              {Object.entries(getBatteryData()).map(([deviceId, data]) => (
-                <Box key={deviceId} sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {deviceId === "main" ? "Основна" : deviceId}
-                  </Typography>
-                  <Typography variant="h4" component="div">
-                    {data.value.toFixed(1)}%
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={data.value}
-                    sx={{ height: 8, borderRadius: 4, mb: 1 }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    Последна актуализация:{" "}
-                    {new Date(data.timestamp).toLocaleTimeString()}
-                  </Typography>
-                </Box>
-              ))}
-              {Object.keys(getBatteryData()).length === 0 && (
-                <Typography color="text.secondary">
-                  Няма данни за батерията
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
+              ) : null}
+            </Paper>
+          ))}
         </Box>
-      </Container>
+      </Box>
     </ThemeProvider>
   );
 }
