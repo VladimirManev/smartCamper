@@ -21,9 +21,8 @@
 #define MQTT_TOPIC_HUMIDITY "smartcamper/sensors/humidity/living/data"
 
 // Интервали
-#define SENSOR_READ_INTERVAL 5000   // 5 секунди между четенията
-#define MQTT_PUBLISH_INTERVAL 10000 // 10 секунди между публикациите
 #define WIFI_RETRY_INTERVAL 5000    // 5 секунди между опитите за WiFi
+#define MQTT_KEEPALIVE 60           // 60 секунди keep-alive за MQTT
 
 // Debug настройки
 #define DEBUG_SERIAL true // Включване на debug съобщения
