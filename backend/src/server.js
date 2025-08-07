@@ -1,32 +1,28 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
-// Импортираме нашите модули
 const mqttBroker = require("./mqtt/broker");
 const apiRoutes = require("./api/routes");
-
-// Създаваме Express приложението
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware за сигурност и CORS
+// CORS настройки
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Статични файлове (React приложението)
+// Статични файлове (React приложение)
 app.use(express.static(path.join(__dirname, "public")));
 
-// API routes
+// API маршрути
 app.use("/api", apiRoutes);
 
-// Зареждаме React приложението за всички други routes
+// Catch-all route за React Router
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Стартираме сървъра
+// Стартиране на сървъра
 app.listen(PORT, () => {
   console.log(`🚀 SmartCamper сървър работи на порт ${PORT}`);
   console.log(`📡 MQTT Broker стартиран`);

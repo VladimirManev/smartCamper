@@ -1,254 +1,259 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 import {
-  ThemeProvider,
-  createTheme,
   CssBaseline,
-  Box,
-  Container,
   AppBar,
   Toolbar,
   Typography,
+  Container,
   Card,
   CardContent,
+  Box,
   Chip,
-  Alert,
+  LinearProgress,
 } from "@mui/material";
-import { Wifi as WifiIcon, WifiOff as WifiOffIcon } from "@mui/icons-material";
 
-// Създаваме тема за кемпера
 const theme = createTheme({
   palette: {
-    mode: "light",
+    mode: "dark",
     primary: {
-      main: "#2e7d32", // Тъмно зелено
+      main: "#4caf50",
     },
     secondary: {
-      main: "#1976d2", // Синьо
-    },
-    background: {
-      default: "#f5f5f5",
-      paper: "#ffffff",
+      main: "#2196f3",
     },
   },
 });
 
-function App() {
-  const [mqttConnected, setMqttConnected] = useState(false);
-  const [apiConnected, setApiConnected] = useState(false);
+interface SensorData {
+  value: number;
+  unit: string;
+  timestamp: string;
+}
 
-  // Проверка на API връзката
+interface AllSensorData {
+  temperature: { [key: string]: SensorData };
+  humidity: { [key: string]: SensorData };
+  waterLevel: { [key: string]: SensorData };
+  battery: { [key: string]: SensorData };
+}
+
+function App() {
+  const [apiConnected, setApiConnected] = useState(false);
+  const [sensorData, setSensorData] = useState<AllSensorData>({
+    temperature: {},
+    humidity: {},
+    waterLevel: {},
+    battery: {},
+  });
+
   useEffect(() => {
-    const checkAPI = async () => {
+    // Проверка на API връзката и зареждане на данни
+    const loadData = async () => {
       try {
         const response = await fetch("http://localhost:3000/api/status");
         if (response.ok) {
           setApiConnected(true);
+
+          // Зареждане на сензорни данни
+          const sensorsResponse = await fetch(
+            "http://localhost:3000/api/sensors"
+          );
+          if (sensorsResponse.ok) {
+            const data = await sensorsResponse.json();
+            if (data.success && data.data) {
+              setSensorData(data.data);
+            }
+          }
         }
       } catch (error) {
-        console.error("API грешка:", error);
+        console.error("API connection failed:", error);
         setApiConnected(false);
       }
     };
 
-    checkAPI();
-    const interval = setInterval(checkAPI, 5000); // Проверяваме на всеки 5 секунди
+    loadData();
+
+    // Обновяване на данните на всеки 5 секунди
+    const interval = setInterval(loadData, 5000);
 
     return () => clearInterval(interval);
   }, []);
 
+  const getStatusColor = (connected: boolean) =>
+    connected ? "success" : "error";
+
+  // Безопасни функции за достъп до данни
+  const getTemperatureData = () => sensorData?.temperature || {};
+  const getHumidityData = () => sensorData?.humidity || {};
+  const getWaterLevelData = () => sensorData?.waterLevel || {};
+  const getBatteryData = () => sensorData?.battery || {};
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-
-      {/* Header */}
-      <AppBar position="static" elevation={0}>
+      <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            🏕️ SmartCamper
+            🏕️ SmartCamper - Дашборд
           </Typography>
-
-          {/* Статус индикатори */}
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Chip
-              icon={mqttConnected ? <WifiIcon /> : <WifiOffIcon />}
-              label={mqttConnected ? "MQTT" : "MQTT Offline"}
-              color={mqttConnected ? "success" : "error"}
-              size="small"
-            />
-            <Chip
-              icon={apiConnected ? <WifiIcon /> : <WifiOffIcon />}
-              label={apiConnected ? "API" : "API Offline"}
-              color={apiConnected ? "success" : "error"}
-              size="small"
-            />
-          </Box>
+          <Chip
+            label={`API: ${apiConnected ? "Онлайн" : "Офлайн"}`}
+            color={getStatusColor(apiConnected)}
+            size="small"
+          />
         </Toolbar>
       </AppBar>
 
-      {/* Основно съдържание */}
-      <Container maxWidth="lg" sx={{ mt: 3, mb: 3 }}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Системен статус */}
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        {/* Статус на системата */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Статус на системата
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <Chip
+                label={`API: ${apiConnected ? "Онлайн" : "Офлайн"}`}
+                color={getStatusColor(apiConnected)}
+              />
+              <Chip label="ESP32: Активен" color="success" />
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={apiConnected ? 100 : 50}
+              sx={{ height: 8, borderRadius: 4 }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Сензорни данни */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: 3,
+          }}
+        >
+          {/* Температура */}
           <Card>
             <CardContent>
-              <Typography variant="h5" component="h2" gutterBottom>
-                📊 Системен статус
+              <Typography variant="h6" gutterBottom>
+                🌡️ Температура
               </Typography>
-
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                <Box sx={{ flex: "1 1 200px", textAlign: "center", p: 2 }}>
-                  <Chip
-                    icon={mqttConnected ? <WifiIcon /> : <WifiOffIcon />}
-                    label={mqttConnected ? "MQTT Online" : "MQTT Offline"}
-                    color={mqttConnected ? "success" : "error"}
-                    sx={{ mb: 1 }}
-                  />
+              {Object.entries(getTemperatureData()).map(([deviceId, data]) => (
+                <Box key={deviceId} sx={{ mb: 2 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Real-time комуникация
+                    {deviceId === "living" ? "Жилищна зона" : deviceId}
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {data.value.toFixed(1)}°C
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Последна актуализация:{" "}
+                    {new Date(data.timestamp).toLocaleTimeString()}
                   </Typography>
                 </Box>
-
-                <Box sx={{ flex: "1 1 200px", textAlign: "center", p: 2 }}>
-                  <Chip
-                    icon={apiConnected ? <WifiIcon /> : <WifiOffIcon />}
-                    label={apiConnected ? "API Online" : "API Offline"}
-                    color={apiConnected ? "success" : "error"}
-                    sx={{ mb: 1 }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    HTTP API връзка
-                  </Typography>
-                </Box>
-
-                <Box sx={{ flex: "1 1 200px", textAlign: "center", p: 2 }}>
-                  <Typography variant="h6" color="primary">
-                    v1.0.0
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Версия на системата
-                  </Typography>
-                </Box>
-
-                <Box sx={{ flex: "1 1 200px", textAlign: "center", p: 2 }}>
-                  <Typography variant="h6" color="primary">
-                    🚀
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Системата работи
-                  </Typography>
-                </Box>
-              </Box>
+              ))}
+              {Object.keys(getTemperatureData()).length === 0 && (
+                <Typography color="text.secondary">
+                  Няма данни за температура
+                </Typography>
+              )}
             </CardContent>
           </Card>
 
-          {/* Сензорни данни */}
+          {/* Влажност */}
           <Card>
             <CardContent>
-              <Typography variant="h5" component="h2" gutterBottom>
-                📡 Сензорни данни
+              <Typography variant="h6" gutterBottom>
+                💧 Влажност
               </Typography>
-
-              {!mqttConnected && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  MQTT връзката не е налична. Данните не се обновяват в реално
-                  време.
-                </Alert>
+              {Object.entries(getHumidityData()).map(([deviceId, data]) => (
+                <Box key={deviceId} sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {deviceId === "living" ? "Жилищна зона" : deviceId}
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {data.value.toFixed(1)}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Последна актуализация:{" "}
+                    {new Date(data.timestamp).toLocaleTimeString()}
+                  </Typography>
+                </Box>
+              ))}
+              {Object.keys(getHumidityData()).length === 0 && (
+                <Typography color="text.secondary">
+                  Няма данни за влажност
+                </Typography>
               )}
+            </CardContent>
+          </Card>
 
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                <Box sx={{ flex: "1 1 250px" }}>
-                  <Card sx={{ textAlign: "center", p: 2 }}>
-                    <Typography variant="h4" sx={{ mb: 1 }}>
-                      🌡️
-                    </Typography>
-                    <Typography variant="h6" gutterBottom>
-                      Температура
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      color="error"
-                      sx={{ fontWeight: "bold" }}
-                    >
-                      --°C
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Няма данни
-                    </Typography>
-                  </Card>
+          {/* Ниво на водата */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                🚰 Ниво на водата
+              </Typography>
+              {Object.entries(getWaterLevelData()).map(([deviceId, data]) => (
+                <Box key={deviceId} sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {deviceId === "tank" ? "Резервоар" : deviceId}
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {data.value.toFixed(1)}%
+                  </Typography>
+                  <LinearProgress
+                    variant="determinate"
+                    value={data.value}
+                    sx={{ height: 8, borderRadius: 4, mb: 1 }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Последна актуализация:{" "}
+                    {new Date(data.timestamp).toLocaleTimeString()}
+                  </Typography>
                 </Box>
-
-                <Box sx={{ flex: "1 1 250px" }}>
-                  <Card sx={{ textAlign: "center", p: 2 }}>
-                    <Typography variant="h4" sx={{ mb: 1 }}>
-                      💧
-                    </Typography>
-                    <Typography variant="h6" gutterBottom>
-                      Влажност
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      color="info"
-                      sx={{ fontWeight: "bold" }}
-                    >
-                      --%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Няма данни
-                    </Typography>
-                  </Card>
-                </Box>
-
-                <Box sx={{ flex: "1 1 250px" }}>
-                  <Card sx={{ textAlign: "center", p: 2 }}>
-                    <Typography variant="h4" sx={{ mb: 1 }}>
-                      🚰
-                    </Typography>
-                    <Typography variant="h6" gutterBottom>
-                      Резервоар
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      color="primary"
-                      sx={{ fontWeight: "bold" }}
-                    >
-                      --%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Няма данни
-                    </Typography>
-                  </Card>
-                </Box>
-
-                <Box sx={{ flex: "1 1 250px" }}>
-                  <Card sx={{ textAlign: "center", p: 2 }}>
-                    <Typography variant="h4" sx={{ mb: 1 }}>
-                      🔋
-                    </Typography>
-                    <Typography variant="h6" gutterBottom>
-                      Батерия
-                    </Typography>
-                    <Typography
-                      variant="h3"
-                      color="warning"
-                      sx={{ fontWeight: "bold" }}
-                    >
-                      --V
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Няма данни
-                    </Typography>
-                  </Card>
-                </Box>
-              </Box>
-
-              <Box sx={{ textAlign: "center", p: 4, mt: 2 }}>
-                <Typography variant="body1" color="text.secondary">
-                  Няма налични сензорни данни
+              ))}
+              {Object.keys(getWaterLevelData()).length === 0 && (
+                <Typography color="text.secondary">
+                  Няма данни за ниво на водата
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Уверете се, че ESP32 модулите са свързани и изпращат данни
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Батерия */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                🔋 Батерия
+              </Typography>
+              {Object.entries(getBatteryData()).map(([deviceId, data]) => (
+                <Box key={deviceId} sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {deviceId === "main" ? "Основна" : deviceId}
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {data.value.toFixed(1)}%
+                  </Typography>
+                  <LinearProgress
+                    variant="determinate"
+                    value={data.value}
+                    sx={{ height: 8, borderRadius: 4, mb: 1 }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Последна актуализация:{" "}
+                    {new Date(data.timestamp).toLocaleTimeString()}
+                  </Typography>
+                </Box>
+              ))}
+              {Object.keys(getBatteryData()).length === 0 && (
+                <Typography color="text.secondary">
+                  Няма данни за батерията
                 </Typography>
-              </Box>
+              )}
             </CardContent>
           </Card>
         </Box>
