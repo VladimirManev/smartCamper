@@ -13,6 +13,7 @@ const sensorData = {
   humidity: {},
   waterLevel: {},
   battery: {},
+  tilt: {},
 };
 
 // Когато клиент се свърже

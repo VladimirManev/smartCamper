@@ -23,6 +23,7 @@ public:
     bool shouldCheck();
     void updateCheckTime();
     bool publishSensorData(const char* topic, float value, const char* unit, const char* deviceId);
+    bool publishSensorData(const char* sensorType, float value, const char* unit, const char* sensorCategory, const char* deviceId);
     
 protected:
     // Виртуални функции за наследяване

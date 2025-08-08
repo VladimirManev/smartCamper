@@ -51,4 +51,37 @@ bool SensorManager::publishSensorData(const char* topic, float value, const char
     }
     
     return success;
+}
+
+bool SensorManager::publishSensorData(const char* sensorType, float value, const char* unit, const char* sensorCategory, const char* deviceId) {
+    // Създаване на topic в новия формат: smartcamper/sensors/{category}/{deviceId}/data
+    String topic = "smartcamper/sensors/";
+    topic += sensorCategory;
+    topic += "/";
+    topic += deviceId;
+    topic += "/data";
+    
+    // Създаване на JSON
+    StaticJsonDocument<200> doc;
+    doc["value"] = value;
+    doc["unit"] = unit;
+    doc["sensor_type"] = sensorType;
+    doc["device_id"] = deviceId;
+    doc["timestamp"] = millis();
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    
+    // Публикуване
+    bool success = networkManager->publishMessage(topic.c_str(), jsonString.c_str());
+    
+    if (DEBUG_SERIAL) {
+        if (success) {
+            Serial.println("✅ Данни публикувани: " + String(value, 1) + unit + " (" + sensorType + ")");
+        } else {
+            Serial.println("❌ Грешка при публикуване на данни");
+        }
+    }
+    
+    return success;
 } 

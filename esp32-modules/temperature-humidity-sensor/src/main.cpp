@@ -1,18 +1,23 @@
 #include <Arduino.h>
 #include <DHT.h>
+#include <Wire.h>
+#include <MPU6050_light.h>
 #include "config.h"
 #include "NetworkManager.h"
 #include "DHTSensor.h"
+#include "TiltSensor.h"
 
 // Обекти
 DHT dht(DHT_PIN, DHT_TYPE);
+MPU6050 mpu(Wire);
 NetworkManager networkManager;
 DHTSensor dhtSensor(&networkManager, &dht);
+TiltSensor tiltSensor(&networkManager, &mpu);
 
 void setup() {
     if (DEBUG_SERIAL) {
         Serial.begin(115200);
-        Serial.println("🚀 ESP32 Temperature & Humidity Sensor стартира");
+        Serial.println("🚀 ESP32 SmartCamper Sensor стартира");
     }
     
     // Инициализация на мрежовия мениджър
@@ -26,6 +31,9 @@ void setup() {
     
     // Инициализация на DHT сензора
     dhtSensor.setup();
+    
+    // Инициализация на MPU6050 сензора
+    tiltSensor.setup();
     
     if (DEBUG_SERIAL) {
         Serial.println("✅ Инициализация завършена");
@@ -41,6 +49,7 @@ void loop() {
     
     // Четене и публикуване на сензорни данни
     dhtSensor.loop();
+    tiltSensor.loop();
     
     // Кратка пауза за да не претоварваме процесора
     delay(100);

@@ -11,6 +11,7 @@ router.get("/sensors", (req, res) => {
       humidity: getSensorData("humidity"),
       waterLevel: getSensorData("waterLevel"),
       battery: getSensorData("battery"),
+      tilt: getSensorData("tilt"),
     };
 
     res.json({

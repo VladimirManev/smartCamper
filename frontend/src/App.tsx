@@ -11,6 +11,7 @@ import {
   CalendarToday as CalendarIcon,
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
+  TrendingUp as TiltIcon,
 } from "@mui/icons-material";
 
 const theme = createTheme({
@@ -43,6 +44,7 @@ interface AllSensorData {
   humidity: { [key: string]: SensorData };
   waterLevel: { [key: string]: SensorData };
   battery: { [key: string]: SensorData };
+  tilt: { [key: string]: SensorData };
 }
 
 function App() {
@@ -53,6 +55,7 @@ function App() {
     humidity: {},
     waterLevel: {},
     battery: {},
+    tilt: {},
   });
 
   useEffect(() => {
@@ -100,6 +103,7 @@ function App() {
   const getHumidityData = () => sensorData?.humidity || {};
   const getWaterLevelData = () => sensorData?.waterLevel || {};
   const getBatteryData = () => sensorData?.battery || {};
+  const getTiltData = () => sensorData?.tilt || {};
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("bg-BG", {
@@ -146,6 +150,13 @@ function App() {
       value: Object.values(getBatteryData())[0]?.value || 0,
       unit: "%",
       color: "#96ceb4",
+    },
+    {
+      icon: <TiltIcon sx={{ fontSize: 40, color: "#ff9800" }} />,
+      title: "Наклон",
+      value: Object.values(getTiltData())[0]?.value || 0,
+      unit: "°",
+      color: "#ff9800",
     },
     {
       icon: (
