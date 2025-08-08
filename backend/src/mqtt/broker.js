@@ -9,16 +9,17 @@ let wsServer = null;
 
 function setupWebSocket(server) {
   const WebSocket = require("ws");
-  wsServer = new WebSocket.Server({ server });
+  const websocketStream = require("websocket-stream");
+
+  // Използваме отделен път за MQTT over WS, за да е предвидим: /mqtt
+  wsServer = new WebSocket.Server({ server, path: "/mqtt" });
 
   wsServer.on("connection", (ws) => {
     console.log("🔌 WebSocket клиент се свърза");
 
-    // Създаваме MQTT клиент за WebSocket връзката
-    const mqttClient = aedes.createConnection({
-      stream: ws,
-      keepalive: 60,
-    });
+    // Превръщаме WebSocket в stream, който aedes може да обработва
+    const stream = websocketStream(ws, { binary: true });
+    aedes.handle(stream);
 
     ws.on("close", () => {
       console.log("🔌 WebSocket клиент се отключи");

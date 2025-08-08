@@ -69,11 +69,12 @@ function App() {
     }, 1000);
 
     // MQTT over WebSocket връзка
-    const client = mqtt.connect("ws://localhost:3000", {
+    const client = mqtt.connect("ws://localhost:3000/mqtt", {
       clientId: "frontend_" + Math.random().toString(16).substr(2, 8),
       clean: true,
       reconnectPeriod: 1000,
       connectTimeout: 30 * 1000,
+      protocolVersion: 4,
     });
 
     client.on("connect", () => {
@@ -81,13 +82,20 @@ function App() {
       setMqttConnected(true);
 
       // Абониране за всички сензорни данни
-      client.subscribe("smartcamper/sensors/+/+/data", (err) => {
-        if (err) {
-          console.error("❌ Грешка при абониране:", err);
-        } else {
-          console.log("📡 Абониран за сензорни данни");
+      client.subscribe(
+        [
+          "smartcamper/sensors/tilt/+/data",
+          "smartcamper/sensors/temperature/+/data",
+          "smartcamper/sensors/humidity/+/data",
+        ],
+        (err) => {
+          if (err) {
+            console.error("❌ Грешка при абониране:", err);
+          } else {
+            console.log("📡 Абониран за сензорни данни");
+          }
         }
-      });
+      );
     });
 
     client.on("message", (topic, message) => {
@@ -103,16 +111,23 @@ function App() {
             const newData = { ...prevData };
 
             if (sensorType === "tilt") {
-              if (!newData.tilt[deviceId]) {
-                newData.tilt[deviceId] = {};
-              }
-              const sensorSubType = data.sensor_type as "roll" | "pitch";
-              newData.tilt[deviceId][sensorSubType] = {
-                value: data.value,
-                unit: data.unit,
-                sensor_type: sensorSubType,
-                device_id: data.device_id,
-                timestamp: new Date().toISOString(),
+              console.log("📐 MQTT tilt съобщение:", topic, data);
+              const sensorSubType =
+                (data.sensor_type as "roll" | "pitch") || "roll";
+              const prevTiltForDevice = newData.tilt[deviceId] || {};
+              const updatedTiltForDevice = {
+                ...prevTiltForDevice,
+                [sensorSubType]: {
+                  value: Number(data.value),
+                  unit: data.unit,
+                  sensor_type: sensorSubType,
+                  device_id: data.device_id,
+                  timestamp: new Date().toISOString(),
+                },
+              } as { roll?: SensorData; pitch?: SensorData };
+              newData.tilt = {
+                ...newData.tilt,
+                [deviceId]: updatedTiltForDevice,
               };
             } else {
               const typedSensorType = sensorType as keyof Omit<
@@ -166,14 +181,22 @@ function App() {
     [sensorData?.tilt]
   );
 
-  // Оптимизирани изчисления за наклоните
+  // Оптимизирани изчисления за наклоните (без да зависим от конкретен deviceId)
+  const tiltForFirstDevice = useMemo(() => {
+    const tilt = getTiltData();
+    const firstKey = Object.keys(tilt)[0];
+    return (firstKey ? tilt[firstKey] : {}) as {
+      roll?: SensorData;
+      pitch?: SensorData;
+    };
+  }, [getTiltData]);
   const rollValue = useMemo(
-    () => getTiltData()?.living?.roll?.value || 0,
-    [getTiltData]
+    () => tiltForFirstDevice?.roll?.value || 0,
+    [tiltForFirstDevice]
   );
   const pitchValue = useMemo(
-    () => getTiltData()?.living?.pitch?.value || 0,
-    [getTiltData]
+    () => tiltForFirstDevice?.pitch?.value || 0,
+    [tiltForFirstDevice]
   );
 
   const formatTime = (date: Date) => {
@@ -226,39 +249,58 @@ function App() {
       icon: (
         <Box
           sx={{
-            transform: `rotate(${rollValue}deg)`,
-            transition: "transform 0.1s ease-out", // Много бързо завъртане
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
+            gap: 1,
           }}
         >
-          <CarIcon sx={{ fontSize: 40, color: "#ff9800" }} />
+          {/* Кола в профил (Roll) */}
+          <Box
+            sx={{
+              transform: `rotate(${rollValue}deg)`,
+              transition: "transform 0.1s ease-out",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CarIcon sx={{ fontSize: 32, color: "#ff9800" }} />
+          </Box>
+          {/* Кола отзад (Pitch) */}
+          <Box
+            sx={{
+              transform: `rotate(${pitchValue}deg)`,
+              transition: "transform 0.1s ease-out",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CarBackIcon sx={{ fontSize: 32, color: "#ff9800" }} />
+          </Box>
         </Box>
       ),
-      title: "Roll",
-      value: Math.abs(rollValue),
-      unit: "%",
+      title: "Наклон",
+      value: null,
+      unit: "",
       color: "#ff9800",
-    },
-    {
-      icon: (
-        <Box
-          sx={{
-            transform: `rotate(${pitchValue}deg)`,
-            transition: "transform 0.1s ease-out", // Много бързо завъртане
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <CarBackIcon sx={{ fontSize: 40, color: "#ff9800" }} />
+      customContent: (
+        <Box sx={{ textAlign: "center" }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "#ff9800", fontWeight: 600 }}
+          >
+            Roll: {Math.abs(rollValue)}°
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "#ff9800", fontWeight: 600 }}
+          >
+            Pitch: {Math.abs(pitchValue)}°
+          </Typography>
         </Box>
       ),
-      title: "Pitch",
-      value: Math.abs(pitchValue),
-      unit: "%",
-      color: "#ff9800",
     },
     {
       icon: (
