@@ -1,7 +1,7 @@
 #include "TiltSensor.h"
 #include "config.h"
 
-TiltSensor::TiltSensor(NetworkManager* networkManager, MPU6050* mpuSensor) 
+TiltSensor::TiltSensor(NetworkManager* networkManager, Adafruit_MPU6050* mpuSensor) 
     : SensorManager(networkManager), mpu(mpuSensor) {
     lastRoll = 0.0;
     lastPitch = 0.0;
@@ -17,14 +17,17 @@ void TiltSensor::setup() {
     Wire.begin(I2C_SDA, I2C_SCL);
     
     // Инициализация на MPU6050
-    mpu->begin();
-    
-    // Калибрация на сензора
-    if (DEBUG_SERIAL) {
-        Serial.println("🔄 Калибриране на MPU6050...");
+    if (!mpu->begin()) {
+        if (DEBUG_SERIAL) {
+            Serial.println("❌ Неуспешно свързване с MPU6050!");
+        }
+        return;
     }
     
-    mpu->calcOffsets(true, true); // Калибриране на gyro и accelerometer
+    // Конфигуриране на сензора
+    mpu->setAccelerometerRange(MPU6050_RANGE_8_G);
+    mpu->setGyroRange(MPU6050_RANGE_500_DEG);
+    mpu->setFilterBandwidth(MPU6050_BAND_21_HZ);
     
     if (DEBUG_SERIAL) {
         Serial.println("✅ MPU6050 инициализиран успешно");
@@ -39,12 +42,13 @@ void TiltSensor::readAndPublish() {
         return;
     }
     
-    // Обновяване на данните от сензора
-    mpu->update();
+    // Четене на данните от сензора
+    sensors_event_t a, g, temp;
+    mpu->getEvent(&a, &g, &temp);
     
-    // Четене на ъглите
-    float roll = mpu->getAngleX();  // Наклон напред/назад
-    float pitch = mpu->getAngleY(); // Наклон наляво/надясно
+    // Изчисляване на ъглите от accelerometer данните
+    float roll = atan2(a.acceleration.y, a.acceleration.z) * 180 / PI;  // Наклон напред/назад
+    float pitch = atan2(-a.acceleration.x, sqrt(a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z)) * 180 / PI; // Наклон наляво/надясно
     
     // Закръгляне до 1 десетична
     roll = round(roll * 10) / 10;
@@ -92,9 +96,17 @@ bool TiltSensor::hasPitchChanged(float newPitch) {
 }
 
 float TiltSensor::getRoll() {
-    return mpu ? mpu->getAngleX() : 0.0;
+    if (!mpu) return 0.0;
+    
+    sensors_event_t a, g, temp;
+    mpu->getEvent(&a, &g, &temp);
+    return atan2(a.acceleration.y, a.acceleration.z) * 180 / PI;
 }
 
 float TiltSensor::getPitch() {
-    return mpu ? mpu->getAngleY() : 0.0;
+    if (!mpu) return 0.0;
+    
+    sensors_event_t a, g, temp;
+    mpu->getEvent(&a, &g, &temp);
+    return atan2(-a.acceleration.x, sqrt(a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z)) * 180 / PI;
 }

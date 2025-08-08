@@ -3,12 +3,13 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <MPU6050_light.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
 #include "SensorManager.h"
 
 class TiltSensor : public SensorManager {
 private:
-    MPU6050* mpu;
+    Adafruit_MPU6050* mpu;
     float lastRoll;
     float lastPitch;
     bool firstRead;
@@ -18,7 +19,7 @@ private:
     const float PITCH_THRESHOLD = 0.5;
 
 public:
-    TiltSensor(NetworkManager* networkManager, MPU6050* mpuSensor);
+    TiltSensor(NetworkManager* networkManager, Adafruit_MPU6050* mpuSensor);
     
     void setup() override;
     void readAndPublish() override;

@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <DHT.h>
 #include <Wire.h>
-#include <MPU6050_light.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
 #include "config.h"
 #include "NetworkManager.h"
 #include "DHTSensor.h"
@@ -9,7 +10,7 @@
 
 // Обекти
 DHT dht(DHT_PIN, DHT_TYPE);
-MPU6050 mpu(Wire);
+Adafruit_MPU6050 mpu;
 NetworkManager networkManager;
 DHTSensor dhtSensor(&networkManager, &dht);
 TiltSensor tiltSensor(&networkManager, &mpu);
