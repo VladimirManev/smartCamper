@@ -1,9 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const http = require("http");
 const mqttBroker = require("./mqtt/broker");
 const apiRoutes = require("./api/routes");
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 // CORS настройки
@@ -17,13 +19,16 @@ app.use(express.static(path.join(__dirname, "public")));
 // API маршрути
 app.use("/api", apiRoutes);
 
+// WebSocket setup за MQTT over WebSocket
+mqttBroker.setupWebSocket(server);
+
 // Catch-all route за React Router
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // Стартиране на сървъра
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 SmartCamper сървър работи на порт ${PORT}`);
   console.log(`📡 MQTT Broker стартиран`);
   console.log(`🌐 Отворете: http://localhost:${PORT}`);

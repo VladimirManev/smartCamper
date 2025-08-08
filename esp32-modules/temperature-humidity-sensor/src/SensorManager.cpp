@@ -14,7 +14,7 @@ void SensorManager::loop() {
 }
 
 bool SensorManager::shouldCheck() {
-    return (millis() - lastCheckTime) >= 1000; // Проверка на всяка секунда
+    return (millis() - lastCheckTime) >= 200; // Проверка на всеки 200ms
 }
 
 void SensorManager::updateCheckTime() {
@@ -37,17 +37,8 @@ bool SensorManager::publishSensorData(const char* topic, float value, const char
     // Публикуване
     bool success = networkManager->publishMessage(topic, jsonString.c_str());
     
-    if (DEBUG_SERIAL) {
-        if (success) {
-            // Показваме различни формати според единицата
-            if (strcmp(unit, "percent") == 0) {
-                Serial.println("✅ Данни публикувани: " + String(value, 0) + unit);
-            } else {
-                Serial.println("✅ Данни публикувани: " + String(value, 1) + unit);
-            }
-        } else {
-            Serial.println("❌ Грешка при публикуване на данни");
-        }
+    if (DEBUG_SERIAL && !success) {
+        Serial.println("❌ Грешка при публикуване на данни");
     }
     
     return success;
@@ -75,12 +66,8 @@ bool SensorManager::publishSensorData(const char* sensorType, float value, const
     // Публикуване
     bool success = networkManager->publishMessage(topic.c_str(), jsonString.c_str());
     
-    if (DEBUG_SERIAL) {
-        if (success) {
-            Serial.println("✅ Данни публикувани: " + String(value, 1) + unit + " (" + sensorType + ")");
-        } else {
-            Serial.println("❌ Грешка при публикуване на данни");
-        }
+    if (DEBUG_SERIAL && !success) {
+        Serial.println("❌ Грешка при публикуване на данни");
     }
     
     return success;

@@ -50,17 +50,9 @@ void TiltSensor::readAndPublish() {
     float roll = atan2(a.acceleration.y, a.acceleration.z) * 180 / PI;  // Наклон напред/назад
     float pitch = atan2(-a.acceleration.x, sqrt(a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z)) * 180 / PI; // Наклон наляво/надясно
     
-    // Закръгляне до 1 десетична
-    roll = round(roll * 10) / 10;
-    pitch = round(pitch * 10) / 10;
-    
-    if (DEBUG_SERIAL) {
-        Serial.print("📐 Roll: ");
-        Serial.print(roll, 1);
-        Serial.print("°, Pitch: ");
-        Serial.print(pitch, 1);
-        Serial.println("°");
-    }
+    // Закръгляне до цели числа
+    roll = round(roll);
+    pitch = round(pitch);
     
     // Проверка дали има промяна
     bool rollChanged = hasRollChanged(roll);
@@ -68,7 +60,9 @@ void TiltSensor::readAndPublish() {
     
     if (firstRead || rollChanged || pitchChanged) {
         if (DEBUG_SERIAL) {
-            Serial.println("📤 Публикуване на данни за наклона...");
+            Serial.println("📐 Нови стойности за наклон:");
+            Serial.println("   Roll: " + String(roll, 0) + "°");
+            Serial.println("   Pitch: " + String(pitch, 0) + "°");
         }
         
         // Публикуване на roll данни
@@ -80,10 +74,6 @@ void TiltSensor::readAndPublish() {
         lastRoll = roll;
         lastPitch = pitch;
         firstRead = false;
-        
-        if (DEBUG_SERIAL) {
-            Serial.println("✅ Данни за наклона публикувани");
-        }
     }
 }
 
@@ -109,4 +99,25 @@ float TiltSensor::getPitch() {
     sensors_event_t a, g, temp;
     mpu->getEvent(&a, &g, &temp);
     return atan2(-a.acceleration.x, sqrt(a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z)) * 180 / PI;
+}
+
+// Имплементация на виртуалните функции от SensorManager
+float TiltSensor::readSensorValue() {
+    return getRoll(); // Връщаме roll като основна стойност
+}
+
+const char* TiltSensor::getSensorUnit() {
+    return "degrees";
+}
+
+const char* TiltSensor::getDeviceId() {
+    return "living";
+}
+
+const char* TiltSensor::getTopic() {
+    return MQTT_TOPIC_TILT;
+}
+
+bool TiltSensor::hasChanged(float newValue, float lastValue) {
+    return abs(newValue - lastValue) >= ROLL_THRESHOLD;
 }

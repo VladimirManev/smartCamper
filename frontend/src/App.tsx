@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import mqtt from "mqtt";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, Box, Typography, Paper, Chip } from "@mui/material";
 import {
@@ -11,7 +12,8 @@ import {
   CalendarToday as CalendarIcon,
   Wifi as WifiIcon,
   WifiOff as WifiOffIcon,
-  TrendingUp as TiltIcon,
+  DirectionsCar as CarIcon,
+  DirectionsCarFilled as CarBackIcon,
 } from "@mui/icons-material";
 
 const theme = createTheme({
@@ -37,6 +39,8 @@ interface SensorData {
   value: number;
   unit: string;
   timestamp: string;
+  sensor_type?: string;
+  device_id?: string;
 }
 
 interface AllSensorData {
@@ -44,11 +48,11 @@ interface AllSensorData {
   humidity: { [key: string]: SensorData };
   waterLevel: { [key: string]: SensorData };
   battery: { [key: string]: SensorData };
-  tilt: { [key: string]: SensorData };
+  tilt: { [key: string]: { roll?: SensorData; pitch?: SensorData } };
 }
 
 function App() {
-  const [apiConnected, setApiConnected] = useState(false);
+  const [mqttConnected, setMqttConnected] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sensorData, setSensorData] = useState<AllSensorData>({
     temperature: {},
@@ -64,35 +68,89 @@ function App() {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Проверка на API връзката и зареждане на данни
-    const loadData = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/api/status");
-        if (response.ok) {
-          setApiConnected(true);
+    // MQTT over WebSocket връзка
+    const client = mqtt.connect("ws://localhost:3000", {
+      clientId: "frontend_" + Math.random().toString(16).substr(2, 8),
+      clean: true,
+      reconnectPeriod: 1000,
+      connectTimeout: 30 * 1000,
+    });
 
-          const sensorsResponse = await fetch(
-            "http://localhost:3000/api/sensors"
-          );
-          if (sensorsResponse.ok) {
-            const data = await sensorsResponse.json();
-            if (data.success && data.data) {
-              setSensorData(data.data);
+    client.on("connect", () => {
+      console.log("🔌 MQTT свързан");
+      setMqttConnected(true);
+
+      // Абониране за всички сензорни данни
+      client.subscribe("smartcamper/sensors/+/+/data", (err) => {
+        if (err) {
+          console.error("❌ Грешка при абониране:", err);
+        } else {
+          console.log("📡 Абониран за сензорни данни");
+        }
+      });
+    });
+
+    client.on("message", (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        const parts = topic.split("/");
+
+        if (parts[0] === "smartcamper" && parts[1] === "sensors") {
+          const sensorType = parts[2];
+          const deviceId = parts[3];
+
+          setSensorData((prevData) => {
+            const newData = { ...prevData };
+
+            if (sensorType === "tilt") {
+              if (!newData.tilt[deviceId]) {
+                newData.tilt[deviceId] = {};
+              }
+              const sensorSubType = data.sensor_type as "roll" | "pitch";
+              newData.tilt[deviceId][sensorSubType] = {
+                value: data.value,
+                unit: data.unit,
+                sensor_type: sensorSubType,
+                device_id: data.device_id,
+                timestamp: new Date().toISOString(),
+              };
+            } else {
+              const typedSensorType = sensorType as keyof Omit<
+                AllSensorData,
+                "tilt"
+              >;
+              newData[typedSensorType] = {
+                ...newData[typedSensorType],
+                [deviceId]: {
+                  value: data.value,
+                  unit: data.unit,
+                  device_id: data.device_id,
+                  timestamp: new Date().toISOString(),
+                },
+              };
             }
-          }
+
+            return newData;
+          });
         }
       } catch (error) {
-        console.error("API connection failed:", error);
-        setApiConnected(false);
+        console.error("❌ Грешка при обработка на MQTT съобщение:", error);
       }
-    };
+    });
 
-    loadData();
-    const dataInterval = setInterval(loadData, 5000);
+    client.on("error", (error) => {
+      console.error("❌ MQTT грешка:", error);
+      setMqttConnected(false);
+    });
+
+    client.on("close", () => {
+      console.log("🔌 MQTT връзката се затвори");
+      setMqttConnected(false);
+    });
 
     return () => {
       clearInterval(timeInterval);
-      clearInterval(dataInterval);
+      client.end();
     };
   }, []);
 
@@ -103,7 +161,20 @@ function App() {
   const getHumidityData = () => sensorData?.humidity || {};
   const getWaterLevelData = () => sensorData?.waterLevel || {};
   const getBatteryData = () => sensorData?.battery || {};
-  const getTiltData = () => sensorData?.tilt || {};
+  const getTiltData = useCallback(
+    () => sensorData?.tilt || {},
+    [sensorData?.tilt]
+  );
+
+  // Оптимизирани изчисления за наклоните
+  const rollValue = useMemo(
+    () => getTiltData()?.living?.roll?.value || 0,
+    [getTiltData]
+  );
+  const pitchValue = useMemo(
+    () => getTiltData()?.living?.pitch?.value || 0,
+    [getTiltData]
+  );
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("bg-BG", {
@@ -152,10 +223,41 @@ function App() {
       color: "#96ceb4",
     },
     {
-      icon: <TiltIcon sx={{ fontSize: 40, color: "#ff9800" }} />,
-      title: "Наклон",
-      value: Object.values(getTiltData())[0]?.value || 0,
-      unit: "°",
+      icon: (
+        <Box
+          sx={{
+            transform: `rotate(${rollValue}deg)`,
+            transition: "transform 0.1s ease-out", // Много бързо завъртане
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CarIcon sx={{ fontSize: 40, color: "#ff9800" }} />
+        </Box>
+      ),
+      title: "Roll",
+      value: Math.abs(rollValue),
+      unit: "%",
+      color: "#ff9800",
+    },
+    {
+      icon: (
+        <Box
+          sx={{
+            transform: `rotate(${pitchValue}deg)`,
+            transition: "transform 0.1s ease-out", // Много бързо завъртане
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CarBackIcon sx={{ fontSize: 40, color: "#ff9800" }} />
+        </Box>
+      ),
+      title: "Pitch",
+      value: Math.abs(pitchValue),
+      unit: "%",
       color: "#ff9800",
     },
     {
@@ -169,16 +271,16 @@ function App() {
               mb: 1,
             }}
           >
-            {apiConnected ? (
+            {mqttConnected ? (
               <WifiIcon sx={{ fontSize: 24, color: "#4caf50", mr: 1 }} />
             ) : (
               <WifiOffIcon sx={{ fontSize: 24, color: "#f44336", mr: 1 }} />
             )}
             <Typography
               variant="caption"
-              sx={{ color: apiConnected ? "#4caf50" : "#f44336" }}
+              sx={{ color: mqttConnected ? "#4caf50" : "#f44336" }}
             >
-              API {apiConnected ? "Онлайн" : "Офлайн"}
+              MQTT {mqttConnected ? "Онлайн" : "Офлайн"}
             </Typography>
           </Box>
           <Box
@@ -309,8 +411,9 @@ function App() {
                     color: item.color,
                   }}
                 >
-                  {item.value.toFixed(1)}
-                  {item.unit}
+                  {item.title === "Roll" || item.title === "Pitch"
+                    ? Math.round(item.value) + item.unit
+                    : item.value.toFixed(1) + item.unit}
                 </Typography>
               ) : null}
             </Paper>

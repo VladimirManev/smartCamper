@@ -34,12 +34,6 @@ void DHTSensor::readAndPublish() {
     bool temperatureChanged = firstRead || hasTemperatureChanged(temperature, lastTemperature);
     bool humidityChanged = firstRead || hasHumidityChanged(humidity, lastHumidity);
     
-    if (DEBUG_SERIAL) {
-        Serial.println("🔍 Проверка на промени:");
-        Serial.println("Температура: " + String(temperature, 1) + "°C (последна: " + String(lastTemperature, 1) + "°C) - променена: " + (temperatureChanged ? "ДА" : "НЕ"));
-        Serial.println("Влажност: " + String(humidity, 0) + "% (последна: " + String(lastHumidity, 0) + "%) - променена: " + (humidityChanged ? "ДА" : "НЕ"));
-    }
-    
     if (temperatureChanged || humidityChanged) {
         if (DEBUG_SERIAL) {
             Serial.println("📊 Публикуване на нови данни:");
@@ -48,7 +42,7 @@ void DHTSensor::readAndPublish() {
         // Публикуване на данните
         if (temperatureChanged) {
             if (DEBUG_SERIAL) {
-                Serial.println("🌡️ Публикуване на температура: " + String(temperature, 1) + "°C");
+                Serial.println("🌡️ Нова стойност на температура: " + String(temperature, 1) + "°C");
             }
             publishTemperature(temperature);
             lastTemperature = temperature;
@@ -56,17 +50,13 @@ void DHTSensor::readAndPublish() {
         
         if (humidityChanged) {
             if (DEBUG_SERIAL) {
-                Serial.println("💧 Публикуване на влажност: " + String(humidity, 0) + "%");
+                Serial.println("💧 Нова стойност на влажност: " + String(humidity, 0) + "%");
             }
             publishHumidity(humidity);
             lastHumidity = humidity;
         }
         
         firstRead = false;
-    } else {
-        if (DEBUG_SERIAL) {
-            Serial.println("📊 Няма промяна в данните, пропускам публикация");
-        }
     }
 }
 
@@ -83,11 +73,11 @@ bool DHTSensor::hasHumidityChanged(float newValue, float lastValue) {
 }
 
 void DHTSensor::publishTemperature(float temperature) {
-    publishSensorData(getTopic(), temperature, getSensorUnit(), getDeviceId());
+    publishSensorData("temperature", temperature, "celsius", "temperature", "living");
 }
 
 void DHTSensor::publishHumidity(float humidity) {
-    publishSensorData(getHumidityTopic(), humidity, getHumidityUnit(), getHumidityDeviceId());
+    publishSensorData("humidity", humidity, "percent", "humidity", "living");
 }
 
 float DHTSensor::readTemperature() {

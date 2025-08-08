@@ -4,6 +4,28 @@ const net = require("net");
 // Създаваме MQTT сървър
 const mqttServer = net.createServer(aedes.handle);
 
+// WebSocket сървър за MQTT over WebSocket
+let wsServer = null;
+
+function setupWebSocket(server) {
+  const WebSocket = require("ws");
+  wsServer = new WebSocket.Server({ server });
+
+  wsServer.on("connection", (ws) => {
+    console.log("🔌 WebSocket клиент се свърза");
+
+    // Създаваме MQTT клиент за WebSocket връзката
+    const mqttClient = aedes.createConnection({
+      stream: ws,
+      keepalive: 60,
+    });
+
+    ws.on("close", () => {
+      console.log("🔌 WebSocket клиент се отключи");
+    });
+  });
+}
+
 // Порт за MQTT (стандартен е 1883)
 const MQTT_PORT = 1883;
 
@@ -53,10 +75,27 @@ function handleSensorData(topic, payload) {
         sensorData[sensorType] = {};
       }
 
-      sensorData[sensorType][deviceId] = {
-        ...data,
-        timestamp: new Date().toISOString(),
-      };
+      // За наклонните данни, запазваме roll и pitch като отделни свойства
+      if (sensorType === "tilt") {
+        if (!sensorData[sensorType][deviceId]) {
+          sensorData[sensorType][deviceId] = {};
+        }
+
+        const sensorSubType = data.sensor_type; // "roll" или "pitch"
+        sensorData[sensorType][deviceId][sensorSubType] = {
+          value: data.value,
+          unit: data.unit,
+          sensor_type: sensorSubType,
+          device_id: data.device_id,
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        // За другите сензори, запазваме както преди
+        sensorData[sensorType][deviceId] = {
+          ...data,
+          timestamp: new Date().toISOString(),
+        };
+      }
 
       console.log(
         `💾 Запазени данни: ${sensorType}/${deviceId} = ${data.value}${
@@ -86,4 +125,5 @@ module.exports = {
   aedes,
   getSensorData,
   handleSensorData,
+  setupWebSocket,
 };
