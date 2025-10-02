@@ -3,9 +3,7 @@
 
 const express = require("express");
 const http = require("http");
-const net = require("net");
 const { Server } = require("socket.io");
-const aedes = require("aedes")();
 
 // Импортираме middleware-ите
 const corsMiddleware = require("./middleware/cors");
@@ -14,6 +12,9 @@ const loggerMiddleware = require("./middleware/logger");
 // Импортираме routes
 const mainRoutes = require("./routes/main");
 const notFoundRoutes = require("./routes/404");
+
+// Импортираме MQTT broker
+const setupMQTTBroker = require("./mqtt/broker");
 
 // Импортираме Socket.io handler
 const setupSocketIO = require("./socket/socketHandler");
@@ -45,14 +46,11 @@ app.use("/", mainRoutes);
 // 404 handler - трябва да е последен!
 app.use(notFoundRoutes);
 
+// Инициализираме MQTT broker
+const aedes = setupMQTTBroker();
+
 // Инициализираме Socket.io с MQTT Bridge
 setupSocketIO(io, aedes);
-
-// Стартираме MQTT broker на порт 1883
-const mqttServer = net.createServer(aedes.handle);
-mqttServer.listen(1883, () => {
-  console.log(`🔌 MQTT Broker (Aedes) running on port 1883`);
-});
 
 // Стартираме HTTP + WebSocket сървъра на порт 3000
 const PORT = 3000;
