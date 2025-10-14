@@ -9,6 +9,13 @@ const setupSocketIO = (io, aedes) => {
     timestamp: null,
   };
 
+  // Health check за модулите
+  let moduleLastSeen = {
+    "temperature-sensor": null,
+    "water-sensor": null,
+    // Добави други модули тук
+  };
+
   // MQTT ↔ WebSocket Bridge - слушаме Aedes broker директно
   aedes.on("publish", (packet, client) => {
     const topic = packet.topic;
@@ -25,8 +32,10 @@ const setupSocketIO = (io, aedes) => {
       // Обновяваме данните
       if (sensorType === "temperature") {
         sensorData.temperature = value;
+        moduleLastSeen["temperature-sensor"] = Date.now();
       } else if (sensorType === "humidity") {
         sensorData.humidity = value;
+        moduleLastSeen["temperature-sensor"] = Date.now();
       }
 
       sensorData.timestamp = new Date().toISOString();
@@ -57,6 +66,56 @@ const setupSocketIO = (io, aedes) => {
       console.log("❌ Frontend се изключи");
     });
   });
+
+  // Health Check - проверяваме модулите на всеки 5 секунди
+  setInterval(() => {
+    const now = Date.now();
+    const HEALTH_CHECK_TIMEOUT = 10000; // 10 секунди
+
+    Object.keys(moduleLastSeen).forEach((moduleId) => {
+      const lastSeen = moduleLastSeen[moduleId];
+      const timeSinceLastMessage = now - lastSeen;
+
+      if (lastSeen === null) {
+        // Модулът никога не е пращал съобщение
+        console.log(`⚠️ Module ${moduleId} never sent data`);
+        forceUpdateModule(moduleId);
+      } else if (timeSinceLastMessage > HEALTH_CHECK_TIMEOUT) {
+        // Модулът не е пращал съобщение за 10+ секунди
+        console.log(
+          `⚠️ Module ${moduleId} offline for ${Math.round(
+            timeSinceLastMessage / 1000
+          )}s - forcing update`
+        );
+        forceUpdateModule(moduleId);
+      } else {
+        // Модулът е активен
+        console.log(
+          `✅ Module ${moduleId} is healthy (last seen ${Math.round(
+            timeSinceLastMessage / 1000
+          )}s ago)`
+        );
+      }
+    });
+  }, 5000); // Проверяваме на всеки 5 секунди
+
+  // Функция за force update на модул
+  function forceUpdateModule(moduleId) {
+    const topic = `smartcamper/commands/${moduleId}/force_update`;
+    const message = "ping";
+
+    aedes.publish(
+      {
+        topic: topic,
+        payload: message,
+        qos: 0,
+        retain: false,
+      },
+      () => {
+        console.log(`🔄 Force update sent to ${moduleId}`);
+      }
+    );
+  }
 };
 
 module.exports = setupSocketIO;

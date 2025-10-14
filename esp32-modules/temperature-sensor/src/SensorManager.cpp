@@ -1,17 +1,29 @@
 // Temperature Sensor Manager Implementation
 // Специфична логика за температурен сензор
 
+#include "Config.h"
 #include "SensorManager.h"
 
-SensorManager::SensorManager() {
+// Статичен указател към текущия инстанс
+SensorManager* SensorManager::currentInstance = nullptr;
+
+SensorManager::SensorManager() : dht(25, DHT22), commandHandler(&mqttManager, this, "temperature-sensor") {
   lastSensorRead = 0;
   lastTemperature = 0.0;
   lastHumidity = 0.0;
+  forceUpdateRequested = false;
+  
+  // Задаваме текущия инстанс за статичните методи
+  currentInstance = this;
 }
 
 void SensorManager::begin() {
   Serial.begin(115200);
   Serial.println("🌡️ Temperature Sensor Module Starting...");
+  
+  // Инициализираме DHT сензора
+  dht.begin();
+  Serial.println("🌡️ AM2301 DHT22 sensor initialized on pin 25");
   
   // Инициализираме мрежата
   networkManager.begin();
@@ -20,9 +32,10 @@ void SensorManager::begin() {
   mqttManager.begin();
   
   // Настройваме callback за команди
-  mqttManager.setCallback([this](char* topic, byte* payload, unsigned int length) {
-    this->handleMQTTMessage(topic, payload, length);
-  });
+  mqttManager.setCallback(handleMQTTMessage);
+  
+  // Инициализираме Command Handler
+  commandHandler.begin();
   
   Serial.println("✅ Temperature Sensor Module Ready!");
 }
@@ -34,85 +47,92 @@ void SensorManager::loop() {
   // Обновяваме MQTT
   mqttManager.loop();
   
-  // Четем сензорите на интервали
+  // Обновяваме Command Handler
+  commandHandler.loop();
+  
+  // Четем сензорите на интервали ИЛИ при force update
   unsigned long currentTime = millis();
-  if (currentTime - lastSensorRead > SENSOR_READ_INTERVAL) {
+  if (currentTime - lastSensorRead > SENSOR_READ_INTERVAL || forceUpdateRequested) {
     lastSensorRead = currentTime;
     
     if (networkManager.isWiFiConnected() && mqttManager.isMQTTConnected()) {
-      // Генерираме симулирани данни
-      float temperature = generateSimulatedTemperature();
-      float humidity = generateSimulatedHumidity();
+      // Четем реални данни от AM2301
+      float temperature = readTemperature();
+      float humidity = readHumidity();
       
-      // Публикуваме данните
-      mqttManager.publishSensorData("temperature", temperature);
-      mqttManager.publishSensorData("humidity", humidity);
+      // Закръгляме данните
+      temperature = round(temperature * 10) / 10;  // До 1 десетичен знак (23.4°C)
+      humidity = round(humidity);                  // До цяло число (65%)
       
-      // Запазваме за сравнение
-      lastTemperature = temperature;
-      lastHumidity = humidity;
-      
-      Serial.println("📊 Sensor Data:");
-      Serial.println("  Temperature: " + String(temperature) + "°C");
-      Serial.println("  Humidity: " + String(humidity) + "%");
+      // Публикуваме данните само ако са валидни И има промяна
+      if (!isnan(temperature) && !isnan(humidity)) {
+        bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
+        bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
+        
+        if (tempChanged || humidityChanged || lastTemperature == 0.0) {
+          // Публикуваме само променените данни
+          if (tempChanged || lastTemperature == 0.0) {
+            mqttManager.publishSensorData("temperature", temperature);
+            Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
+          }
+          
+          if (humidityChanged || lastHumidity == 0.0) {
+            mqttManager.publishSensorData("humidity", humidity);
+            Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));
+          }
+          
+          // Запазваме за сравнение
+          lastTemperature = temperature;
+          lastHumidity = humidity;
+        }
+        // Ако няма промяна - не печатаме нищо
+        
+        // Ресетираме force update флага
+        forceUpdateRequested = false;
+      } else {
+        Serial.println("❌ Invalid sensor readings!");
+        forceUpdateRequested = false;
+      }
     }
   }
 }
 
-float SensorManager::generateSimulatedTemperature() {
-  // Симулираме температура между 20-30°C с малки промени
-  static float baseTemp = 25.0;
-  static float direction = 0.1;
+float SensorManager::readTemperature() {
+  // Четем температура от AM2301
+  float temp = dht.readTemperature();
   
-  baseTemp += direction;
-  
-  // Обръщаме посоката на границите
-  if (baseTemp > 30.0) {
-    baseTemp = 30.0;
-    direction = -0.1;
-  } else if (baseTemp < 20.0) {
-    baseTemp = 20.0;
-    direction = 0.1;
+  if (isnan(temp)) {
+    Serial.println("❌ Failed to read temperature from AM2301");
+    return NAN;
   }
   
-  // Добавяме малко шум
-  float noise = (random(-10, 11) / 100.0);
-  return baseTemp + noise;
+  return temp;
 }
 
-float SensorManager::generateSimulatedHumidity() {
-  // Симулираме влажност между 40-80% с малки промени
-  static float baseHumidity = 60.0;
-  static float direction = 0.2;
+float SensorManager::readHumidity() {
+  // Четем влажност от AM2301
+  float humidity = dht.readHumidity();
   
-  baseHumidity += direction;
-  
-  // Обръщаме посоката на границите
-  if (baseHumidity > 80.0) {
-    baseHumidity = 80.0;
-    direction = -0.2;
-  } else if (baseHumidity < 40.0) {
-    baseHumidity = 40.0;
-    direction = 0.2;
+  if (isnan(humidity)) {
+    Serial.println("❌ Failed to read humidity from AM2301");
+    return NAN;
   }
   
-  // Добавяме малко шум
-  float noise = (random(-20, 21) / 100.0);
-  return baseHumidity + noise;
+  return humidity;
 }
 
+void SensorManager::handleForceUpdate() {
+  forceUpdateRequested = true;
+  if (DEBUG_SERIAL) {
+    Serial.println("🚀 Force update requested - will read sensor on next loop");
+  }
+}
+
+// Статичен MQTT callback метод
 void SensorManager::handleMQTTMessage(char* topic, byte* payload, unsigned int length) {
-  String message = "";
-  for (int i = 0; i < length; i++) {
-    message += (char)payload[i];
+  if (currentInstance) {
+    currentInstance->commandHandler.handleMQTTMessage(topic, payload, length);
   }
-  
-  Serial.println("📨 Received MQTT command:");
-  Serial.println("  Topic: " + String(topic));
-  Serial.println("  Message: " + message);
-  
-  // Тук можеш да добавиш логика за команди
-  // Например: включване/изключване на сензора
 }
 
 void SensorManager::printStatus() {

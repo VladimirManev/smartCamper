@@ -540,5 +540,412 @@ curl http://localhost:3000/health  # Health check
 
 ---
 
-**Последно обновяване:** 2025-10-01
-**Статус:** Backend + Frontend + WebSocket комуникация готови ✅
+## 🚀 Етап 4: ESP32 Universal Framework
+
+### Стъпка 4.1: Проектна структура за ESP32
+
+**Цел:** Универсален framework за всички ESP32 модули
+
+```
+esp32-modules/
+├── common/                    # Общи компоненти
+│   ├── Config.h              # Централизирани настройки
+│   ├── NetworkManager.h      # WiFi управление
+│   ├── NetworkManager.cpp
+│   ├── MQTTManager.h         # MQTT комуникация
+│   └── MQTTManager.cpp
+└── temperature-sensor/        # Конкретен модул
+    ├── platformio.ini        # PlatformIO конфигурация
+    ├── include/
+    │   └── SensorManager.h   # Сензорна логика
+    └── src/
+        ├── SensorManager.cpp
+        └── main.cpp          # Главен файл
+```
+
+### Стъпка 4.2: Config.h - Централизирани настройки
+
+```cpp
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi Credentials
+#define WIFI_SSID "SmartCamper_WiFi"
+#define WIFI_PASSWORD "smartcamper123"
+
+// MQTT Broker Settings
+#define MQTT_BROKER_IP "192.168.1.100"  // Raspberry Pi IP
+#define MQTT_BROKER_PORT 1883
+
+// Device Specific
+#define DEVICE_ID "smartcamper_temp_01"
+
+// Sensor Topics
+#define MQTT_TOPIC_TEMP "smartcamper/sensors/temperature"
+#define MQTT_TOPIC_HUMIDITY "smartcamper/sensors/humidity"
+
+// Command Topics
+#define MQTT_TOPIC_COMMAND_BASE "smartcamper/commands/"
+
+#endif
+```
+
+**Обяснение:**
+
+- `#ifndef` = предотвратява двойно включване
+- `#define` = дефинира константи
+- Централизирани настройки за лесно променяне
+
+### Стъпка 4.3: NetworkManager - WiFi управление
+
+**NetworkManager.h:**
+
+```cpp
+class NetworkManager {
+private:
+  String ssid;
+  String password;
+  bool isConnected = false;
+  int attempts = 0;
+
+public:
+  NetworkManager();
+  NetworkManager(String ssid, String password);
+  void begin();
+  void loop();
+  bool connect();
+  bool isWiFiConnected();
+  String getLocalIP();
+};
+```
+
+**NetworkManager.cpp - ключови функции:**
+
+```cpp
+void NetworkManager::begin() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid.c_str(), password.c_str());
+}
+
+bool NetworkManager::connect() {
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    attempts++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    isConnected = true;
+    return true;
+  } else {
+    isConnected = false;
+    return false;
+  }
+}
+```
+
+**Обяснение:**
+
+- `WiFi.mode(WIFI_STA)` = режим Station (ESP32 се свързва към WiFi)
+- `WiFi.begin()` = започва свързване
+- `while` цикъл = опитва се докато се свърже или достигне лимит
+- `WiFi.status()` = проверява статуса на връзката
+
+### Стъпка 4.4: MQTTManager - MQTT комуникация
+
+**MQTTManager.h:**
+
+```cpp
+class MQTTManager {
+private:
+  WiFiClient wifiClient;
+  PubSubClient mqttClient;
+  String clientId;
+  bool isConnected = false;
+  unsigned long lastReconnectAttempt = 0;
+
+public:
+  MQTTManager();
+  void begin();
+  void loop();
+  bool publishSensorData(String sensorType, String value);
+  bool publishSensorData(String sensorType, float value);
+  bool publishSensorData(String sensorType, int value);
+};
+```
+
+**MQTTManager.cpp - ключови функции:**
+
+```cpp
+void MQTTManager::begin() {
+  this->clientId = MQTT_CLIENT_ID_PREFIX + String(random(0xffff), HEX);
+  mqttClient.setClient(wifiClient);
+  mqttClient.setServer(MQTT_BROKER_IP, MQTT_BROKER_PORT);
+}
+
+void MQTTManager::loop() {
+  if (!mqttClient.connected()) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastReconnectAttempt > MQTT_RECONNECT_DELAY) {
+      lastReconnectAttempt = currentTime;
+      if (mqttClient.connect(clientId.c_str())) {
+        isConnected = true;
+      }
+    }
+  }
+  mqttClient.loop();
+}
+```
+
+**Обяснение:**
+
+- `random(0xffff)` = генерира уникален client ID
+- `mqttClient.setClient()` = използва WiFi клиента
+- `mqttClient.setServer()` = задава MQTT broker
+- `mqttClient.loop()` = поддържа връзката жива
+
+### Стъпка 4.5: SensorManager - Симулирани данни
+
+**SensorManager.h:**
+
+```cpp
+class SensorManager {
+private:
+  float simulatedTemp;
+  float simulatedHumidity;
+  unsigned long lastReadTime = 0;
+  const long READ_INTERVAL = 2000; // 2 секунди
+
+public:
+  SensorManager();
+  void begin();
+  void loop();
+  float getTemperature();
+  float getHumidity();
+  void simulateSensorData();
+};
+```
+
+**SensorManager.cpp - симулация:**
+
+```cpp
+void SensorManager::simulateSensorData() {
+  static float baseTemp = 25.0;
+  static float direction = 0.1;
+
+  baseTemp += direction;
+
+  if (baseTemp > 30.0) {
+    baseTemp = 30.0;
+    direction = -0.1;
+  } else if (baseTemp < 20.0) {
+    baseTemp = 20.0;
+    direction = 0.1;
+  }
+
+  float noise = (random(-10, 11) / 100.0);
+  simulatedTemp = baseTemp + noise;
+  simulatedHumidity = 50.0 + random(-10, 11);
+}
+```
+
+**Обяснение:**
+
+- `static` променливи = запазват стойност между извикванията
+- `baseTemp += direction` = променя температурата плавно
+- `random(-10, 11)` = добавя шум (-0.1 до +0.1)
+- Граници 20-30°C за реалистични стойности
+
+### Стъпка 4.6: Main.cpp - Интеграция
+
+```cpp
+#include <Arduino.h>
+#include "Config.h"
+#include "NetworkManager.h"
+#include "MQTTManager.h"
+#include "SensorManager.h"
+
+SensorManager sensorManager;
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("🌡️ Temperature Sensor Module Starting...");
+
+  sensorManager.begin();
+}
+
+void loop() {
+  sensorManager.loop();
+
+  static unsigned long lastPublishTime = 0;
+  if (millis() - lastPublishTime > SENSOR_READ_INTERVAL) {
+    float temp = sensorManager.getTemperature();
+    float humid = sensorManager.getHumidity();
+
+    char tempStr[8];
+    dtostrf(temp, 1, 1, tempStr);
+    mqttManager.publishSensorData("temperature", tempStr);
+
+    char humidStr[8];
+    dtostrf(humid, 1, 1, humidStr);
+    mqttManager.publishSensorData("humidity", humidStr);
+
+    lastPublishTime = millis();
+  }
+}
+```
+
+**Обяснение:**
+
+- `setup()` = изпълнява се веднъж при стартиране
+- `loop()` = изпълнява се непрекъснато
+- `static` променливи = запазват стойност между извикванията
+- `dtostrf()` = преобразува float в текст
+- `millis()` = време в милисекунди от стартиране
+
+### Стъпка 4.7: PlatformIO конфигурация
+
+**platformio.ini:**
+
+```ini
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+monitor_speed = 115200
+lib_deps =
+    knolleary/PubSubClient@^2.8
+build_flags =
+    -I ../common
+```
+
+**Обяснение:**
+
+- `platform = espressif32` = ESP32 платформа
+- `board = esp32dev` = ESP32 DevKit
+- `framework = arduino` = Arduino framework
+- `lib_deps` = MQTT библиотека
+- `build_flags` = включва common папката
+
+---
+
+## 📚 Научени концепции (ESP32)
+
+### C++ основи
+
+**Класове:**
+
+```cpp
+class ClassName {
+private:
+  // Само класът може да достъпва
+public:
+  // Всеки може да използва
+};
+```
+
+**Конструктори:**
+
+```cpp
+ClassName() {
+  // Инициализация
+}
+```
+
+**Static променливи:**
+
+```cpp
+static int counter = 0;  // Запазва стойност между извикванията
+```
+
+### ESP32 специфично
+
+**WiFi:**
+
+```cpp
+WiFi.mode(WIFI_STA);           // Station режим
+WiFi.begin(ssid, password);    // Свързване
+WiFi.status() == WL_CONNECTED // Проверка на статуса
+```
+
+**MQTT:**
+
+```cpp
+PubSubClient mqttClient;      // MQTT клиент
+mqttClient.setServer(ip, port); // Broker настройки
+mqttClient.publish(topic, msg); // Публикуване
+```
+
+**Timing:**
+
+```cpp
+millis()                    // Време в ms от стартиране
+delay(1000)                 // Изчакване 1 секунда
+```
+
+### Архитектурни принципи
+
+**1. Separation of Concerns:**
+
+- NetworkManager = само WiFi
+- MQTTManager = само MQTT
+- SensorManager = само сензори
+
+**2. Универсалност:**
+
+- Common компоненти за всички модули
+- Лесно добавяне на нови сензори
+- Еднаква структура за всички ESP32
+
+**3. Симулация:**
+
+- Без реални сензори за тестване
+- Реалистични данни
+- Лесно преминаване към реални сензори
+
+---
+
+## 🎯 Следващи стъпки (актуализирано)
+
+### ESP32 модули
+
+- [ ] Тестване на реална платка
+- [ ] Конфигуриране на WiFi/MQTT IP адреси
+- [ ] Добавяне на реални сензори (DHT22, MPU6050)
+- [ ] Error handling и reconnection логика
+- [ ] OTA (Over-The-Air) updates
+
+### Backend
+
+- [ ] MQTT broker (Aedes) интеграция
+- [ ] MQTT ↔ WebSocket bridge
+- [ ] MongoDB за история
+- [ ] API endpoints за история
+
+### Frontend
+
+- [ ] Още сензорни карти
+- [ ] Графики (история)
+- [ ] Контрол на релета
+- [ ] Настройки
+
+---
+
+## 🔧 Полезни команди (ESP32)
+
+```bash
+# PlatformIO
+pio run                    # Компилиране
+pio run --target upload    # Качване на платката
+pio device monitor         # Сериен монитор
+
+# Тестване
+# 1. Конфигурирай WiFi/MQTT IP в Config.h
+# 2. Компилирай и качи на ESP32
+# 3. Отвори сериен монитор (115200 baud)
+# 4. Проверявай MQTT съобщения в backend
+```
+
+---
+
+**Последно обновяване:** 2025-10-02
+**Статус:** Backend + Frontend + WebSocket + ESP32 Framework готови ✅
