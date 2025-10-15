@@ -1,39 +1,197 @@
+/* Reset и основен стил */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  min-height: 100vh;
+  color: #ecf0f1;
+}
+
 .app {
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3rem;
+  position: relative;
 }
 
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
+/* Статус икони - горе вляво */
+.status-icons {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  gap: 1rem;
+  z-index: 10;
 }
 
-.status {
-  background-color: #f0f0f0;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
+.status-item {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
 }
 
+.status-item i {
+  color: #ff6b6b !important; /* Default offline color */
+}
+
+.status-item .online {
+  color: #b3e5b3 !important;
+  text-shadow: 0 0 20px rgba(179, 229, 179, 0.8) !important;
+}
+
+.status-item .offline {
+  color: #ff6b6b !important;
+  text-shadow: 0 0 20px rgba(255, 107, 107, 0.8) !important;
+}
+
+.status-item:hover {
+  transform: scale(1.2);
+}
+
+/* Сензорни карти контейнер */
+.sensor-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Сензорни карти */
 .sensor-card {
-  background-color: #ffffff;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border: 1px solid rgba(179, 229, 179, 0.3);
+  border-radius: 20px;
   padding: 2rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 40px rgba(179, 229, 179, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.sensor-card h2 {
-  margin-top: 0;
-  color: #333;
+.sensor-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(179, 229, 179, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.sensor-card:hover::before {
+  left: 100%;
+}
+
+.sensor-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 60px rgba(179, 229, 179, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.sensor-card i {
+  color: #b3e5b3;
+  font-size: 2rem;
+  margin-bottom: 1rem;
 }
 
 .value {
-  font-size: 3rem;
-  font-weight: bold;
-  color: #007bff;
-  margin: 1rem 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(45deg, #b3e5b3, #27ae60);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  min-width: 120px; /* Фиксирана ширина за да не се свива с тиретата */
+  text-align: center;
+}
+
+.sensor-card:hover .value {
+  transform: scale(1.05);
+}
+
+/* Responsive дизайн */
+@media (max-width: 768px) {
+  .app {
+    padding: 1rem;
+    gap: 2rem;
+  }
+
+  .status-icons {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+
+  .status-item {
+    font-size: 1.5rem;
+  }
+
+  .sensor-cards {
+    max-width: 300px;
+    gap: 1.5rem;
+  }
+
+  .sensor-card {
+    padding: 1.5rem;
+  }
+
+  .value {
+    font-size: 2rem;
+  }
+
+  .sensor-card i {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-icons {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+
+  .status-item {
+    font-size: 1.2rem;
+  }
+
+  .sensor-cards {
+    grid-template-columns: 1fr;
+    max-width: 200px;
+  }
+
+  .value {
+    font-size: 1.8rem;
+  }
+
+  .sensor-card i {
+    font-size: 1.5rem;
+  }
 }

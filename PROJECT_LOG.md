@@ -235,6 +235,153 @@ curl http://localhost:3000/unknown   # 404 тест
 
 ---
 
+## 🚀 Етап 5: Real AM2301 Sensor Integration
+
+### Стъпка 5.1: Hardware Setup
+
+**Сензор:** AM2301 (DHT22) - комбиниран температурен и влажностен сензор
+**Връзка:** ESP32 Pin 25 → AM2301 Signal (Data)
+**Захранване:** ESP32 3.3V → AM2301 VCC, ESP32 GND → AM2301 GND
+
+### Стъпка 5.2: Software Integration
+
+**Библиотеки добавени:**
+```ini
+lib_deps = 
+    knolleary/PubSubClient@^2.8
+    adafruit/DHT sensor library@^1.4.4
+    adafruit/Adafruit Unified Sensor@^1.1.14
+```
+
+**Конфигурация:**
+```cpp
+// Config.h
+#define WIFI_SSID "Zaqci"
+#define WIFI_PASSWORD "12344321"
+#define MQTT_BROKER_IP "192.168.1.191"
+#define SENSOR_READ_INTERVAL 1000    // 1 секунда
+#define TEMP_THRESHOLD 0.1           // 0.1°C промяна
+#define HUMIDITY_THRESHOLD 1.0       // 1% промяна
+```
+
+### Стъпка 5.3: Real Sensor Implementation
+
+**SensorManager.cpp промени:**
+```cpp
+// Инициализация на DHT22 сензора
+SensorManager::SensorManager() : dht(25, DHT22) {
+  // ...
+}
+
+// Четене на реални данни
+float SensorManager::readTemperature() {
+  float temp = dht.readTemperature();
+  if (isnan(temp)) {
+    Serial.println("❌ Failed to read temperature from AM2301");
+    return NAN;
+  }
+  return temp;
+}
+
+float SensorManager::readHumidity() {
+  float humidity = dht.readHumidity();
+  if (isnan(humidity)) {
+    Serial.println("❌ Failed to read humidity from AM2301");
+    return NAN;
+  }
+  return humidity;
+}
+```
+
+**Оптимизация на данните:**
+```cpp
+// Закръгляне на данните
+temperature = round(temperature * 10) / 10;  // До 1 десетичен знак (23.4°C)
+humidity = round(humidity);                  // До цяло число (65%)
+
+// Пращане само при промяна
+bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
+bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
+```
+
+### Стъпка 5.4: Force Update System
+
+**CommandHandler.h:**
+```cpp
+class CommandHandler {
+private:
+  MQTTManager* mqttManager;
+  SensorManager* sensorManager;
+  String moduleType;
+  
+public:
+  CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String moduleType);
+  void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
+  void forceUpdate();
+};
+```
+
+**Backend Health Check:**
+```javascript
+// socketHandler.js
+setInterval(() => {
+  const now = Date.now();
+  const HEALTH_CHECK_TIMEOUT = 10000; // 10 секунди
+
+  Object.keys(moduleLastSeen).forEach((moduleId) => {
+    const lastSeen = moduleLastSeen[moduleId];
+    const timeSinceLastMessage = now - lastSeen;
+
+    if (timeSinceLastMessage > HEALTH_CHECK_TIMEOUT) {
+      console.log(`⚠️ Module ${moduleId} offline for ${Math.round(timeSinceLastMessage/1000)}s - forcing update`);
+      forceUpdateModule(moduleId);
+    }
+  });
+}, 5000);
+```
+
+### Стъпка 5.5: Testing Results
+
+**ESP32 Serial Monitor:**
+```
+🌡️ Temperature Sensor Module Starting...
+🌡️ AM2301 DHT22 sensor initialized on pin 25
+Connecting to WiFi: Zaqci
+✅ WiFi connected!
+IP: 192.168.1.XXX
+🔌 MQTT Manager initialized
+Attempting MQTT connection...
+✅ MQTT connected!
+📨 Command Handler initialized for: temperature-sensor
+✅ Temperature Sensor Module Ready!
+Published: smartcamper/sensors/temperature = 23.5
+Published: smartcamper/sensors/humidity = 66
+```
+
+**Backend Console:**
+```
+📨 MQTT публикуване: smartcamper/sensors/temperature = 23.50
+📨 MQTT: smartcamper/sensors/temperature = 23.50
+✅ Module temperature-sensor is healthy (last seen 2s ago)
+🔄 Force update sent to temperature-sensor
+```
+
+**Frontend Dashboard:**
+- Статус: Онлайн ✅
+- Температура: 23.5°C (real-time)
+- Влажност: 66% (real-time)
+
+### Стъпка 5.6: Achieved Features
+
+✅ **Real Hardware Integration** - AM2301 сензор работи с ESP32
+✅ **Force Update System** - Backend може да форсира данни от ESP32
+✅ **Health Check Monitoring** - Автоматично открива offline модули
+✅ **Optimized Communication** - Праща данни само при промяна
+✅ **Real-time Dashboard** - Данните се обновяват моментално
+✅ **Production Ready** - Стабилна система готова за използване
+
+---
+
 ## 🚀 Етап 2: Frontend Setup (React + Vite)
 
 ### Стъпка 2.1: Vite инициализация

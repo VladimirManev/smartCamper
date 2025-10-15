@@ -18,6 +18,7 @@ private:
   DHT dht;
   
   unsigned long lastSensorRead;
+  unsigned long lastDataSent;        // Последно изпращане на данни
   float lastTemperature;
   float lastHumidity;
   bool forceUpdateRequested;

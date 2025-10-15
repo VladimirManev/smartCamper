@@ -7,6 +7,7 @@ function App() {
   const [temperature, setTemperature] = useState(null);
   const [humidity, setHumidity] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [esp32Connected, setEsp32Connected] = useState(false);
 
   // useEffect = изпълнява се когато компонентът се зареди
   useEffect(() => {
@@ -17,47 +18,74 @@ function App() {
     socket.on("connect", () => {
       console.log("✅ Свързан с backend");
       setConnected(true);
+      // ESP32 статусът остава false докато не получим данни
+      setEsp32Connected(false); // Принудително reset ESP32 статуса
     });
 
     // Когато се изключим
     socket.on("disconnect", () => {
       console.log("❌ Изключен от backend");
       setConnected(false);
+      setEsp32Connected(false); // Reset ESP32 status on backend disconnect
     });
+
+    // Timeout за ESP32 - глобална променлива
+    let esp32Timeout;
 
     // Слушаме за обновления на сензорите
     socket.on("sensorUpdate", (data) => {
       console.log("📊 Нови данни:", data);
       setTemperature(data.temperature);
       setHumidity(data.humidity);
+      setEsp32Connected(true);
+
+      // Рестартираме timeout-а всеки път когато получаваме данни
+      clearTimeout(esp32Timeout);
+      esp32Timeout = setTimeout(() => {
+        setEsp32Connected(false);
+        setTemperature(null); // Изчистваме температурата
+        setHumidity(null); // Изчистваме влажността
+      }, 30000); // 30 секунди timeout (20 секунди резерв след ESP32 heartbeat)
     });
+
+    // НЕ стартираме timeout веднага - иконата трябва да е червена до получаване на данни
 
     // Cleanup функция - изключва socket когато компонентът се unmount-не
     return () => {
       socket.disconnect();
+      clearTimeout(esp32Timeout);
     };
   }, []); // [] = изпълни само веднъж при зареждане
 
   return (
     <div className="app">
-      <h1>🚐 SmartCamper Dashboard</h1>
-
-      <div className="status">
-        <p>Статус: {connected ? "Онлайн ✅" : "Офлайн ❌"}</p>
+      <div className="status-icons">
+        <span className="status-item">
+          <i
+            className={`fas fa-circle ${connected ? "online" : "offline"}`}
+          ></i>
+        </span>
+        <span className="status-item">
+          <i
+            className={`fas fa-thermometer-half ${
+              esp32Connected ? "online" : "offline"
+            }`}
+          ></i>
+        </span>
       </div>
 
-      <div className="sensor-card">
-        <h2>🌡️ Температура</h2>
-        <p className="value">
-          {temperature !== null ? `${temperature}°C` : "Зарежда..."}
-        </p>
-      </div>
+      <div className="sensor-cards">
+        <div className="sensor-card">
+          <i className="fas fa-thermometer-half"></i>
+          <p className="value">
+            {temperature !== null ? `${temperature.toFixed(1)}°C` : "—"}
+          </p>
+        </div>
 
-      <div className="sensor-card">
-        <h2>💧 Влажност</h2>
-        <p className="value">
-          {humidity !== null ? `${humidity}%` : "Зарежда..."}
-        </p>
+        <div className="sensor-card">
+          <i className="fas fa-tint"></i>
+          <p className="value">{humidity !== null ? `${humidity}%` : "—"}</p>
+        </div>
       </div>
     </div>
   );

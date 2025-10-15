@@ -20,6 +20,7 @@
 
 // Timing настройки
 #define SENSOR_READ_INTERVAL 1000    // 1 секунда
+#define HEARTBEAT_INTERVAL 10000     // 10 секунди - гарантирано изпращане
 #define MQTT_RECONNECT_DELAY 5000    // 5 секунди
 #define WIFI_RECONNECT_DELAY 10000   // 10 секунди
 

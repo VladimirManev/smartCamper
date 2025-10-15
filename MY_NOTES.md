@@ -12,6 +12,8 @@
 - ✅ Socket.io интеграция за real-time комуникация
 - ✅ MQTT broker (Aedes) интеграция
 - ✅ MQTT ↔ WebSocket bridge
+- ✅ Health Check система - мониторинг на модулите
+- ✅ Force Update система - форсиране на данни от ESP32
 - ✅ Главна страница и health check endpoint
 - ✅ 404 обработка
 - ✅ Логване на заявки
@@ -26,12 +28,14 @@
 - ✅ Показва температура и влажност
 - ✅ Статус на връзката (Онлайн/Офлайн)
 
-### ESP32 Framework
+### ESP32 Framework + Real Hardware
 
-- ✅ Универсален framework за всички ESP32 модули
+- ✅ Реален AM2301 (DHT22) сензор интеграция
+- ✅ CommandHandler за force update команди
+- ✅ Оптимизирана комуникация - праща само при промяна
 - ✅ NetworkManager за WiFi управление
 - ✅ MQTTManager за MQTT комуникация
-- ✅ SensorManager за симулирани данни
+- ✅ SensorManager за реални сензорни данни
 - ✅ Config.h за централизирани настройки
 - ✅ PlatformIO конфигурация
 - ✅ Модулна архитектура (separation of concerns)
@@ -59,11 +63,13 @@
 - Real-time температура (променя се на всеки 3 сек)
 - WebSocket connection status
 
-**ESP32 Framework:**
+**ESP32 Framework + Real Hardware:**
 
-- Симулирани данни за температура и влажност
-- MQTT публикуване към backend
+- Реални данни от AM2301 (DHT22) сензор
+- Оптимизирано MQTT публикуване (само при промяна)
+- Force Update команди от backend
 - WiFi управление с автоматично преподключване
+- CommandHandler за обработка на команди
 - Универсална структура за всички модули
 
 ## 📁 Структура
@@ -81,15 +87,17 @@ smartCamper/
 │       ├── App.jsx     # Главен компонент
 │       └── App.css     # Стилове
 ├── esp32-modules/       # ESP32 Universal Framework
-│   ├── common/         # Общи компоненти
-│   │   ├── Config.h    # Настройки
-│   │   ├── NetworkManager.*  # WiFi
-│   │   └── MQTTManager.*     # MQTT
-│   └── temperature-sensor/    # Конкретен модул
+│   └── temperature-sensor/    # Конкретен модул с реални сензори
 │       ├── platformio.ini
-│       ├── include/SensorManager.h
+│       ├── include/
+│       │   ├── SensorManager.h
+│       │   └── CommandHandler.h
 │       └── src/
-│           ├── SensorManager.cpp
+│           ├── Config.h           # Настройки
+│           ├── NetworkManager.*   # WiFi
+│           ├── MQTTManager.*      # MQTT
+│           ├── CommandHandler.cpp # Force Update команди
+│           ├── SensorManager.cpp  # Реални AM2301 данни
 │           └── main.cpp
 ├── PROJECT_LOG.md       # Детайлна документация
 └── MY_NOTES.md         # Този файл

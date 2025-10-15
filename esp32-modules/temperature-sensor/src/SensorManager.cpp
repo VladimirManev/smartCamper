@@ -9,6 +9,7 @@ SensorManager* SensorManager::currentInstance = nullptr;
 
 SensorManager::SensorManager() : dht(25, DHT22), commandHandler(&mqttManager, this, "temperature-sensor") {
   lastSensorRead = 0;
+  lastDataSent = 0;              // Инициализираме последното изпращане
   lastTemperature = 0.0;
   lastHumidity = 0.0;
   forceUpdateRequested = false;
@@ -64,19 +65,21 @@ void SensorManager::loop() {
       temperature = round(temperature * 10) / 10;  // До 1 десетичен знак (23.4°C)
       humidity = round(humidity);                  // До цяло число (65%)
       
-      // Публикуваме данните само ако са валидни И има промяна
+      // Публикуваме данните само ако са валидни
       if (!isnan(temperature) && !isnan(humidity)) {
         bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
         bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
+        bool heartbeatNeeded = (currentTime - lastDataSent > HEARTBEAT_INTERVAL);
         
-        if (tempChanged || humidityChanged || lastTemperature == 0.0) {
-          // Публикуваме само променените данни
-          if (tempChanged || lastTemperature == 0.0) {
+        // Публикуваме ако има промяна ИЛИ е нужен heartbeat ИЛИ е първото четене
+        if (tempChanged || humidityChanged || heartbeatNeeded || lastTemperature == 0.0) {
+          // Публикуваме само променените данни ИЛИ при heartbeat
+          if (tempChanged || heartbeatNeeded || lastTemperature == 0.0) {
             mqttManager.publishSensorData("temperature", temperature);
             Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
           }
           
-          if (humidityChanged || lastHumidity == 0.0) {
+          if (humidityChanged || heartbeatNeeded || lastHumidity == 0.0) {
             mqttManager.publishSensorData("humidity", humidity);
             Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));
           }
@@ -84,8 +87,9 @@ void SensorManager::loop() {
           // Запазваме за сравнение
           lastTemperature = temperature;
           lastHumidity = humidity;
+          lastDataSent = currentTime;  // Обновяваме времето на последното изпращане
         }
-        // Ако няма промяна - не печатаме нищо
+        // Ако няма промяна и не е нужен heartbeat - не печатаме нищо
         
         // Ресетираме force update флага
         forceUpdateRequested = false;
