@@ -141,7 +141,8 @@ void SensorManager::handleMQTTMessage(char* topic, byte* payload, unsigned int l
 
 void SensorManager::printStatus() {
   Serial.println("📊 Temperature Sensor Status:");
-  networkManager.printStatus();
+  Serial.println("  WiFi: " + String(networkManager.isWiFiConnected() ? "Connected" : "Disconnected"));
+  Serial.println("  IP: " + networkManager.getLocalIP());
   mqttManager.printStatus();
   Serial.println("  Last Temperature: " + String(lastTemperature) + "°C");
   Serial.println("  Last Humidity: " + String(lastHumidity) + "%");

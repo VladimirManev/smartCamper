@@ -246,14 +246,16 @@ curl http://localhost:3000/unknown   # 404 тест
 ### Стъпка 5.2: Software Integration
 
 **Библиотеки добавени:**
+
 ```ini
-lib_deps = 
+lib_deps =
     knolleary/PubSubClient@^2.8
     adafruit/DHT sensor library@^1.4.4
     adafruit/Adafruit Unified Sensor@^1.1.14
 ```
 
 **Конфигурация:**
+
 ```cpp
 // Config.h
 #define WIFI_SSID "Zaqci"
@@ -267,6 +269,7 @@ lib_deps =
 ### Стъпка 5.3: Real Sensor Implementation
 
 **SensorManager.cpp промени:**
+
 ```cpp
 // Инициализация на DHT22 сензора
 SensorManager::SensorManager() : dht(25, DHT22) {
@@ -294,6 +297,7 @@ float SensorManager::readHumidity() {
 ```
 
 **Оптимизация на данните:**
+
 ```cpp
 // Закръгляне на данните
 temperature = round(temperature * 10) / 10;  // До 1 десетичен знак (23.4°C)
@@ -307,13 +311,14 @@ bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
 ### Стъпка 5.4: Force Update System
 
 **CommandHandler.h:**
+
 ```cpp
 class CommandHandler {
 private:
   MQTTManager* mqttManager;
   SensorManager* sensorManager;
   String moduleType;
-  
+
 public:
   CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String moduleType);
   void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
@@ -322,6 +327,7 @@ public:
 ```
 
 **Backend Health Check:**
+
 ```javascript
 // socketHandler.js
 setInterval(() => {
@@ -333,7 +339,11 @@ setInterval(() => {
     const timeSinceLastMessage = now - lastSeen;
 
     if (timeSinceLastMessage > HEALTH_CHECK_TIMEOUT) {
-      console.log(`⚠️ Module ${moduleId} offline for ${Math.round(timeSinceLastMessage/1000)}s - forcing update`);
+      console.log(
+        `⚠️ Module ${moduleId} offline for ${Math.round(
+          timeSinceLastMessage / 1000
+        )}s - forcing update`
+      );
       forceUpdateModule(moduleId);
     }
   });
@@ -343,6 +353,7 @@ setInterval(() => {
 ### Стъпка 5.5: Testing Results
 
 **ESP32 Serial Monitor:**
+
 ```
 🌡️ Temperature Sensor Module Starting...
 🌡️ AM2301 DHT22 sensor initialized on pin 25
@@ -359,6 +370,7 @@ Published: smartcamper/sensors/humidity = 66
 ```
 
 **Backend Console:**
+
 ```
 📨 MQTT публикуване: smartcamper/sensors/temperature = 23.50
 📨 MQTT: smartcamper/sensors/temperature = 23.50
@@ -367,6 +379,7 @@ Published: smartcamper/sensors/humidity = 66
 ```
 
 **Frontend Dashboard:**
+
 - Статус: Онлайн ✅
 - Температура: 23.5°C (real-time)
 - Влажност: 66% (real-time)
@@ -1051,48 +1064,96 @@ delay(1000)                 // Изчакване 1 секунда
 
 ---
 
-## 🎯 Следващи стъпки (актуализирано)
+## 🎯 Етап 4: Heartbeat система и Frontend подобрения (2025-10-14)
 
-### ESP32 модули
+### Проблем: Нестабилна ESP32 комуникация
 
-- [ ] Тестване на реална платка
-- [ ] Конфигуриране на WiFi/MQTT IP адреси
-- [ ] Добавяне на реални сензори (DHT22, MPU6050)
-- [ ] Error handling и reconnection логика
-- [ ] OTA (Over-The-Air) updates
+**Симптоми:**
 
-### Backend
+- Frontend показваше грешен статус при ESP32 offline
+- Стойностите не се изчистваха при изключване на модула
+- Температурата променяше дължината на текста (23°C vs 23.0°C)
 
-- [ ] MQTT broker (Aedes) интеграция
-- [ ] MQTT ↔ WebSocket bridge
-- [ ] MongoDB за история
-- [ ] API endpoints за история
+### Решение 4.1: ESP32 Heartbeat система
 
-### Frontend
+**Файл:** `esp32-modules/temperature-sensor/src/Config.h`
 
-- [ ] Още сензорни карти
-- [ ] Графики (история)
-- [ ] Контрол на релета
-- [ ] Настройки
-
----
-
-## 🔧 Полезни команди (ESP32)
-
-```bash
-# PlatformIO
-pio run                    # Компилиране
-pio run --target upload    # Качване на платката
-pio device monitor         # Сериен монитор
-
-# Тестване
-# 1. Конфигурирай WiFi/MQTT IP в Config.h
-# 2. Компилирай и качи на ESP32
-# 3. Отвори сериен монитор (115200 baud)
-# 4. Проверявай MQTT съобщения в backend
+```cpp
+#define HEARTBEAT_INTERVAL 10000     // 10 секунди - гарантирано изпращане
 ```
 
+**Файл:** `esp32-modules/temperature-sensor/src/SensorManager.cpp`
+
+```cpp
+// Публикуваме ако има промяна ИЛИ е нужен heartbeat ИЛИ е първото четене
+if (tempChanged || humidityChanged || heartbeatNeeded || lastTemperature == 0.0) {
+  // ... публикуване на данни
+  lastDataSent = currentTime;  // Обновяваме времето на последното изпращане
+}
+```
+
+**Резултат:** ESP32 гарантирано праща данни на всеки 10 секунди
+
+### Решение 4.2: Frontend timeout подобрения
+
+**Файл:** `frontend/src/App.jsx`
+
+```javascript
+// Увеличаваме timeout на 30 секунди
+esp32Timeout = setTimeout(() => {
+  setEsp32Connected(false);
+  setTemperature(null); // Изчистваме температурата
+  setHumidity(null); // Изчистваме влажността
+}, 30000); // 30 секунди timeout (20 секунди резерв след ESP32 heartbeat)
+```
+
+**Резултат:** По-стабилно поведение при случайни проблеми с мрежата
+
+### Решение 4.3: Температурно форматиране
+
+**Файл:** `frontend/src/App.jsx`
+
+```javascript
+{
+  temperature !== null ? `${temperature.toFixed(1)}°C` : "—";
+}
+```
+
+**Резултат:** Винаги показва 1 десетичен знак (23.0°C вместо 23°C)
+
+### Решение 4.4: Backend stale data премахване
+
+**Файл:** `backend/socket/socketHandler.js`
+
+```javascript
+// НЕ изпращаме стари данни - frontend ще получи данни само при нови MQTT съобщения
+// Това гарантира, че иконите започват червени и стават зелени само при реални данни
+```
+
+**Резултат:** Frontend иконите започват червени при зареждане
+
+### Архитектурно решение: Запазване на Force Update логика
+
+**Причина:** Запазваме `CommandHandler` и `forceUpdate()` методи в ESP32 за бъдещи модули:
+
+- 💧 Water sensor - може да искаш да провериш нивото веднага
+- 🔋 Battery monitor - може да искаш да видиш заряда при натискане на бутон
+- 🚪 Door sensor - може да искаш да провериш статуса
+
+**Универсален код:** Всички ESP32 модули ще имат същата структура, само сензорната логика се различава.
+
 ---
 
-**Последно обновяване:** 2025-10-02
-**Статус:** Backend + Frontend + WebSocket + ESP32 Framework готови ✅
+## 🎯 Следващи стъпки
+
+1. **Нови ESP32 модули** - water sensor, battery monitor
+2. **База данни** - MongoDB за история на данните
+3. **Графики** - визуализация на исторически данни
+4. **Контрол** - управление на релета и консуматори
+5. **Мобилна оптимизация** - responsive design за телефони
+6. **Push notifications** - алерти за критични събития
+
+---
+
+**Последно обновяване:** 2025-10-14
+**Статус:** Heartbeat система + Frontend timeout handling готови ✅

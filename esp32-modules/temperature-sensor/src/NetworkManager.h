@@ -24,7 +24,6 @@ public:
   void disconnect();
   bool isWiFiConnected();
   String getLocalIP();
-  void printStatus();
 };
 
 #endif

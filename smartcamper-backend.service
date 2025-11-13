@@ -1,0 +1,17 @@
+[Unit]
+Description=SmartCamper Backend Server
+After=network.target
+
+[Service]
+Type=simple
+User=vmanev
+WorkingDirectory=/home/vmanev/smartCamper/backend
+ExecStart=/usr/bin/node /home/vmanev/smartCamper/backend/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
