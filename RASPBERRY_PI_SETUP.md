@@ -153,7 +153,119 @@ sudo systemctl restart dnsmasq
 sudo systemctl enable dnsmasq
 ```
 
-## 📋 Стъпка 9: Стартиране на backend сървъра като услуга
+## 📋 Стъпка 9: Автоматично изчистване на стари WiFi свързания
+
+**Проблем:** ESP32 не може да се свърже след рестарт, защото hostapd не освобождава автоматично старите station записи.
+
+**Решение:** Скрипт който периодично изчиства неактивни свързания чрез ping проверка.
+
+```bash
+# Създай скрипта
+sudo nano /usr/local/bin/cleanup-wifi-stations.sh
+```
+
+Постави следното:
+
+```bash
+#!/bin/bash
+# Cleanup inactive WiFi stations script
+# Removes stations that don't respond to ping (not actually connected)
+
+# Check each connected device
+iw dev wlan0 station dump 2>/dev/null | grep "Station" | awk '{print $2}' | while read MAC; do
+    if [ ! -z "$MAC" ]; then
+        # Get device information
+        STATION_INFO=$(iw dev wlan0 station get "$MAC" 2>/dev/null)
+
+        # Check if device has IP address in DHCP leases
+        DHCP_LEASE=$(cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "$MAC")
+
+        if [ -z "$DHCP_LEASE" ]; then
+            # No DHCP lease - definitely not connected, clean it up
+            echo "$(date '+%H:%M:%S'): Cleaning up station without DHCP lease: $MAC"
+            sudo iw dev wlan0 station del "$MAC" 2>/dev/null
+        else
+            # Extract IP address from DHCP lease (format: timestamp mac ip hostname)
+            IP_ADDRESS=$(echo "$DHCP_LEASE" | awk '{print $3}')
+
+            if [ ! -z "$IP_ADDRESS" ]; then
+                # Ping the device (1 ping, 1 second timeout)
+                if ping -c 1 -W 1 "$IP_ADDRESS" > /dev/null 2>&1; then
+                    # Device responds to ping - keep it
+                    echo "$(date '+%H:%M:%S'): Keeping station that responds to ping: $MAC ($IP_ADDRESS)"
+                else
+                    # Device doesn't respond to ping - clean it up
+                    echo "$(date '+%H:%M:%S'): Cleaning up station that doesn't respond to ping: $MAC ($IP_ADDRESS)"
+                    sudo iw dev wlan0 station del "$MAC" 2>/dev/null
+                fi
+            else
+                # No IP address in lease - clean it up
+                echo "$(date '+%H:%M:%S'): Cleaning up station with invalid lease: $MAC"
+                sudo iw dev wlan0 station del "$MAC" 2>/dev/null
+            fi
+        fi
+    fi
+done
+```
+
+```bash
+# Направи го изпълним
+sudo chmod +x /usr/local/bin/cleanup-wifi-stations.sh
+
+# Създай systemd service
+sudo nano /etc/systemd/system/cleanup-wifi-stations.service
+```
+
+Постави:
+
+```
+[Unit]
+Description=Cleanup inactive WiFi stations
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/cleanup-wifi-stations.sh
+```
+
+```bash
+# Създай systemd timer (на всеки 30 секунди)
+sudo nano /etc/systemd/system/cleanup-wifi-stations.timer
+```
+
+Постави:
+
+```
+[Unit]
+Description=Cleanup WiFi stations timer
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+# Активирай timer
+sudo systemctl daemon-reload
+sudo systemctl enable cleanup-wifi-stations.timer
+sudo systemctl start cleanup-wifi-stations.timer
+
+# Проверка
+sudo systemctl status cleanup-wifi-stations.timer
+```
+
+**Важно:** Скриптът изчиства само устройства които:
+
+- Нямат DHCP lease ИЛИ
+- Не отговарят на ping
+
+Ако устройството е активно свързано и комуникира, ще отговаря на ping и няма да се изчисти.
+
+**Потенциален проблем:** Устройства които не отговарят на ping по дизайн (firewall/security) могат да се изчистват по грешка. В този случай те ще се свържат отново автоматично.
+
+## 📋 Стъпка 10: Стартиране на backend сървъра като услуга
 
 ```bash
 # Първо определи твоя потребител и път
@@ -207,7 +319,7 @@ sudo systemctl status smartcamper-backend
 - Проверка на пътя: `ls -la ~/smartCamper/backend/server.js`
 - Обнови `User=` и `WorkingDirectory=` в service файла с правилните стойности
 
-## 📋 Стъпка 10: Проверка
+## 📋 Стъпка 11: Проверка
 
 ```bash
 # Проверка на hostapd
@@ -300,5 +412,43 @@ sudo systemctl restart dhcpcd
 
 ---
 
-**Последно обновяване:** 2025-11-13  
-**Включва:** Systemd service настройка с troubleshooting за CHDIR грешки
+---
+
+## ⚠️ Важни бележки
+
+### WiFi Cleanup Script - Потенциални проблеми
+
+**Как работи:**
+
+- Скриптът ping-ва всички свързани устройства на всеки 30 секунди
+- Ако устройството не отговаря на ping → изчиства station записа
+- Това позволява на ESP32 да се свърже отново след рестарт
+
+**Потенциални проблеми:**
+
+1. **Устройства които не отговарят на ping:**
+
+   - Някои устройства може да имат firewall който блокира ping
+   - В този случай ще се изчистват по грешка, но ще се свържат отново
+   - За ESP32 това не е проблем (отговаря на ping)
+
+2. **Много устройства:**
+
+   - Ако има много устройства, ping-ването може да отнеме време
+   - Използваме 1 секунда timeout, така че е бързо
+   - При 10 устройства = максимум 10 секунди
+
+3. **False positives:**
+   - Временни мрежови проблеми могат да причинят неуспешен ping
+   - Но следващия път (след 30 секунди) ще се провери отново
+   - Ако устройството е активно, ще отговори на следващия ping
+
+**Заключение:** Скриптът е безопасен за нормална употреба. ESP32 и повечето IoT устройства отговарят на ping и няма проблеми.
+
+---
+
+**Последно обновяване:** 2025-11-26  
+**Включва:**
+
+- Systemd service настройка с troubleshooting за CHDIR грешки
+- WiFi cleanup script за автоматично изчистване на стари свързания
