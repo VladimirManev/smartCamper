@@ -9,6 +9,7 @@ MQTTManager::MQTTManager() {
   this->brokerPort = MQTT_BROKER_PORT;
   this->lastReconnectAttempt = 0;
   this->isConnected = false;
+  this->failedAttempts = 0;
   
   mqttClient.setClient(wifiClient);
 }
@@ -19,6 +20,7 @@ MQTTManager::MQTTManager(String clientId, String brokerIP, int brokerPort) {
   this->brokerPort = brokerPort;
   this->lastReconnectAttempt = 0;
   this->isConnected = false;
+  this->failedAttempts = 0;
   
   mqttClient.setClient(wifiClient);
 }
@@ -34,18 +36,56 @@ void MQTTManager::begin() {
 }
 
 void MQTTManager::loop() {
+  // Проверяваме WiFi статуса директно
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  loop(wifiConnected);
+}
+
+void MQTTManager::loop(bool wifiConnected) {
   if (!mqttClient.connected()) {
+    // Ако WiFi не е свързан, не се опитваме да се реконектираме към MQTT
+    if (!wifiConnected) {
+      if (DEBUG_SERIAL && failedAttempts == 0) {
+        Serial.println("⚠️ MQTT: WiFi not connected, waiting...");
+      }
+      failedAttempts = 0;  // Нулираме брояча ако WiFi не е свързан
+      return;
+    }
+    
     unsigned long currentTime = millis();
     if (currentTime - lastReconnectAttempt > MQTT_RECONNECT_DELAY) {
       lastReconnectAttempt = currentTime;
-      connect();
+      bool connected = connect();
+      
+      if (connected) {
+        failedAttempts = 0;  // Нулираме брояча при успешна връзка
+      } else {
+        failedAttempts++;
+        
+        // Ако имаме много неуспешни опити (10+), може да има проблем с WiFi
+        if (failedAttempts >= 10 && DEBUG_SERIAL) {
+          Serial.println("⚠️ MQTT: Many failed attempts (" + String(failedAttempts) + "), check WiFi connection");
+          Serial.println("WiFi Status: " + String(WiFi.status()));
+          Serial.println("WiFi RSSI: " + String(WiFi.RSSI()) + " dBm");
+        }
+      }
     }
   } else {
     mqttClient.loop();
+    failedAttempts = 0;  // Нулираме брояча ако сме свързани
   }
 }
 
 bool MQTTManager::connect() {
+  // Проверяваме дали WiFi е свързан преди опит за MQTT реконекция
+  if (WiFi.status() != WL_CONNECTED) {
+    if (DEBUG_SERIAL) {
+      Serial.println("⚠️ MQTT: Cannot connect - WiFi not connected");
+    }
+    isConnected = false;
+    return false;
+  }
+  
   if (DEBUG_SERIAL) {
     Serial.println("🔄 Attempting MQTT connection...");
   }
@@ -134,6 +174,10 @@ void MQTTManager::setCallback(void (*callback)(char* topic, byte* payload, unsig
   mqttClient.setCallback(callback);
 }
 
+int MQTTManager::getFailedAttempts() {
+  return failedAttempts;
+}
+
 void MQTTManager::printStatus() {
   if (DEBUG_SERIAL) {
     Serial.println("📊 MQTT Status:");
@@ -141,5 +185,6 @@ void MQTTManager::printStatus() {
     Serial.println("  Client ID: " + clientId);
     Serial.println("  Broker: " + brokerIP + ":" + String(brokerPort));
     Serial.println("  State: " + String(mqttClient.state()));
+    Serial.println("  Failed Attempts: " + String(failedAttempts));
   }
 }

@@ -7,6 +7,7 @@ NetworkManager::NetworkManager() {
   this->ssid = WIFI_SSID;
   this->password = WIFI_PASSWORD;
   this->lastReconnectAttempt = 0;
+  this->lastWiFiCheck = 0;
   this->isConnected = false;
 }
 
@@ -14,6 +15,7 @@ NetworkManager::NetworkManager(String ssid, String password) {
   this->ssid = ssid;
   this->password = password;
   this->lastReconnectAttempt = 0;
+  this->lastWiFiCheck = 0;
   this->isConnected = false;
 }
 
@@ -93,6 +95,26 @@ void NetworkManager::begin() {
 void NetworkManager::loop() {
   unsigned long currentTime = millis();
   
+  // Активна проверка на WiFi връзката на интервали
+  if (currentTime - lastWiFiCheck > WIFI_CHECK_INTERVAL) {
+    lastWiFiCheck = currentTime;
+    
+    // Ако WiFi.status() показва свързано, но ping не работи, считаме че е мъртва връзка
+    if (WiFi.status() == WL_CONNECTED) {
+      if (!checkWiFiConnection()) {
+        // Връзката е мъртва, форсираме реконекция
+        if (DEBUG_SERIAL) {
+          Serial.println("⚠️ WiFi connection is dead (no ping response), forcing reconnect");
+        }
+        isConnected = false;
+        WiFi.disconnect();
+        lastReconnectAttempt = currentTime - WIFI_RECONNECT_DELAY; // Форсираме опит за реконекция
+      } else {
+        isConnected = true;
+      }
+    }
+  }
+  
   if (!isWiFiConnected()) {
     if (currentTime - lastReconnectAttempt > WIFI_RECONNECT_DELAY) {
       lastReconnectAttempt = currentTime;
@@ -168,7 +190,33 @@ void NetworkManager::disconnect() {
 }
 
 bool NetworkManager::isWiFiConnected() {
-  return WiFi.status() == WL_CONNECTED;
+  return isConnected && (WiFi.status() == WL_CONNECTED);
+}
+
+bool NetworkManager::checkWiFiConnection() {
+  // Проверяваме дали имаме gateway IP
+  IPAddress gateway = WiFi.gatewayIP();
+  if (gateway == INADDR_NONE || gateway[0] == 0) {
+    return false;
+  }
+  
+  // Проверяваме дали имаме валиден local IP
+  IPAddress localIP = WiFi.localIP();
+  if (localIP == INADDR_NONE || localIP[0] == 0) {
+    return false;
+  }
+  
+  // Допълнителна проверка - дали RSSI е разумен (не е -100 dBm)
+  int rssi = WiFi.RSSI();
+  if (rssi < -90) {
+    // Сигналът е много слаб, може да има проблем
+    if (DEBUG_SERIAL) {
+      Serial.println("⚠️ WiFi RSSI is very weak: " + String(rssi) + " dBm");
+    }
+    // Не считаме за мъртва връзка, но е предупреждение
+  }
+  
+  return true;
 }
 
 String NetworkManager::getLocalIP() {

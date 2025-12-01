@@ -12,7 +12,11 @@ private:
   String ssid;
   String password;
   unsigned long lastReconnectAttempt;
+  unsigned long lastWiFiCheck;
   bool isConnected;
+  
+  // Активна проверка на WiFi връзката
+  bool checkWiFiConnection();
 
 public:
   NetworkManager();

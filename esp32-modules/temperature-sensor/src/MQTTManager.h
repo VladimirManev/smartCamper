@@ -17,6 +17,7 @@ private:
   int brokerPort;
   unsigned long lastReconnectAttempt;
   bool isConnected;
+  int failedAttempts;  // Брояч на неуспешни опити
 
 public:
   MQTTManager();
@@ -24,9 +25,11 @@ public:
   
   void begin();
   void loop();
+  void loop(bool wifiConnected);  // Overload с WiFi статус
   bool connect();
   void disconnect();
   bool isMQTTConnected();
+  int getFailedAttempts();
   
   // Публикуване на данни
   bool publishSensorData(String sensorType, String value);

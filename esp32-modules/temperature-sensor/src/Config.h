@@ -21,8 +21,10 @@
 // Timing настройки
 #define SENSOR_READ_INTERVAL 1000  // 1 секунда
 #define HEARTBEAT_INTERVAL 10000   // 10 секунди - гарантирано изпращане
-#define MQTT_RECONNECT_DELAY 5000  // 5 секунди
-#define WIFI_RECONNECT_DELAY 10000 // 10 секунди
+#define MQTT_RECONNECT_DELAY 2000  // 2 секунди (намалено от 5s)
+#define WIFI_RECONNECT_DELAY 3000  // 3 секунди (намалено от 10s)
+#define WIFI_CHECK_INTERVAL 2000   // 2 секунди - проверка на WiFi връзката
+#define WIFI_PING_TIMEOUT 1000     // 1 секунда timeout за ping
 
 // Sensor threshold настройки
 #define TEMP_THRESHOLD 0.1     // 0.1°C промяна
@@ -33,3 +35,7 @@
 #define DEBUG_MQTT true
 
 #endif
+
+
+
+
