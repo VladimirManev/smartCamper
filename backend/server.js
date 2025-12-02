@@ -8,6 +8,7 @@ const { Server } = require("socket.io");
 // Импортираме middleware-ите
 const corsMiddleware = require("./middleware/cors");
 const loggerMiddleware = require("./middleware/logger");
+const { staticMiddleware, fallbackMiddleware } = require("./middleware/static");
 
 // Импортираме routes
 const mainRoutes = require("./routes/main");
@@ -40,8 +41,16 @@ app.use(express.json());
 app.use(corsMiddleware);
 app.use(loggerMiddleware);
 
-// Routes
+// API Routes - трябва да са преди static middleware
 app.use("/", mainRoutes);
+
+// Static files middleware - сервира React build файловете
+// Трябва да е преди fallback middleware
+app.use(staticMiddleware);
+
+// Fallback middleware - пренасочва всички routes към index.html (за React Router)
+// Трябва да е преди 404 handler
+app.use(fallbackMiddleware);
 
 // 404 handler - трябва да е последен!
 app.use(notFoundRoutes);
