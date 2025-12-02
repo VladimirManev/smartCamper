@@ -1,507 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LED Controller Module Documentation</title>
     <style>
-        @media print {
-            @page {
-                size: A4;
-                margin: 2cm;
-            }
-            body {
-                margin: 0;
-            }
+      @media print {
+        @page {
+          size: A4;
+          margin: 2cm;
         }
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
+          margin: 0;
         }
-        h1 {
-            color: #2c3e50;
-            border-bottom: 3px solid #3498db;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #34495e;
-            border-bottom: 2px solid #ecf0f1;
-            padding-top: 20px;
-            margin-top: 30px;
-        }
-        h3 {
-            color: #7f8c8d;
-            margin-top: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            page-break-inside: avoid;
-        }
-        th {
-            background-color: #3498db;
-            color: white;
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-        }
-        td {
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        .section {
-            margin-bottom: 30px;
-        }
-        ul, ol {
-            margin: 10px 0;
-            padding-left: 30px;
-        }
-        code {
-            background-color: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-        }
-        .note {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .info-box {
-            background-color: #e7f3ff;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            margin: 20px 0;
-        }
+      }
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+      }
+      h1 {
+        color: #2c3e50;
+        border-bottom: 3px solid #3498db;
+        padding-bottom: 10px;
+      }
+      h2 {
+        color: #34495e;
+        border-bottom: 2px solid #ecf0f1;
+        padding-top: 20px;
+        margin-top: 30px;
+      }
+      h3 {
+        color: #7f8c8d;
+        margin-top: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        page-break-inside: avoid;
+      }
+      th {
+        background-color: #3498db;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+      }
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      .section {
+        margin-bottom: 30px;
+      }
+      ul,
+      ol {
+        margin: 10px 0;
+        padding-left: 30px;
+      }
+      code {
+        background-color: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: "Courier New", monospace;
+      }
+      .note {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 20px 0;
+      }
+      .info-box {
+        background-color: #e7f3ff;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        margin: 20px 0;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>LED Controller Module Documentation</h1>
 
     <div class="section">
-        <h2>Overview</h2>
-        <p>The LED Controller module is an ESP32-based multi-strip LED controller that manages up to 4 independent WS2815 RGBW LED strips. It supports button control, motion sensor activation, dimming, transitions, and synchronized control for kitchen lighting.</p>
+      <h2>Overview</h2>
+      <p>
+        The LED Controller module is an ESP32-based multi-strip LED controller
+        that manages up to 4 independent WS2815 RGBW LED strips. It supports
+        button control, motion sensor activation, dimming, transitions, and
+        synchronized control for kitchen lighting.
+      </p>
     </div>
 
     <div class="section">
-        <h2>Hardware Specifications</h2>
-        <ul>
-            <li><strong>Microcontroller:</strong> ESP32</li>
-            <li><strong>LED Type:</strong> WS2815 RGBW (12V)</li>
-            <li><strong>Number of Strips:</strong> 4</li>
-            <li><strong>RMT Channels:</strong> Each strip uses a separate RMT channel (RMT0-RMT3)</li>
-        </ul>
+      <h2>Hardware Specifications</h2>
+      <ul>
+        <li><strong>Microcontroller:</strong> ESP32</li>
+        <li><strong>LED Type:</strong> WS2815 RGBW (12V)</li>
+        <li><strong>Number of Strips:</strong> 4</li>
+        <li>
+          <strong>RMT Channels:</strong> Each strip uses a separate RMT channel
+          (RMT0-RMT3)
+        </li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>LED Strips Configuration</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Strip Index</th>
-                    <th>Pin</th>
-                    <th>LED Count</th>
-                    <th>RMT Channel</th>
-                    <th>Description</th>
-                    <th>Control</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Strip 0</strong></td>
-                    <td>33</td>
-                    <td>44</td>
-                    <td>RMT0</td>
-                    <td>Kitchen (main)</td>
-                    <td>Button 1 (Pin 4)</td>
-                </tr>
-                <tr>
-                    <td><strong>Strip 1</strong></td>
-                    <td>18</td>
-                    <td>178</td>
-                    <td>RMT1</td>
-                    <td>Main lighting</td>
-                    <td>Button 2 (Pin 12)</td>
-                </tr>
-                <tr>
-                    <td><strong>Strip 2</strong></td>
-                    <td>19</td>
-                    <td>23</td>
-                    <td>RMT2</td>
-                    <td>Kitchen extension (spice rack)</td>
-                    <td>Auto-synced with Strip 0</td>
-                </tr>
-                <tr>
-                    <td><strong>Strip 3</strong></td>
-                    <td>25</td>
-                    <td>53</td>
-                    <td>RMT3</td>
-                    <td>Bathroom</td>
-                    <td>PIR sensor (Pin 2) - automatic</td>
-                </tr>
-            </tbody>
-        </table>
+      <h2>LED Strips Configuration</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Strip Index</th>
+            <th>Pin</th>
+            <th>LED Count</th>
+            <th>RMT Channel</th>
+            <th>Description</th>
+            <th>Control</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Strip 0</strong></td>
+            <td>33</td>
+            <td>44</td>
+            <td>RMT0</td>
+            <td>Kitchen (main)</td>
+            <td>Button 1 (Pin 4)</td>
+          </tr>
+          <tr>
+            <td><strong>Strip 1</strong></td>
+            <td>18</td>
+            <td>178</td>
+            <td>RMT1</td>
+            <td>Main lighting</td>
+            <td>Button 2 (Pin 12)</td>
+          </tr>
+          <tr>
+            <td><strong>Strip 2</strong></td>
+            <td>19</td>
+            <td>23</td>
+            <td>RMT2</td>
+            <td>Kitchen extension (spice rack)</td>
+            <td>Auto-synced with Strip 0</td>
+          </tr>
+          <tr>
+            <td><strong>Strip 3</strong></td>
+            <td>25</td>
+            <td>53</td>
+            <td>RMT3</td>
+            <td>Bathroom</td>
+            <td>PIR sensor (Pin 2) - automatic</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div class="info-box">
-            <h3>Strip Synchronization</h3>
-            <ul>
-                <li><strong>Strip 0 and Strip 2</strong> are synchronized in software</li>
-                <li>When Strip 0 is turned on/off, Strip 2 automatically follows</li>
-                <li>Both strips use the same brightness, transitions, and dimming</li>
-                <li>They use different RMT channels but are controlled together</li>
-            </ul>
-        </div>
+      <div class="info-box">
+        <h3>Strip Synchronization</h3>
+        <ul>
+          <li>
+            <strong>Strip 0 and Strip 2</strong> are synchronized in software
+          </li>
+          <li>When Strip 0 is turned on/off, Strip 2 automatically follows</li>
+          <li>Both strips use the same brightness, transitions, and dimming</li>
+          <li>They use different RMT channels but are controlled together</li>
+        </ul>
+      </div>
     </div>
 
     <div class="section">
-        <h2>Buttons Configuration</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Button</th>
-                    <th>Pin</th>
-                    <th>Controls</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Button 1</strong></td>
-                    <td>4</td>
-                    <td>Strip 0 + Strip 2</td>
-                    <td>Kitchen - toggles main and extension strips together</td>
-                </tr>
-                <tr>
-                    <td><strong>Button 2</strong></td>
-                    <td>12</td>
-                    <td>Strip 1</td>
-                    <td>Main lighting control</td>
-                </tr>
-                <tr>
-                    <td><strong>Button 3</strong></td>
-                    <td>27</td>
-                    <td>Floor lighting</td>
-                    <td>Floor lighting relay control (toggle only)</td>
-                </tr>
-            </tbody>
-        </table>
+      <h2>Buttons Configuration</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Button</th>
+            <th>Pin</th>
+            <th>Controls</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Button 1</strong></td>
+            <td>4</td>
+            <td>Strip 0 + Strip 2</td>
+            <td>Kitchen - toggles main and extension strips together</td>
+          </tr>
+          <tr>
+            <td><strong>Button 2</strong></td>
+            <td>12</td>
+            <td>Strip 1</td>
+            <td>Main lighting control</td>
+          </tr>
+          <tr>
+            <td><strong>Button 3</strong></td>
+            <td>27</td>
+            <td>Floor lighting</td>
+            <td>Floor lighting relay control (toggle only)</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <h3>Button Functions</h3>
-        <ul>
-            <li><strong>Click:</strong> Toggle strip ON/OFF (with random transitions)</li>
-            <li><strong>Hold</strong> (&gt;250ms): Start dimming (increase/decrease brightness) - <em>Not available for Button 3</em></li>
-            <li><strong>Button 3:</strong> Simple toggle for floor lighting relay (no dimming)</li>
-        </ul>
+      <h3>Button Functions</h3>
+      <ul>
+        <li>
+          <strong>Click:</strong> Toggle strip ON/OFF (with random transitions)
+        </li>
+        <li>
+          <strong>Hold</strong> (&gt;250ms): Start dimming (increase/decrease
+          brightness) - <em>Not available for Button 3</em>
+        </li>
+        <li>
+          <strong>Button 3:</strong> Simple toggle for floor lighting relay (no
+          dimming)
+        </li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Additional Circuits</h2>
-        
-        <h3>Floor Lighting (Relay Circuit)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Component</th>
-                    <th>Pin</th>
-                    <th>Direction</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Relay</strong></td>
-                    <td>26</td>
-                    <td>Output</td>
-                    <td>Floor lighting relay control</td>
-                </tr>
-                <tr>
-                    <td><strong>Button 3</strong></td>
-                    <td>27</td>
-                    <td>Input</td>
-                    <td>Floor lighting toggle button</td>
-                </tr>
-            </tbody>
-        </table>
+      <h2>Additional Circuits</h2>
 
-        <div class="info-box">
-            <h3>Floor Lighting Features</h3>
-            <ul>
-                <li>Controlled via relay (GPIO 26)</li>
-                <li>Toggle button on GPIO 27</li>
-                <li>Simple ON/OFF control (no dimming)</li>
-                <li>Uses standard LED diodes (not LED strips)</li>
-                <li>Independent from LED strip controls</li>
-            </ul>
-        </div>
+      <h3>Floor Lighting (Relay Circuit)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Pin</th>
+            <th>Direction</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Relay</strong></td>
+            <td>26</td>
+            <td>Output</td>
+            <td>Floor lighting relay control</td>
+          </tr>
+          <tr>
+            <td><strong>Button 3</strong></td>
+            <td>27</td>
+            <td>Input</td>
+            <td>Floor lighting toggle button</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <h3>Floor Lighting Features</h3>
+        <ul>
+          <li>Controlled via relay (GPIO 26)</li>
+          <li>Toggle button on GPIO 27</li>
+          <li>Simple ON/OFF control (no dimming)</li>
+          <li>Uses standard LED diodes (not LED strips)</li>
+          <li>Independent from LED strip controls</li>
+        </ul>
+      </div>
     </div>
 
     <div class="section">
-        <h2>Sensors Configuration</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Sensor</th>
-                    <th>Pin</th>
-                    <th>Controls</th>
-                    <th>Settings</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>PIR Motion Sensor (HC-SR501)</strong></td>
-                    <td>2</td>
-                    <td>Strip 3 (Bathroom)</td>
-                    <td>Timeout: 60 seconds (1 minute)</td>
-                </tr>
-            </tbody>
-        </table>
+      <h2>Sensors Configuration</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Sensor</th>
+            <th>Pin</th>
+            <th>Controls</th>
+            <th>Settings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>PIR Motion Sensor (HC-SR501)</strong></td>
+            <td>2</td>
+            <td>Strip 3 (Bathroom)</td>
+            <td>Timeout: 60 seconds (1 minute)</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <h3>Motion Sensor Behavior</h3>
-        <ul>
-            <li>Automatically turns on Strip 3 when motion is detected</li>
-            <li>Resets timeout timer on each motion detection</li>
-            <li>Automatically turns off after 60 seconds of no motion</li>
-            <li>No button control or dimming available for Strip 3</li>
-        </ul>
+      <h3>Motion Sensor Behavior</h3>
+      <ul>
+        <li>Automatically turns on Strip 3 when motion is detected</li>
+        <li>Resets timeout timer on each motion detection</li>
+        <li>Automatically turns off after 60 seconds of no motion</li>
+        <li>No button control or dimming available for Strip 3</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Color Configuration</h2>
-        <ul>
-            <li><strong>Color Mode:</strong> White using RGB+W channels</li>
-            <li>All channels (R, G, B, W) are set to the same brightness value</li>
-            <li>Provides full-spectrum white light</li>
-        </ul>
+      <h2>Color Configuration</h2>
+      <ul>
+        <li><strong>Color Mode:</strong> White using RGB+W channels</li>
+        <li>All channels (R, G, B, W) are set to the same brightness value</li>
+        <li>Provides full-spectrum white light</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Brightness Settings</h2>
-        <ul>
-            <li><strong>Minimum Brightness:</strong> 1</li>
-            <li><strong>Maximum Brightness:</strong> 255</li>
-            <li><strong>Default Brightness:</strong> 128 (50% on first power on)</li>
-            <li><strong>Dimming Speed:</strong> 50 brightness units per second</li>
-        </ul>
+      <h2>Brightness Settings</h2>
+      <ul>
+        <li><strong>Minimum Brightness:</strong> 1</li>
+        <li><strong>Maximum Brightness:</strong> 255</li>
+        <li>
+          <strong>Default Brightness:</strong> 128 (50% on first power on)
+        </li>
+        <li><strong>Dimming Speed:</strong> 50 brightness units per second</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Features</h2>
+      <h2>Features</h2>
 
-        <h3>Transitions</h3>
-        <p>The controller supports 8 different transition effects:</p>
-        
-        <p><strong>Turn On Transitions:</strong></p>
-        <ol>
-            <li>Center to Edges - Smoothly expands from center</li>
-            <li>Random LEDs - Random LEDs turn on sequentially</li>
-            <li>Left to Right - Sequential activation from left</li>
-            <li>Edges to Center - Expands from edges to center</li>
-        </ol>
+      <h3>Transitions</h3>
+      <p>The controller supports 8 different transition effects:</p>
 
-        <p><strong>Turn Off Transitions:</strong></p>
-        <ol>
-            <li>Edges to Center - Turns off from edges</li>
-            <li>Random LEDs - Random LEDs turn off sequentially</li>
-            <li>Left to Right - Sequential deactivation from left</li>
-            <li>Center to Edges - Turns off from center outward</li>
-        </ol>
+      <p><strong>Turn On Transitions:</strong></p>
+      <ol>
+        <li>Center to Edges - Smoothly expands from center</li>
+        <li>Random LEDs - Random LEDs turn on sequentially</li>
+        <li>Left to Right - Sequential activation from left</li>
+        <li>Edges to Center - Expands from edges to center</li>
+      </ol>
 
-        <ul>
-            <li>Transition duration: 1 second</li>
-            <li>Randomly selected for each on/off action</li>
-        </ul>
+      <p><strong>Turn Off Transitions:</strong></p>
+      <ol>
+        <li>Edges to Center - Turns off from edges</li>
+        <li>Random LEDs - Random LEDs turn off sequentially</li>
+        <li>Left to Right - Sequential deactivation from left</li>
+        <li>Center to Edges - Turns off from center outward</li>
+      </ol>
 
-        <h3>Dimming</h3>
-        <ul>
-            <li>Activated by holding button for &gt;250ms</li>
-            <li>Smooth brightness increase/decrease</li>
-            <li>Alternates between increasing and decreasing</li>
-            <li>Blinks when reaching maximum brightness</li>
-            <li>No dimming for Strip 3 (motion activated)</li>
-        </ul>
+      <ul>
+        <li>Transition duration: 1 second</li>
+        <li>Randomly selected for each on/off action</li>
+      </ul>
 
-        <h3>Blinking</h3>
-        <ul>
-            <li>Occurs when brightness reaches maximum</li>
-            <li>Duration: 300ms</li>
-            <li>Minimum brightness during blink: 30% of current brightness</li>
-            <li>Visual feedback for maximum brightness</li>
-        </ul>
+      <h3>Dimming</h3>
+      <ul>
+        <li>Activated by holding button for &gt;250ms</li>
+        <li>Smooth brightness increase/decrease</li>
+        <li>Alternates between increasing and decreasing</li>
+        <li>Blinks when reaching maximum brightness</li>
+        <li>No dimming for Strip 3 (motion activated)</li>
+      </ul>
+
+      <h3>Blinking</h3>
+      <ul>
+        <li>Occurs when brightness reaches maximum</li>
+        <li>Duration: 300ms</li>
+        <li>Minimum brightness during blink: 30% of current brightness</li>
+        <li>Visual feedback for maximum brightness</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Pin Summary</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Component</th>
-                    <th>Pin</th>
-                    <th>Direction</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Strip 0</strong></td>
-                    <td>33</td>
-                    <td>Output</td>
-                    <td>Kitchen main LED strip</td>
-                </tr>
-                <tr>
-                    <td><strong>Strip 1</strong></td>
-                    <td>18</td>
-                    <td>Output</td>
-                    <td>Main lighting LED strip</td>
-                </tr>
-                <tr>
-                    <td><strong>Strip 2</strong></td>
-                    <td>19</td>
-                    <td>Output</td>
-                    <td>Kitchen extension LED strip</td>
-                </tr>
-                <tr>
-                    <td><strong>Strip 3</strong></td>
-                    <td>25</td>
-                    <td>Output</td>
-                    <td>Bathroom LED strip</td>
-                </tr>
-                <tr>
-                    <td><strong>Button 1</strong></td>
-                    <td>4</td>
-                    <td>Input (Pull-up)</td>
-                    <td>Kitchen control button</td>
-                </tr>
-                <tr>
-                    <td><strong>Button 2</strong></td>
-                    <td>12</td>
-                    <td>Input (Pull-up)</td>
-                    <td>Main lighting button</td>
-                </tr>
-                <tr>
-                    <td><strong>Button 3</strong></td>
-                    <td>27</td>
-                    <td>Input (Pull-up)</td>
-                    <td>Floor lighting button</td>
-                </tr>
-                <tr>
-                    <td><strong>Relay</strong></td>
-                    <td>26</td>
-                    <td>Output</td>
-                    <td>Floor lighting relay</td>
-                </tr>
-                <tr>
-                    <td><strong>PIR Sensor</strong></td>
-                    <td>2</td>
-                    <td>Input</td>
-                    <td>Motion detection sensor</td>
-                </tr>
-            </tbody>
-        </table>
+      <h2>Pin Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Pin</th>
+            <th>Direction</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Strip 0</strong></td>
+            <td>33</td>
+            <td>Output</td>
+            <td>Kitchen main LED strip</td>
+          </tr>
+          <tr>
+            <td><strong>Strip 1</strong></td>
+            <td>18</td>
+            <td>Output</td>
+            <td>Main lighting LED strip</td>
+          </tr>
+          <tr>
+            <td><strong>Strip 2</strong></td>
+            <td>19</td>
+            <td>Output</td>
+            <td>Kitchen extension LED strip</td>
+          </tr>
+          <tr>
+            <td><strong>Strip 3</strong></td>
+            <td>25</td>
+            <td>Output</td>
+            <td>Bathroom LED strip</td>
+          </tr>
+          <tr>
+            <td><strong>Button 1</strong></td>
+            <td>4</td>
+            <td>Input (Pull-up)</td>
+            <td>Kitchen control button</td>
+          </tr>
+          <tr>
+            <td><strong>Button 2</strong></td>
+            <td>12</td>
+            <td>Input (Pull-up)</td>
+            <td>Main lighting button</td>
+          </tr>
+          <tr>
+            <td><strong>Button 3</strong></td>
+            <td>27</td>
+            <td>Input (Pull-up)</td>
+            <td>Floor lighting button</td>
+          </tr>
+          <tr>
+            <td><strong>Relay</strong></td>
+            <td>26</td>
+            <td>Output</td>
+            <td>Floor lighting relay</td>
+          </tr>
+          <tr>
+            <td><strong>PIR Sensor</strong></td>
+            <td>2</td>
+            <td>Input</td>
+            <td>Motion detection sensor</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="section">
-        <h2>Technical Details</h2>
+      <h2>Technical Details</h2>
 
-        <h3>RMT Channels</h3>
-        <p>Each LED strip requires a dedicated RMT (Remote Control) channel on ESP32:</p>
-        <ul>
-            <li>Strip 0: RMT0</li>
-            <li>Strip 1: RMT1</li>
-            <li>Strip 2: RMT2</li>
-            <li>Strip 3: RMT3</li>
-        </ul>
-        <p>This allows independent timing control for each strip.</p>
+      <h3>RMT Channels</h3>
+      <p>
+        Each LED strip requires a dedicated RMT (Remote Control) channel on
+        ESP32:
+      </p>
+      <ul>
+        <li>Strip 0: RMT0</li>
+        <li>Strip 1: RMT1</li>
+        <li>Strip 2: RMT2</li>
+        <li>Strip 3: RMT3</li>
+      </ul>
+      <p>This allows independent timing control for each strip.</p>
 
-        <h3>Debouncing</h3>
-        <ul>
-            <li>Button debounce delay: 50ms</li>
-            <li>Separate debounce state machine for each button</li>
-        </ul>
+      <h3>Debouncing</h3>
+      <ul>
+        <li>Button debounce delay: 50ms</li>
+        <li>Separate debounce state machine for each button</li>
+      </ul>
 
-        <h3>State Management</h3>
-        <p>Each strip maintains:</p>
-        <ul>
-            <li>On/Off state</li>
-            <li>Current brightness level</li>
-            <li>Dimming state and direction</li>
-            <li>Transition state</li>
-            <li>Blink state</li>
-        </ul>
+      <h3>State Management</h3>
+      <p>Each strip maintains:</p>
+      <ul>
+        <li>On/Off state</li>
+        <li>Current brightness level</li>
+        <li>Dimming state and direction</li>
+        <li>Transition state</li>
+        <li>Blink state</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Usage Examples</h2>
+      <h2>Usage Examples</h2>
 
-        <h3>Turning On Kitchen Lights</h3>
-        <ol>
-            <li>Press Button 1 (Pin 4)</li>
-            <li>Strip 0 turns on with random transition</li>
-            <li>Strip 2 automatically turns on simultaneously</li>
-            <li>Both strips maintain synchronized brightness</li>
-        </ol>
+      <h3>Turning On Kitchen Lights</h3>
+      <ol>
+        <li>Press Button 1 (Pin 4)</li>
+        <li>Strip 0 turns on with random transition</li>
+        <li>Strip 2 automatically turns on simultaneously</li>
+        <li>Both strips maintain synchronized brightness</li>
+      </ol>
 
-        <h3>Dimming Main Lighting</h3>
-        <ol>
-            <li>Press and hold Button 2 (Pin 12)</li>
-            <li>Brightness starts changing (increase/decrease alternates)</li>
-            <li>Release button to stop dimming</li>
-            <li>Brightness stays at current level</li>
-        </ol>
+      <h3>Dimming Main Lighting</h3>
+      <ol>
+        <li>Press and hold Button 2 (Pin 12)</li>
+        <li>Brightness starts changing (increase/decrease alternates)</li>
+        <li>Release button to stop dimming</li>
+        <li>Brightness stays at current level</li>
+      </ol>
 
-        <h3>Bathroom Motion Activation</h3>
-        <ol>
-            <li>Motion detected by PIR sensor (Pin 2)</li>
-            <li>Strip 3 automatically turns on</li>
-            <li>Timer resets on each motion detection</li>
-            <li>Automatically turns off after 60 seconds of no motion</li>
-        </ol>
+      <h3>Bathroom Motion Activation</h3>
+      <ol>
+        <li>Motion detected by PIR sensor (Pin 2)</li>
+        <li>Strip 3 automatically turns on</li>
+        <li>Timer resets on each motion detection</li>
+        <li>Automatically turns off after 60 seconds of no motion</li>
+      </ol>
 
-        <h3>Floor Lighting Control</h3>
-        <ol>
-            <li>Press Button 3 (Pin 27)</li>
-            <li>Relay (Pin 26) toggles ON/OFF</li>
-            <li>Controls floor lighting circuit with standard LED diodes</li>
-            <li>Simple toggle - no dimming or transitions</li>
-        </ol>
+      <h3>Floor Lighting Control</h3>
+      <ol>
+        <li>Press Button 3 (Pin 27)</li>
+        <li>Relay (Pin 26) toggles ON/OFF</li>
+        <li>Controls floor lighting circuit with standard LED diodes</li>
+        <li>Simple toggle - no dimming or transitions</li>
+      </ol>
     </div>
 
     <div class="section">
-        <h2>Notes</h2>
-        <ul>
-            <li>Strip 2 (Kitchen extension) cannot be controlled independently</li>
-            <li>Strip 3 (Bathroom) has no button control or dimming</li>
-            <li>All strips use white color with RGB+W channels</li>
-            <li>Transitions are randomly selected for visual variety</li>
-            <li>System initializes all strips to OFF state</li>
-            <li>Floor lighting (relay circuit) is independent from LED strips</li>
-            <li>Floor lighting uses standard LED diodes, not LED strips</li>
-            <li>Floor lighting has simple toggle control (no dimming)</li>
-        </ul>
+      <h2>Notes</h2>
+      <ul>
+        <li>Strip 2 (Kitchen extension) cannot be controlled independently</li>
+        <li>Strip 3 (Bathroom) has no button control or dimming</li>
+        <li>All strips use white color with RGB+W channels</li>
+        <li>Transitions are randomly selected for visual variety</li>
+        <li>System initializes all strips to OFF state</li>
+        <li>Floor lighting (relay circuit) is independent from LED strips</li>
+        <li>Floor lighting uses standard LED diodes, not LED strips</li>
+        <li>Floor lighting has simple toggle control (no dimming)</li>
+      </ul>
     </div>
 
     <div class="section">
-        <h2>Version Information</h2>
-        <ul>
-            <li><strong>Module:</strong> LED Controller</li>
-            <li><strong>Last Updated:</strong> 2024</li>
-            <li><strong>Hardware:</strong> ESP32</li>
-            <li><strong>LED Type:</strong> WS2815 RGBW</li>
-        </ul>
+      <h2>Version Information</h2>
+      <ul>
+        <li><strong>Module:</strong> LED Controller</li>
+        <li><strong>Last Updated:</strong> 2024</li>
+        <li><strong>Hardware:</strong> ESP32</li>
+        <li><strong>LED Type:</strong> WS2815 RGBW</li>
+      </ul>
     </div>
-
-</body>
+  </body>
 </html>
-

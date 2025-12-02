@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <NeoPixelBus.h>
+#include "LEDControllerManager.h"
 
 // ============================================================================
 // CONFIGURATION
@@ -75,52 +76,8 @@ enum ButtonState {
   BUTTON_HELD
 };
 
-// Transition types
-enum TransitionType {
-  TRANSITION_NONE,
-  TRANSITION_ON_CENTER_TO_EDGES,      // 0: Smoothly from center to edges
-  TRANSITION_ON_RANDOM_LEDS,           // 1: Random LEDs sequentially
-  TRANSITION_ON_LEFT_TO_RIGHT,         // 2: From left to right
-  TRANSITION_ON_EDGES_TO_CENTER,       // 3: From edges to center
-  TRANSITION_OFF_EDGES_TO_CENTER,      // 4: From edges to center
-  TRANSITION_OFF_RANDOM_LEDS,          // 5: Random LEDs sequentially
-  TRANSITION_OFF_LEFT_TO_RIGHT,        // 6: From left to right
-  TRANSITION_OFF_CENTER_TO_EDGES       // 7: From center to edges
-};
-
-// Transition state
-struct TransitionState {
-  bool active;
-  TransitionType type;
-  unsigned long startTime;
-  uint8_t targetBrightness;
-  uint8_t* randomOrder;
-  int randomIndex;
-};
-
-// Strip state - using void* to support different types
-struct StripState {
-  void* strip;  // Pointer to LedStrip0, LedStrip1, LedStrip2, or LedStrip3
-  uint8_t stripType;  // 0 = LedStrip0 (RMT0), 1 = LedStrip1 (RMT1), 2 = LedStrip2 (RMT2), 3 = LedStrip3 (RMT3)
-  bool on;
-  uint8_t brightness;
-  
-  // Dimming
-  bool dimmingActive;
-  bool dimmingDirection;  // true = increase, false = decrease
-  unsigned long dimmingStartTime;
-  uint8_t dimmingStartBrightness;
-  unsigned long dimmingDuration;  // dimming time in milliseconds (calculated dynamically)
-  bool lastDimmingWasIncrease;
-  
-  // Blinking
-  bool blinkActive;
-  unsigned long blinkStartTime;
-  uint8_t savedBrightnessForBlink;
-  
-  // Transitions
-  TransitionState transition;
-};
+// Include StripState definition from header (includes TransitionType, TransitionState, and StripState)
+#include "StripState.h"
 
 // ============================================================================
 // GLOBAL VARIABLES
@@ -157,6 +114,9 @@ ButtonStateMachine buttons[NUM_BUTTONS] = {
 
 // Relay state
 bool relayState = false;  // false = OFF, true = ON
+
+// LED Controller Manager (WiFi + MQTT)
+LEDControllerManager ledControllerManager;
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -687,28 +647,43 @@ void updateDimming(uint8_t stripIndex) {
     state.dimmingActive = false;
   }
   
-  uint8_t targetBrightness = state.dimmingDirection ? MAX_BRIGHTNESS : MIN_BRIGHTNESS;
+  // Determine target brightness based on transition type
+  uint8_t targetBrightness;
+  if (state.isSmoothTransition) {
+    // Smooth transition to specific value (MQTT command)
+    targetBrightness = state.dimmingTargetBrightness;
+  } else {
+    // Dim to min/max (button hold)
+    targetBrightness = state.dimmingDirection ? MAX_BRIGHTNESS : MIN_BRIGHTNESS;
+  }
+  
   uint8_t newBrightness = state.dimmingStartBrightness + (int)((targetBrightness - state.dimmingStartBrightness) * progress);
   
   if (newBrightness > MAX_BRIGHTNESS) newBrightness = MAX_BRIGHTNESS;
   if (newBrightness < MIN_BRIGHTNESS) newBrightness = MIN_BRIGHTNESS;
   
-  bool reachedLimit = false;
-  if (state.dimmingDirection && newBrightness >= MAX_BRIGHTNESS) {
-    newBrightness = MAX_BRIGHTNESS;
-    reachedLimit = true;
-  } else if (!state.dimmingDirection && newBrightness <= MIN_BRIGHTNESS) {
-    newBrightness = MIN_BRIGHTNESS;
-    reachedLimit = true;
+  bool reachedTarget = false;
+  if (state.isSmoothTransition) {
+    // For smooth transitions, check if we reached the target
+    reachedTarget = (abs((int)newBrightness - (int)targetBrightness) <= 1) || (progress >= 1.0);
+  } else {
+    // For button dimming, check if we reached min/max
+    if (state.dimmingDirection && newBrightness >= MAX_BRIGHTNESS) {
+      newBrightness = MAX_BRIGHTNESS;
+      reachedTarget = true;
+    } else if (!state.dimmingDirection && newBrightness <= MIN_BRIGHTNESS) {
+      newBrightness = MIN_BRIGHTNESS;
+      reachedTarget = true;
+    }
   }
   
-  // Blinking only when reaching MAX, not at MIN
-  if (reachedLimit && !state.blinkActive) {
+  // Blinking only when reaching MAX via button dimming, not for smooth transitions
+  if (reachedTarget && !state.blinkActive && !state.isSmoothTransition) {
     state.dimmingActive = false;
     state.lastDimmingWasIncrease = state.dimmingDirection;
     
     if (state.dimmingDirection) {
-      // Only when increasing to MAX - blink
+      // Only when increasing to MAX via button - blink
       state.blinkActive = true;
       state.blinkStartTime = millis();
       state.savedBrightnessForBlink = newBrightness;
@@ -720,7 +695,18 @@ void updateDimming(uint8_t stripIndex) {
     
     state.brightness = newBrightness;
     syncKitchenExtension(stripIndex);
-  } else if (!reachedLimit) {
+  } else if (reachedTarget && state.isSmoothTransition) {
+    // Smooth transition completed
+    state.dimmingActive = false;
+    state.isSmoothTransition = false;
+    state.brightness = targetBrightness;
+    updateStrip(stripIndex);
+    syncKitchenExtension(stripIndex);
+    
+    // Publish status after smooth transition completes
+    ledControllerManager.publishStripStatus(stripIndex);
+  } else {
+    // Still transitioning
     state.brightness = newBrightness;
     updateStrip(stripIndex);
   }
@@ -735,11 +721,12 @@ void turnOnStrip(uint8_t stripIndex) {
   
   StripState& state = stripStates[stripIndex];
   if (state.on) {
-    Serial.println("⚠️ turnOnStrip called for strip " + String(stripIndex) + " but it's already ON");
+    if (DEBUG_VERBOSE) {
+      Serial.println("⚠️ turnOnStrip called for strip " + String(stripIndex) + " but it's already ON");
+    }
     return;  // Already on
   }
   
-  Serial.println("🔵 turnOnStrip(" + String(stripIndex) + ") - Pin: " + String(stripConfigs[stripIndex].pin) + " - setting state.on = true");
   state.on = true;
   
   // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
@@ -748,11 +735,8 @@ void turnOnStrip(uint8_t stripIndex) {
     StripState& extState = stripStates[2];
     extState.on = true;
     extState.brightness = state.brightness;
-    Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
-  } else {
-    // Make sure Strip 2 (Kitchen extension) does NOT turn on when turning on other strips
-    if (stripIndex != 2) {
-      Serial.println("   Strip 2 (Kitchen extension, pin 19) should remain OFF");
+    if (DEBUG_VERBOSE) {
+      Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
     }
   }
   
@@ -773,10 +757,15 @@ void turnOnStrip(uint8_t stripIndex) {
     extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
     extTrans.randomIndex = 0;
     
-    Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
+    if (DEBUG_VERBOSE) {
+      Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
+    }
   }
   
-  Serial.println("💡 Strip " + String(stripIndex) + ": Turning ON (Brightness: " + String(state.brightness) + ")");
+  Serial.println("💡 Strip " + String(stripIndex) + " ON (brightness: " + String(state.brightness) + ")");
+  
+  // Publish status after turning on
+  ledControllerManager.publishStripStatus(stripIndex);
 }
 
 void turnOffStrip(uint8_t stripIndex) {
@@ -810,10 +799,15 @@ void turnOffStrip(uint8_t stripIndex) {
     extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
     extTrans.randomIndex = 0;
     
-    Serial.println("💡 Kitchen extension (Strip 2): Turning OFF with same transition");
+    if (DEBUG_VERBOSE) {
+      Serial.println("💡 Kitchen extension (Strip 2): Turning OFF with same transition");
+    }
   }
   
-  Serial.println("💡 Strip " + String(stripIndex) + ": Turning OFF (Saved brightness: " + String(state.brightness) + ")");
+  Serial.println("💡 Strip " + String(stripIndex) + " OFF (brightness: " + String(state.brightness) + ")");
+  
+  // Publish status after turning off
+  ledControllerManager.publishStripStatus(stripIndex);
 }
 
 void toggleStrip(uint8_t stripIndex) {
@@ -841,6 +835,9 @@ void toggleRelay() {
   relayState = !relayState;
   digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
   Serial.println("🔌 Relay " + String(relayState ? "ON" : "OFF") + " (Pin " + String(RELAY_PIN) + ")");
+  
+  // Publish status after relay toggle
+  ledControllerManager.publishRelayStatus();
 }
 
 void startDimming(uint8_t stripIndex) {
@@ -853,6 +850,7 @@ void startDimming(uint8_t stripIndex) {
   if (!state.on || state.dimmingActive) return;
   
   state.dimmingActive = true;
+  state.isSmoothTransition = false;  // Button dimming, not smooth transition
   state.dimmingStartTime = millis();
   state.dimmingStartBrightness = state.brightness;
   state.dimmingDirection = !state.lastDimmingWasIncrease;
@@ -860,6 +858,7 @@ void startDimming(uint8_t stripIndex) {
   
   // Calculate target brightness and time based on distance
   uint8_t targetBrightness = state.dimmingDirection ? MAX_BRIGHTNESS : MIN_BRIGHTNESS;
+  state.dimmingTargetBrightness = targetBrightness;  // Set for consistency
   uint8_t distance = abs((int)targetBrightness - (int)state.dimmingStartBrightness);
   state.dimmingDuration = (distance * 1000) / DIMMING_SPEED;  // time in milliseconds
   
@@ -879,6 +878,80 @@ void stopDimming(uint8_t stripIndex) {
   
   // Kitchen: synchronize extension strip
   syncKitchenExtension(stripIndex);
+  
+  // Publish status after dimming stops (for UI update)
+  ledControllerManager.publishStripStatus(stripIndex);
+}
+
+// Set brightness smoothly (for MQTT commands)
+// Duration: ~1 second for smooth transition
+void setBrightnessSmooth(uint8_t stripIndex, uint8_t targetBrightness) {
+  if (stripIndex >= NUM_STRIPS) return;
+  
+  StripState& state = stripStates[stripIndex];
+  
+  // Clamp target brightness
+  if (targetBrightness < MIN_BRIGHTNESS) targetBrightness = MIN_BRIGHTNESS;
+  if (targetBrightness > MAX_BRIGHTNESS) targetBrightness = MAX_BRIGHTNESS;
+  
+  // If strip is off, turn it on first (but don't show yet)
+  uint8_t startBrightness = state.brightness;
+  if (!state.on) {
+    state.on = true;
+    startBrightness = 0;  // Start from 0 for smooth fade-in
+    
+    // Kitchen: synchronize extension strip
+    if (stripIndex == 0) {
+      StripState& extState = stripStates[2];
+      extState.on = true;
+      extState.brightness = 0;
+    }
+  }
+  
+  // Stop any existing dimming
+  state.dimmingActive = false;
+  
+  // Start smooth transition
+  state.dimmingActive = true;
+  state.isSmoothTransition = true;
+  state.dimmingStartTime = millis();
+  state.dimmingStartBrightness = startBrightness;
+  state.dimmingTargetBrightness = targetBrightness;
+  state.dimmingDirection = (targetBrightness > startBrightness);
+  
+  // Calculate duration: ~1 second for full range (255 units)
+  uint8_t distance = abs((int)targetBrightness - (int)startBrightness);
+  state.dimmingDuration = (distance * 1000) / 255;  // ~1 second for 255 units
+  if (state.dimmingDuration < 200) state.dimmingDuration = 200;  // Minimum 200ms
+  if (state.dimmingDuration > 2000) state.dimmingDuration = 2000;  // Maximum 2 seconds
+  
+  Serial.println("🔆 Strip " + String(stripIndex) + " smooth brightness change: " + 
+                 String(startBrightness) + " → " + String(targetBrightness) + 
+                 " (duration: " + String(state.dimmingDuration) + "ms)");
+  
+  // Kitchen: synchronize extension strip
+  if (stripIndex == 0) {
+    StripState& extState = stripStates[2];
+    extState.dimmingActive = true;
+    extState.isSmoothTransition = true;
+    extState.dimmingStartTime = state.dimmingStartTime;
+    extState.dimmingStartBrightness = 0;
+    extState.dimmingTargetBrightness = targetBrightness;
+    extState.dimmingDirection = state.dimmingDirection;
+    extState.dimmingDuration = state.dimmingDuration;
+  }
+}
+
+// Check if any button is currently pressed (for MQTT command blocking)
+bool isAnyButtonPressed() {
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    ButtonStateMachine& btn = buttons[i];
+    // Check if button is in PRESSED or HELD state
+    if (btn.state == BUTTON_PRESSED || btn.state == BUTTON_HELD) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // ============================================================================
@@ -905,6 +978,8 @@ void setup() {
   stripStates[0].brightness = DEFAULT_BRIGHTNESS;
   stripStates[0].dimmingActive = false;
   stripStates[0].dimmingDirection = true;
+  stripStates[0].dimmingTargetBrightness = DEFAULT_BRIGHTNESS;
+  stripStates[0].isSmoothTransition = false;
   stripStates[0].lastDimmingWasIncrease = true;
   stripStates[0].blinkActive = false;
   stripStates[0].transition.active = false;
@@ -923,6 +998,8 @@ void setup() {
   stripStates[1].brightness = DEFAULT_BRIGHTNESS;
   stripStates[1].dimmingActive = false;
   stripStates[1].dimmingDirection = true;
+  stripStates[1].dimmingTargetBrightness = DEFAULT_BRIGHTNESS;
+  stripStates[1].isSmoothTransition = false;
   stripStates[1].lastDimmingWasIncrease = true;
   stripStates[1].blinkActive = false;
   stripStates[1].transition.active = false;
@@ -941,6 +1018,8 @@ void setup() {
   stripStates[2].brightness = DEFAULT_BRIGHTNESS;
   stripStates[2].dimmingActive = false;
   stripStates[2].dimmingDirection = true;
+  stripStates[2].dimmingTargetBrightness = DEFAULT_BRIGHTNESS;
+  stripStates[2].isSmoothTransition = false;
   stripStates[2].lastDimmingWasIncrease = true;
   stripStates[2].blinkActive = false;
   stripStates[2].transition.active = false;
@@ -959,6 +1038,8 @@ void setup() {
   stripStates[3].brightness = DEFAULT_BRIGHTNESS;
   stripStates[3].dimmingActive = false;
   stripStates[3].dimmingDirection = true;
+  stripStates[3].dimmingTargetBrightness = DEFAULT_BRIGHTNESS;
+  stripStates[3].isSmoothTransition = false;
   stripStates[3].lastDimmingWasIncrease = true;
   stripStates[3].blinkActive = false;
   stripStates[3].transition.active = false;
@@ -996,6 +1077,9 @@ void setup() {
   
   randomSeed(analogRead(0));
   
+  // Initialize WiFi and MQTT (non-blocking, will connect in loop)
+  ledControllerManager.begin();
+  
   Serial.println("✅ System ready!");
   Serial.println("Click: Toggle strip ON/OFF (with random transitions)");
   Serial.println("Hold: Dim/Increase brightness\n");
@@ -1004,6 +1088,8 @@ void setup() {
 void loop() {
   unsigned long currentTime = millis();
   
+  // Update WiFi and MQTT (non-blocking)
+  ledControllerManager.loop();
   
   // Process all buttons
   for (int btnIndex = 0; btnIndex < NUM_BUTTONS; btnIndex++) {
@@ -1101,7 +1187,9 @@ void loop() {
     if (!motionState.on) {
       // Turn on only Strip 3 (Bathroom) if not already on
       Serial.println("🏃 Motion detected - turning ON strip " + String(MOTION_STRIP_INDEX) + " (Bathroom, pin " + String(stripConfigs[MOTION_STRIP_INDEX].pin) + ")");
-      Serial.println("   Kitchen strip 2 (pin 19) should remain OFF");
+      if (DEBUG_VERBOSE) {
+        Serial.println("   Kitchen strip 2 (pin 19) should remain OFF");
+      }
       turnOnStrip(MOTION_STRIP_INDEX);
     } else {
       // Update last motion time

@@ -193,3 +193,4 @@ void MQTTManager::printStatus() {
     Serial.println("  Failed Attempts: " + String(failedAttempts));
   }
 }
+

@@ -196,3 +196,4 @@ bool NetworkManager::checkWiFiConnection() {
 String NetworkManager::getLocalIP() {
   return WiFi.localIP().toString();
 }
+

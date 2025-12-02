@@ -38,19 +38,20 @@ The LED Controller module is an ESP32-based multi-strip LED controller that mana
 ### Button Functions
 
 - **Click**: Toggle strip ON/OFF (with random transitions)
-- **Hold** (>250ms): Start dimming (increase/decrease brightness) - *Not available for Button 3*
+- **Hold** (>250ms): Start dimming (increase/decrease brightness) - _Not available for Button 3_
 - **Button 3**: Simple toggle for floor lighting relay (no dimming)
 
 ## Additional Circuits
 
 ### Floor Lighting (Relay Circuit)
 
-| Component        | Pin | Direction | Description                    |
-| ---------------- | --- | --------- | ------------------------------ |
-| **Relay**        | 26  | Output    | Floor lighting relay control   |
-| **Button 3**     | 27  | Input     | Floor lighting toggle button   |
+| Component    | Pin | Direction | Description                  |
+| ------------ | --- | --------- | ---------------------------- |
+| **Relay**    | 26  | Output    | Floor lighting relay control |
+| **Button 3** | 27  | Input     | Floor lighting toggle button |
 
 **Floor Lighting Features:**
+
 - Controlled via relay (GPIO 26)
 - Toggle button on GPIO 27
 - Simple ON/OFF control (no dimming)
