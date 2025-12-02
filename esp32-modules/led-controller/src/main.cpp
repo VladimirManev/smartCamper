@@ -24,9 +24,13 @@ StripConfig stripConfigs[NUM_STRIPS] = {
 };
 
 // Button settings
-#define NUM_BUTTONS 2    // Number of buttons (Strip 2 is automatically controlled by Strip 0)
+#define NUM_BUTTONS 3    // Number of buttons (Strip 2 is automatically controlled by Strip 0)
 #define BUTTON_PIN_1 4   // Button for strip 0 (Kitchen - controls Strip 0 and Strip 2)
 #define BUTTON_PIN_2 12  // Button for strip 1
+#define BUTTON_PIN_3 27  // Button for relay circuit (toggle button)
+
+// Relay settings (for LED diodes circuit)
+#define RELAY_PIN 26     // Pin for relay control (OUTPUT)
 
 // PIR sensor settings (HC-SR501)
 #define PIR_SENSOR_PIN 2        // Pin for PIR sensor
@@ -147,8 +151,12 @@ struct ButtonStateMachine {
 
 ButtonStateMachine buttons[NUM_BUTTONS] = {
   {BUTTON_IDLE, 0, BUTTON_PIN_1, 0, false, 0, false},  // Button 0 -> Strip 0 (Kitchen - controls Strip 0 and Strip 2)
-  {BUTTON_IDLE, 0, BUTTON_PIN_2, 1, false, 0, false}   // Button 1 -> Strip 1
+  {BUTTON_IDLE, 0, BUTTON_PIN_2, 1, false, 0, false},  // Button 1 -> Strip 1
+  {BUTTON_IDLE, 0, BUTTON_PIN_3, 255, false, 0, false} // Button 2 -> Relay (stripIndex 255 = relay, not a strip)
 };
+
+// Relay state
+bool relayState = false;  // false = OFF, true = ON
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -829,6 +837,12 @@ void toggleStrip(uint8_t stripIndex) {
   Serial.flush();
 }
 
+void toggleRelay() {
+  relayState = !relayState;
+  digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
+  Serial.println("🔌 Relay " + String(relayState ? "ON" : "OFF") + " (Pin " + String(RELAY_PIN) + ")");
+}
+
 void startDimming(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
@@ -956,6 +970,13 @@ void setup() {
   pinMode(PIR_SENSOR_PIN, INPUT);
   Serial.println("PIR sensor - Pin: " + String(PIR_SENSOR_PIN) + " - OK");
   
+  // Initialize relay
+  Serial.println("Initializing relay on pin " + String(RELAY_PIN) + "...");
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);  // Start with relay OFF
+  relayState = false;
+  Serial.println("Relay - Pin: " + String(RELAY_PIN) + " - OK (initialized OFF)");
+  
   Serial.println("Dimming speed: " + String(DIMMING_SPEED) + " units/sec, Hold threshold: " + String(HOLD_THRESHOLD) + "ms");
   Serial.println("Transitions: " + String(TRANSITION_DURATION) + "ms");
   
@@ -965,7 +986,11 @@ void setup() {
   
   for (int i = 0; i < NUM_BUTTONS; i++) {
     pinMode(buttons[i].pin, INPUT_PULLUP);
-    Serial.println("Button " + String(i) + " - Pin: " + String(buttons[i].pin) + " -> Strip " + String(buttons[i].stripIndex));
+    if (buttons[i].stripIndex == 255) {
+      Serial.println("Button " + String(i) + " - Pin: " + String(buttons[i].pin) + " -> Relay");
+    } else {
+      Serial.println("Button " + String(i) + " - Pin: " + String(buttons[i].pin) + " -> Strip " + String(buttons[i].stripIndex));
+    }
     Serial.flush();
   }
   
@@ -984,6 +1009,7 @@ void loop() {
   for (int btnIndex = 0; btnIndex < NUM_BUTTONS; btnIndex++) {
     ButtonStateMachine& btn = buttons[btnIndex];
     uint8_t stripIndex = btn.stripIndex;
+    bool isRelayButton = (stripIndex == 255);  // Relay button has stripIndex 255
     
     // Read button state
     bool rawButtonReading = (digitalRead(btn.pin) == LOW);
@@ -1014,7 +1040,8 @@ void loop() {
         
       case BUTTON_PRESSED:
         if (debouncedButtonState) {
-          if (currentTime - btn.pressTime >= HOLD_THRESHOLD) {
+          // Relay button doesn't support dimming/hold - it's just a toggle
+          if (!isRelayButton && currentTime - btn.pressTime >= HOLD_THRESHOLD) {
             btn.state = BUTTON_HELD;
             if (stripStates[stripIndex].on) {
               startDimming(stripIndex);
@@ -1022,16 +1049,26 @@ void loop() {
           }
         } else {
           btn.state = BUTTON_IDLE;
-          Serial.println("🔘 Button " + String(btnIndex) + " released - toggling strip " + String(stripIndex));
-          Serial.flush();
-          toggleStrip(stripIndex);
+          if (isRelayButton) {
+            // Toggle relay
+            Serial.println("🔘 Button " + String(btnIndex) + " released - toggling relay");
+            Serial.flush();
+            toggleRelay();
+          } else {
+            // Toggle strip
+            Serial.println("🔘 Button " + String(btnIndex) + " released - toggling strip " + String(stripIndex));
+            Serial.flush();
+            toggleStrip(stripIndex);
+          }
         }
         break;
         
       case BUTTON_HELD:
         if (!debouncedButtonState) {
           btn.state = BUTTON_IDLE;
-          stopDimming(stripIndex);
+          if (!isRelayButton) {
+            stopDimming(stripIndex);
+          }
         }
         break;
     }
