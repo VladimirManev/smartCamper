@@ -34,15 +34,15 @@ StripConfig stripConfigs[NUM_STRIPS] = {
 #define DEFAULT_BRIGHTNESS 128  // 50% при първо включване
 
 // Димиране настройки
-#define DIMMING_TIME 4000  // 4 секунди от мин до макс
+#define DIMMING_SPEED 50  // единици яркост/секунда (скорост на промяна)
 #define HOLD_THRESHOLD 250  // 250ms преди да започне димиране
-#define BLINK_DURATION 300  // Продължителност на премигването при мин/макс (ms)
+#define BLINK_DURATION 300  // Продължителност на премигването при макс (ms)
 #define BLINK_MIN_FACTOR 0.3  // Минимална яркост при премигване (30% от текущата)
 
 // Транзакции настройки
 #define TRANSITION_DURATION 1000  // 1 секунда за транзакции
-#define NUM_ON_TRANSITIONS 5   // Брой транзакции за включване
-#define NUM_OFF_TRANSITIONS 5  // Брой транзакции за изключване
+#define NUM_ON_TRANSITIONS 4   // Брой транзакции за включване
+#define NUM_OFF_TRANSITIONS 4  // Брой транзакции за изключване
 
 // ============================================================================
 // СТРУКТУРИ И ТИПОВЕ
@@ -68,14 +68,12 @@ enum TransitionType {
   TRANSITION_NONE,
   TRANSITION_ON_CENTER_TO_EDGES,      // 0: Плавно от центъра към краищата
   TRANSITION_ON_RANDOM_LEDS,           // 1: Произволни диоди последователно
-  TRANSITION_ON_FADE_BRIGHTNESS,       // 2: Плавно вдигане на яркостта
-  TRANSITION_ON_LEFT_TO_RIGHT,         // 3: От ляво надясно
-  TRANSITION_ON_EDGES_TO_CENTER,       // 4: От краищата към центъра
-  TRANSITION_OFF_EDGES_TO_CENTER,      // 5: От краищата към центъра
-  TRANSITION_OFF_FADE_BRIGHTNESS,       // 6: Плавно изгасване на яркостта
-  TRANSITION_OFF_RANDOM_LEDS,          // 7: Произволни диоди последователно
-  TRANSITION_OFF_LEFT_TO_RIGHT,        // 8: От ляво надясно
-  TRANSITION_OFF_CENTER_TO_EDGES       // 9: От центъра към краищата
+  TRANSITION_ON_LEFT_TO_RIGHT,         // 2: От ляво надясно
+  TRANSITION_ON_EDGES_TO_CENTER,       // 3: От краищата към центъра
+  TRANSITION_OFF_EDGES_TO_CENTER,      // 4: От краищата към центъра
+  TRANSITION_OFF_RANDOM_LEDS,          // 5: Произволни диоди последователно
+  TRANSITION_OFF_LEFT_TO_RIGHT,        // 6: От ляво надясно
+  TRANSITION_OFF_CENTER_TO_EDGES       // 7: От центъра към краищата
 };
 
 // Състояние на транзакция
@@ -100,6 +98,7 @@ struct StripState {
   bool dimmingDirection;  // true = увеличава, false = намаля
   unsigned long dimmingStartTime;
   uint8_t dimmingStartBrightness;
+  unsigned long dimmingDuration;  // време за димиране в милисекунди (изчислява се динамично)
   bool lastDimmingWasIncrease;
   
   // Премигване
@@ -274,27 +273,6 @@ void transitionOnRandomLeds(uint8_t stripIndex) {
   }
 }
 
-void transitionOnFadeBrightness(uint8_t stripIndex) {
-  StripState& state = stripStates[stripIndex];
-  TransitionState& trans = state.transition;
-  uint16_t ledCount = stripConfigs[stripIndex].ledCount;
-  
-  unsigned long elapsed = millis() - trans.startTime;
-  float progress = (float)elapsed / TRANSITION_DURATION;
-  if (progress > 1.0) progress = 1.0;
-  
-  uint8_t currentBrightness = MIN_BRIGHTNESS + (uint8_t)((trans.targetBrightness - MIN_BRIGHTNESS) * progress);
-  
-  for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, currentBrightness));
-  }
-  STRIP_SHOW(stripIndex);
-  
-  if (progress >= 1.0) {
-    trans.active = false;
-  }
-}
-
 void transitionOnLeftToRight(uint8_t stripIndex) {
   StripState& state = stripStates[stripIndex];
   TransitionState& trans = state.transition;
@@ -374,27 +352,6 @@ void transitionOffEdgesToCenter(uint8_t stripIndex) {
     if (ledCount - 1 - i >= 0) {
       STRIP_SET_PIXEL(stripIndex, ledCount - 1 - i, RgbwColor(0, 0, 0, 0));
     }
-  }
-  STRIP_SHOW(stripIndex);
-  
-  if (progress >= 1.0) {
-    trans.active = false;
-  }
-}
-
-void transitionOffFadeBrightness(uint8_t stripIndex) {
-  StripState& state = stripStates[stripIndex];
-  TransitionState& trans = state.transition;
-  uint16_t ledCount = stripConfigs[stripIndex].ledCount;
-  
-  unsigned long elapsed = millis() - trans.startTime;
-  float progress = (float)elapsed / TRANSITION_DURATION;
-  if (progress > 1.0) progress = 1.0;
-  
-  uint8_t currentBrightness = trans.targetBrightness - (uint8_t)(trans.targetBrightness * progress);
-  
-  for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, currentBrightness));
   }
   STRIP_SHOW(stripIndex);
   
@@ -510,14 +467,12 @@ typedef void (*TransitionFunction)(uint8_t);
 TransitionFunction onTransitions[NUM_ON_TRANSITIONS] = {
   transitionOnCenterToEdges,
   transitionOnRandomLeds,
-  transitionOnFadeBrightness,
   transitionOnLeftToRight,
   transitionOnEdgesToCenter
 };
 
 TransitionFunction offTransitions[NUM_OFF_TRANSITIONS] = {
   transitionOffEdgesToCenter,
-  transitionOffFadeBrightness,
   transitionOffRandomLeds,
   transitionOffLeftToRight,
   transitionOffCenterToEdges
@@ -625,7 +580,7 @@ void updateDimming(uint8_t stripIndex) {
   if (!state.dimmingActive || !state.on) return;
   
   unsigned long elapsed = millis() - state.dimmingStartTime;
-  float progress = (float)elapsed / DIMMING_TIME;
+  float progress = (float)elapsed / state.dimmingDuration;
   
   if (progress >= 1.0) {
     progress = 1.0;
@@ -647,14 +602,23 @@ void updateDimming(uint8_t stripIndex) {
     reachedLimit = true;
   }
   
+  // Премигване само при достигане на MAX, не при MIN
   if (reachedLimit && !state.blinkActive) {
     state.dimmingActive = false;
     state.lastDimmingWasIncrease = state.dimmingDirection;
-    state.blinkActive = true;
-    state.blinkStartTime = millis();
-    state.savedBrightnessForBlink = newBrightness;
+    
+    if (state.dimmingDirection) {
+      // Само при увеличаване до MAX - премигване
+      state.blinkActive = true;
+      state.blinkStartTime = millis();
+      state.savedBrightnessForBlink = newBrightness;
+      Serial.println("✨ Strip " + String(stripIndex) + " reached MAX brightness - blinking");
+    } else {
+      // При намаляване до MIN - без премигване
+      Serial.println("✨ Strip " + String(stripIndex) + " reached MIN brightness");
+    }
+    
     state.brightness = newBrightness;
-    Serial.println("✨ Strip " + String(stripIndex) + " reached " + String(state.dimmingDirection ? "MAX" : "MIN") + " brightness - blinking");
   } else if (!reachedLimit) {
     state.brightness = newBrightness;
     updateStrip(stripIndex);
@@ -723,7 +687,14 @@ void startDimming(uint8_t stripIndex) {
   state.dimmingStartBrightness = state.brightness;
   state.dimmingDirection = !state.lastDimmingWasIncrease;
   state.lastDimmingWasIncrease = state.dimmingDirection;
-  Serial.println("🔆 Strip " + String(stripIndex) + " dimming: " + String(state.dimmingDirection ? "Increasing" : "Decreasing"));
+  
+  // Изчисляваме целевата яркост и времето според разстоянието
+  uint8_t targetBrightness = state.dimmingDirection ? MAX_BRIGHTNESS : MIN_BRIGHTNESS;
+  uint8_t distance = abs((int)targetBrightness - (int)state.dimmingStartBrightness);
+  state.dimmingDuration = (distance * 1000) / DIMMING_SPEED;  // време в милисекунди
+  
+  Serial.println("🔆 Strip " + String(stripIndex) + " dimming: " + String(state.dimmingDirection ? "Increasing" : "Decreasing") + 
+                 " (distance: " + String(distance) + ", time: " + String(state.dimmingDuration) + "ms)");
 }
 
 void stopDimming(uint8_t stripIndex) {
@@ -782,7 +753,7 @@ void setup() {
   stripStates[1].transition.randomOrder = nullptr;
   Serial.println("Strip 1 - Pin: " + String(stripConfigs[1].pin) + ", LEDs: " + String(stripConfigs[1].ledCount) + " - OK (RMT1)");
   
-  Serial.println("Dimming: " + String(DIMMING_TIME) + "ms, Hold threshold: " + String(HOLD_THRESHOLD) + "ms");
+  Serial.println("Dimming speed: " + String(DIMMING_SPEED) + " units/sec, Hold threshold: " + String(HOLD_THRESHOLD) + "ms");
   Serial.println("Transitions: " + String(TRANSITION_DURATION) + "ms");
   
   // Инициализация на бутоните
@@ -800,72 +771,11 @@ void setup() {
   Serial.println("✅ System ready!");
   Serial.println("Click: Toggle strip ON/OFF (with random transitions)");
   Serial.println("Hold: Dim/Increase brightness\n");
-  
-  // Тест - включваме само strip 0 за 2 секунди, после само strip 1
-  Serial.println("Testing strips isolation...");
-  Serial.flush();
-  
-  // Тест strip 0 - директно управление
-  Serial.println("Testing strip 0 on pin " + String(stripConfigs[0].pin) + " - DIRECT CONTROL");
-  Serial.flush();
-  
-  // Изключваме strip 1 преди теста
-  stripStates[1].on = false;
-  clearStrip(1, RgbwColor(0, 0, 0, 0));
-  showStrip(1);
-  delay(100);
-  
-  // Включваме само strip 0
-  for (int i = 0; i < stripConfigs[0].ledCount; i++) {
-    STRIP_SET_PIXEL(0, i, RgbwColor(0, 0, 0, 255));
-  }
-  STRIP_SHOW(0);
-  Serial.println("Strip 0 should be ON (bright white) - ONLY strip 0 should light up!");
-  Serial.flush();
-  delay(3000);
-  
-  // Изключваме strip 0
-  clearStrip(0, RgbwColor(0, 0, 0, 0));
-  showStrip(0);
-  delay(1000);
-  
-  // Тест strip 1 - директно управление
-  Serial.println("Testing strip 1 on pin " + String(stripConfigs[1].pin) + " - DIRECT CONTROL");
-  Serial.flush();
-  
-  // Изключваме strip 0 преди теста
-  stripStates[0].on = false;
-  clearStrip(0, RgbwColor(0, 0, 0, 0));
-  showStrip(0);
-  delay(100);
-  
-  // Включваме само strip 1
-  for (int i = 0; i < stripConfigs[1].ledCount; i++) {
-    STRIP_SET_PIXEL(1, i, RgbwColor(0, 0, 0, 255));
-  }
-  STRIP_SHOW(1);
-  Serial.println("Strip 1 should be ON (bright white) - ONLY strip 1 should light up!");
-  Serial.flush();
-  delay(3000);
-  
-  // Изключваме strip 1
-  clearStrip(1, RgbwColor(0, 0, 0, 0));
-  showStrip(1);
-  
-  Serial.println("Test complete - both strips should be OFF now");
-  Serial.flush();
 }
 
 void loop() {
-  static unsigned long lastDebugTime = 0;
   unsigned long currentTime = millis();
   
-  // Debug - показваме че loop работи (веднъж на 5 секунди)
-  if (currentTime - lastDebugTime > 5000) {
-    lastDebugTime = currentTime;
-    Serial.println("Loop running...");
-    Serial.flush();
-  }
   
   // Обработка на всички бутони
   for (int btnIndex = 0; btnIndex < NUM_STRIPS; btnIndex++) {
