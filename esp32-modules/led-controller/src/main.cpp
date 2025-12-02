@@ -1,84 +1,90 @@
 // LED Controller - Multi-strip support with abstraction
-// Поддръжка за множество ленти с абстракция
 
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
 // ============================================================================
-// КОНФИГУРАЦИЯ
+// CONFIGURATION
 // ============================================================================
 
-// Брой ленти (променя се лесно)
-#define NUM_STRIPS 3
+// Number of strips (easily changeable)
+#define NUM_STRIPS 4
 
-// Настройки за лентите (добавяне на нови ленти тук)
+// Strip settings (add new strips here)
 struct StripConfig {
   uint8_t pin;
   uint16_t ledCount;
 };
 
 StripConfig stripConfigs[NUM_STRIPS] = {
-  {33, 44},  // Strip 0: Pin 33, 44 LEDs - Kitchen (main)
-  {18, 53},  // Strip 1: Pin 18, 53 LEDs
-  {19, 23}   // Strip 2: Pin 19, 23 LEDs - Kitchen (extension, mirrors strip 0)
+  {33, 44},   // Strip 0: Pin 33, 44 LEDs - Kitchen (main)
+  {18, 178},  // Strip 1: Pin 18, 178 LEDs - Main lighting
+  {19, 23},   // Strip 2: Pin 19, 23 LEDs - Kitchen (extension for spice rack, mirrors strip 0)
+  {25, 53}    // Strip 3: Pin 25, 53 LEDs - Bathroom (motion activated, no button, no dimming)
 };
 
-// Настройки за бутони
-#define NUM_BUTTONS 2    // Брой бутони (Strip 2 се управлява автоматично от Strip 0)
-#define BUTTON_PIN_1 4   // Бутон за strip 0 (Kitchen - управлява Strip 0 и Strip 2)
-#define BUTTON_PIN_2 12  // Бутон за strip 1
+// Button settings
+#define NUM_BUTTONS 2    // Number of buttons (Strip 2 is automatically controlled by Strip 0)
+#define BUTTON_PIN_1 4   // Button for strip 0 (Kitchen - controls Strip 0 and Strip 2)
+#define BUTTON_PIN_2 12  // Button for strip 1
 
-// Яркост настройки
+// PIR sensor settings (HC-SR501)
+#define PIR_SENSOR_PIN 2        // Pin for PIR sensor
+#define PIR_MOTION_TIMEOUT 60000  // 60 seconds (1 minute) after last motion detected
+#define MOTION_STRIP_INDEX 3    // Strip 3 (Bathroom) is controlled by the sensor
+
+// Brightness settings
 #define MIN_BRIGHTNESS 1
 #define MAX_BRIGHTNESS 255
-#define DEFAULT_BRIGHTNESS 128  // 50% при първо включване
+#define DEFAULT_BRIGHTNESS 128  // 50% on first power on
 
-// Димиране настройки
-#define DIMMING_SPEED 50  // единици яркост/секунда (скорост на промяна)
-#define HOLD_THRESHOLD 250  // 250ms преди да започне димиране
-#define BLINK_DURATION 300  // Продължителност на премигването при макс (ms)
-#define BLINK_MIN_FACTOR 0.3  // Минимална яркост при премигване (30% от текущата)
+// Dimming settings
+#define DIMMING_SPEED 50  // brightness units per second (change speed)
+#define HOLD_THRESHOLD 250  // 250ms before dimming starts
+#define BLINK_DURATION 300  // Blink duration at max brightness (ms)
+#define BLINK_MIN_FACTOR 0.3  // Minimum brightness during blink (30% of current)
 
-// Транзакции настройки
-#define TRANSITION_DURATION 1000  // 1 секунда за транзакции
-#define NUM_ON_TRANSITIONS 4   // Брой транзакции за включване
-#define NUM_OFF_TRANSITIONS 4  // Брой транзакции за изключване
+// Transition settings
+#define TRANSITION_DURATION 1000  // 1 second for transitions
+#define NUM_ON_TRANSITIONS 4   // Number of transitions for turning on
+#define NUM_OFF_TRANSITIONS 4  // Number of transitions for turning off
 
 // ============================================================================
-// СТРУКТУРИ И ТИПОВЕ
+// STRUCTURES AND TYPES
 // ============================================================================
 
-// Тип на лентата: WS2815 RGBW
-// За ESP32 използваме RMT методи - всяка лента трябва да използва различен RMT канал
-// Strip 0 и Strip 2 (Kitchen) са синхронизирани в софтуера, но използват различни RMT канали
+// Strip type: WS2815 RGBW
+// For ESP32 we use RMT methods - each strip must use a different RMT channel
+// Strip 0 and Strip 2 (Kitchen) are synchronized in software, but use different RMT channels
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip0;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt1Ws2812xMethod> LedStrip1;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt2Ws2812xMethod> LedStrip2;
+typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt3Ws2812xMethod> LedStrip3;
 
-// Общ тип за указатели
+// Common type for pointers
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip;
 
-// Състояния на бутона
+// Button states
 enum ButtonState {
   BUTTON_IDLE,
   BUTTON_PRESSED,
   BUTTON_HELD
 };
 
-// Типове транзакции
+// Transition types
 enum TransitionType {
   TRANSITION_NONE,
-  TRANSITION_ON_CENTER_TO_EDGES,      // 0: Плавно от центъра към краищата
-  TRANSITION_ON_RANDOM_LEDS,           // 1: Произволни диоди последователно
-  TRANSITION_ON_LEFT_TO_RIGHT,         // 2: От ляво надясно
-  TRANSITION_ON_EDGES_TO_CENTER,       // 3: От краищата към центъра
-  TRANSITION_OFF_EDGES_TO_CENTER,      // 4: От краищата към центъра
-  TRANSITION_OFF_RANDOM_LEDS,          // 5: Произволни диоди последователно
-  TRANSITION_OFF_LEFT_TO_RIGHT,        // 6: От ляво надясно
-  TRANSITION_OFF_CENTER_TO_EDGES       // 7: От центъра към краищата
+  TRANSITION_ON_CENTER_TO_EDGES,      // 0: Smoothly from center to edges
+  TRANSITION_ON_RANDOM_LEDS,           // 1: Random LEDs sequentially
+  TRANSITION_ON_LEFT_TO_RIGHT,         // 2: From left to right
+  TRANSITION_ON_EDGES_TO_CENTER,       // 3: From edges to center
+  TRANSITION_OFF_EDGES_TO_CENTER,      // 4: From edges to center
+  TRANSITION_OFF_RANDOM_LEDS,          // 5: Random LEDs sequentially
+  TRANSITION_OFF_LEFT_TO_RIGHT,        // 6: From left to right
+  TRANSITION_OFF_CENTER_TO_EDGES       // 7: From center to edges
 };
 
-// Състояние на транзакция
+// Transition state
 struct TransitionState {
   bool active;
   TransitionType type;
@@ -88,49 +94,50 @@ struct TransitionState {
   int randomIndex;
 };
 
-// Състояние на лента - използваме void* за да поддържаме различни типове
+// Strip state - using void* to support different types
 struct StripState {
-  void* strip;  // Указател към LedStrip0 или LedStrip1
-  uint8_t stripType;  // 0 = LedStrip0 (RMT0), 1 = LedStrip1 (RMT1), 2 = LedStrip2 (RMT2, синхронизиран с Strip 0)
+  void* strip;  // Pointer to LedStrip0, LedStrip1, LedStrip2, or LedStrip3
+  uint8_t stripType;  // 0 = LedStrip0 (RMT0), 1 = LedStrip1 (RMT1), 2 = LedStrip2 (RMT2), 3 = LedStrip3 (RMT3)
   bool on;
   uint8_t brightness;
   
-  // Димиране
+  // Dimming
   bool dimmingActive;
-  bool dimmingDirection;  // true = увеличава, false = намаля
+  bool dimmingDirection;  // true = increase, false = decrease
   unsigned long dimmingStartTime;
   uint8_t dimmingStartBrightness;
-  unsigned long dimmingDuration;  // време за димиране в милисекунди (изчислява се динамично)
+  unsigned long dimmingDuration;  // dimming time in milliseconds (calculated dynamically)
   bool lastDimmingWasIncrease;
   
-  // Премигване
+  // Blinking
   bool blinkActive;
   unsigned long blinkStartTime;
   uint8_t savedBrightnessForBlink;
   
-  // Транзакции
+  // Transitions
   TransitionState transition;
 };
 
 // ============================================================================
-// ГЛОБАЛНИ ПРОМЕНЛИВИ
+// GLOBAL VARIABLES
 // ============================================================================
 
-// Масив от ленти - използваме статични обекти с различни RMT канали
+// Array of strips - using static objects with different RMT channels
 LedStrip0 strip0(stripConfigs[0].ledCount, stripConfigs[0].pin);  // Kitchen main
-LedStrip1 strip1(stripConfigs[1].ledCount, stripConfigs[1].pin);
-LedStrip2 strip2(stripConfigs[2].ledCount, stripConfigs[2].pin);  // Kitchen extension
+LedStrip1 strip1(stripConfigs[1].ledCount, stripConfigs[1].pin);  // Main lighting
+LedStrip2 strip2(stripConfigs[2].ledCount, stripConfigs[2].pin);  // Kitchen extension (spice rack)
+LedStrip3 strip3(stripConfigs[3].ledCount, stripConfigs[3].pin);  // Bathroom (motion activated)
 
-// Указатели към лентите (за универсалност)
-LedStrip* strips[NUM_STRIPS] = {(LedStrip*)&strip0, (LedStrip*)&strip1, (LedStrip*)&strip2};
+// Pointers to strips (for universality)
+LedStrip* strips[NUM_STRIPS] = {(LedStrip*)&strip0, (LedStrip*)&strip1, (LedStrip*)&strip2, (LedStrip*)&strip3};
 StripState stripStates[NUM_STRIPS];
 
-// Бутони
+// Buttons
 struct ButtonStateMachine {
   ButtonState state;
   unsigned long pressTime;
   uint8_t pin;
-  uint8_t stripIndex;  // Коя лента управлява този бутон
+  uint8_t stripIndex;  // Which strip this button controls
   
   // Debounce state
   bool lastRawReading;
@@ -139,20 +146,26 @@ struct ButtonStateMachine {
 };
 
 ButtonStateMachine buttons[NUM_BUTTONS] = {
-  {BUTTON_IDLE, 0, BUTTON_PIN_1, 0, false, 0, false},  // Бутон 0 -> Strip 0 (Kitchen - управлява Strip 0 и Strip 2)
-  {BUTTON_IDLE, 0, BUTTON_PIN_2, 1, false, 0, false}   // Бутон 1 -> Strip 1
+  {BUTTON_IDLE, 0, BUTTON_PIN_1, 0, false, 0, false},  // Button 0 -> Strip 0 (Kitchen - controls Strip 0 and Strip 2)
+  {BUTTON_IDLE, 0, BUTTON_PIN_2, 1, false, 0, false}   // Button 1 -> Strip 1
 };
 
 // ============================================================================
-// ПОМОЩНИ ФУНКЦИИ
+// HELPER FUNCTIONS
 // ============================================================================
 
-// R и G са разменени в хардуера
+// R and G are swapped in hardware
 RgbwColor fixColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
   return RgbwColor(g, r, b, w);
 }
 
-// Helper функции за работа с различните типове ленти
+// Helper function to create white color using RGB and W channels
+RgbwColor whiteColor(uint8_t brightness) {
+  // Use RGB channels for white color in addition to W channel
+  return RgbwColor(brightness, brightness, brightness, brightness);
+}
+
+// Helper functions for working with different strip types
 void setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwColor color) {
   if (stripIndex >= NUM_STRIPS) return;
   StripState& state = stripStates[stripIndex];
@@ -160,8 +173,10 @@ void setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwColor color) {
     ((LedStrip0*)state.strip)->SetPixelColor(pixelIndex, color);
   } else if (state.stripType == 1) {
     ((LedStrip1*)state.strip)->SetPixelColor(pixelIndex, color);
-  } else {
+  } else if (state.stripType == 2) {
     ((LedStrip2*)state.strip)->SetPixelColor(pixelIndex, color);
+  } else {
+    ((LedStrip3*)state.strip)->SetPixelColor(pixelIndex, color);
   }
 }
 
@@ -172,8 +187,10 @@ void clearStrip(uint8_t stripIndex, RgbwColor color) {
     ((LedStrip0*)state.strip)->ClearTo(color);
   } else if (state.stripType == 1) {
     ((LedStrip1*)state.strip)->ClearTo(color);
-  } else {
+  } else if (state.stripType == 2) {
     ((LedStrip2*)state.strip)->ClearTo(color);
+  } else {
+    ((LedStrip3*)state.strip)->ClearTo(color);
   }
 }
 
@@ -184,23 +201,25 @@ void showStrip(uint8_t stripIndex) {
     ((LedStrip0*)state.strip)->Show();
   } else if (state.stripType == 1) {
     ((LedStrip1*)state.strip)->Show();
-  } else {
+  } else if (state.stripType == 2) {
     ((LedStrip2*)state.strip)->Show();
+  } else if (state.stripType == 3) {
+    ((LedStrip3*)state.strip)->Show();
   }
 }
 
-// Макрос за по-лесна употреба в транзакциите
+// Macros for easier use in transitions
 #define STRIP_CLEAR(idx, color) clearStrip(idx, color)
 #define STRIP_SET_PIXEL(idx, pixel, color) setPixelColor(idx, pixel, color)
 #define STRIP_SHOW(idx) showStrip(idx)
 
-// Helper функция за синхронизация на Kitchen (Strip 0 и Strip 2)
+// Helper function for synchronizing Kitchen (Strip 0 and Strip 2)
 void syncKitchenExtension(uint8_t mainStripIndex) {
   if (mainStripIndex == 0) {
     StripState& mainState = stripStates[0];
     StripState& extState = stripStates[2];
     
-    // Копираме състоянието от main към extension
+    // Copy state from main to extension
     extState.on = mainState.on;
     extState.brightness = mainState.brightness;
     extState.dimmingActive = mainState.dimmingActive;
@@ -216,10 +235,10 @@ void syncKitchenExtension(uint8_t mainStripIndex) {
     extState.transition.startTime = mainState.transition.startTime;
     extState.transition.targetBrightness = mainState.transition.targetBrightness;
     
-    // Обновяваме extension лентата
+    // Update extension strip
     if (extState.on) {
       for (int i = 0; i < stripConfigs[2].ledCount; i++) {
-        setPixelColor(2, i, RgbwColor(0, 0, 0, extState.brightness));
+        setPixelColor(2, i, whiteColor(extState.brightness));
       }
     } else {
       clearStrip(2, RgbwColor(0, 0, 0, 0));
@@ -228,7 +247,7 @@ void syncKitchenExtension(uint8_t mainStripIndex) {
   }
 }
 
-// Обновяване на лента с текущата яркост
+// Update strip with current brightness
 void updateStrip(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
@@ -236,19 +255,19 @@ void updateStrip(uint8_t stripIndex) {
   
   if (state.on) {
     for (int i = 0; i < stripConfigs[stripIndex].ledCount; i++) {
-      setPixelColor(stripIndex, i, RgbwColor(0, 0, 0, state.brightness));
+      setPixelColor(stripIndex, i, whiteColor(state.brightness));
     }
   } else {
     clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
   }
   showStrip(stripIndex);
   
-  // Kitchen: синхронизираме extension лентата
+  // Kitchen: synchronize extension strip
   syncKitchenExtension(stripIndex);
 }
 
 // ============================================================================
-// ТРАНЗАКЦИИ ЗА ВКЛЮЧВАНЕ
+// TURN ON TRANSITIONS
 // ============================================================================
 
 void transitionOnCenterToEdges(uint8_t stripIndex) {
@@ -267,10 +286,10 @@ void transitionOnCenterToEdges(uint8_t stripIndex) {
   STRIP_CLEAR(stripIndex, RgbwColor(0, 0, 0, 0));
   for (int i = 0; i <= currentDistance; i++) {
     if (center - i >= 0) {
-      STRIP_SET_PIXEL(stripIndex, center - i, RgbwColor(0, 0, 0, trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center - i, whiteColor(trans.targetBrightness));
     }
     if (center + i < ledCount) {
-      STRIP_SET_PIXEL(stripIndex, center + i, RgbwColor(0, 0, 0, trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center + i, whiteColor(trans.targetBrightness));
     }
   }
   STRIP_SHOW(stripIndex);
@@ -308,7 +327,7 @@ void transitionOnRandomLeds(uint8_t stripIndex) {
   
   for (int i = 0; i < targetCount && i < ledCount; i++) {
     STRIP_SET_PIXEL(stripIndex, trans.randomOrder[i], 
-                    RgbwColor(0, 0, 0, trans.targetBrightness));
+                    whiteColor(trans.targetBrightness));
   }
   STRIP_SHOW(stripIndex);
   
@@ -332,7 +351,7 @@ void transitionOnLeftToRight(uint8_t stripIndex) {
   
   STRIP_CLEAR(stripIndex, RgbwColor(0, 0, 0, 0));
   for (int i = 0; i < currentEnd; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
   }
   STRIP_SHOW(stripIndex);
   
@@ -357,10 +376,10 @@ void transitionOnEdgesToCenter(uint8_t stripIndex) {
   STRIP_CLEAR(stripIndex, RgbwColor(0, 0, 0, 0));
   for (int i = 0; i <= maxDistance - currentDistance; i++) {
     if (center - i >= 0) {
-      STRIP_SET_PIXEL(stripIndex, center - i, RgbwColor(0, 0, 0, trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center - i, whiteColor(trans.targetBrightness));
     }
     if (center + i < ledCount) {
-      STRIP_SET_PIXEL(stripIndex, center + i, RgbwColor(0, 0, 0, trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center + i, whiteColor(trans.targetBrightness));
     }
   }
   STRIP_SHOW(stripIndex);
@@ -371,7 +390,7 @@ void transitionOnEdgesToCenter(uint8_t stripIndex) {
 }
 
 // ============================================================================
-// ТРАНЗАКЦИИ ЗА ИЗКЛЮЧВАНЕ
+// TURN OFF TRANSITIONS
 // ============================================================================
 
 void transitionOffEdgesToCenter(uint8_t stripIndex) {
@@ -388,7 +407,7 @@ void transitionOffEdgesToCenter(uint8_t stripIndex) {
   int currentDistance = (int)(maxDistance * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
   }
   
   for (int i = 0; i < currentDistance; i++) {
@@ -400,7 +419,7 @@ void transitionOffEdgesToCenter(uint8_t stripIndex) {
     }
   }
   
-  // При нечетен брой LED-и, изчистваме и средния LED когато достигнем центъра
+  // For odd number of LEDs, clear the middle LED when we reach the center
   if (ledCount % 2 == 1 && currentDistance >= center) {
     STRIP_SET_PIXEL(stripIndex, center, RgbwColor(0, 0, 0, 0));
   }
@@ -438,7 +457,7 @@ void transitionOffRandomLeds(uint8_t stripIndex) {
   int offCount = (int)(ledCount * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
   }
   
   for (int i = 0; i < offCount && i < ledCount; i++) {
@@ -465,7 +484,7 @@ void transitionOffLeftToRight(uint8_t stripIndex) {
   int currentEnd = (int)(ledCount * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
   }
   
   for (int i = 0; i < currentEnd; i++) {
@@ -492,7 +511,7 @@ void transitionOffCenterToEdges(uint8_t stripIndex) {
   int currentDistance = (int)(maxDistance * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
   }
   
   for (int i = 0; i <= currentDistance; i++) {
@@ -511,7 +530,7 @@ void transitionOffCenterToEdges(uint8_t stripIndex) {
 }
 
 // ============================================================================
-// УПРАВЛЕНИЕ НА ТРАНЗАКЦИИТЕ
+// TRANSITION MANAGEMENT
 // ============================================================================
 
 typedef void (*TransitionFunction)(uint8_t);
@@ -563,7 +582,7 @@ void updateTransition(uint8_t stripIndex) {
   
   if (!trans.active) return;
   
-  // Debug - показваме че работим само с тази лента
+  // Debug - show we're working only with this strip
   static unsigned long lastDebugTime[NUM_STRIPS] = {0, 0};
   unsigned long now = millis();
   if (now - lastDebugTime[stripIndex] > 200) {
@@ -578,7 +597,7 @@ void updateTransition(uint8_t stripIndex) {
     offTransitions[offIndex](stripIndex);
   }
   
-  // Kitchen: синхронизираме extension лентата - изпълняваме същата транзакция
+  // Kitchen: synchronize extension strip - execute the same transition
   if (stripIndex == 0 && stripStates[2].transition.active) {
     TransitionState& extTrans = stripStates[2].transition;
     if (extTrans.type < NUM_ON_TRANSITIONS) {
@@ -602,7 +621,7 @@ void updateTransition(uint8_t stripIndex) {
 }
 
 // ============================================================================
-// ПРЕМИГВАНЕ ПРИ МИН/МАКС
+// BLINKING AT MIN/MAX
 // ============================================================================
 
 void updateBlink(uint8_t stripIndex) {
@@ -621,16 +640,16 @@ void updateBlink(uint8_t stripIndex) {
     uint8_t currentBrightness = (uint8_t)(state.savedBrightnessForBlink * brightnessFactor);
     
     for (int i = 0; i < stripConfigs[stripIndex].ledCount; i++) {
-      STRIP_SET_PIXEL(stripIndex, i, RgbwColor(0, 0, 0, currentBrightness));
+      STRIP_SET_PIXEL(stripIndex, i, whiteColor(currentBrightness));
     }
     STRIP_SHOW(stripIndex);
     
-    // Kitchen: синхронизираме extension лентата - използваме същия brightnessFactor
+    // Kitchen: synchronize extension strip - use the same brightnessFactor
     if (stripIndex == 0 && stripStates[2].blinkActive && stripStates[2].on) {
       StripState& extState = stripStates[2];
       uint8_t extBrightness = (uint8_t)(extState.savedBrightnessForBlink * brightnessFactor);
       for (int i = 0; i < stripConfigs[2].ledCount; i++) {
-        STRIP_SET_PIXEL(2, i, RgbwColor(0, 0, 0, extBrightness));
+        STRIP_SET_PIXEL(2, i, whiteColor(extBrightness));
       }
       STRIP_SHOW(2);
     }
@@ -642,7 +661,7 @@ void updateBlink(uint8_t stripIndex) {
 }
 
 // ============================================================================
-// ДИМИРАНЕ
+// DIMMING
 // ============================================================================
 
 void updateDimming(uint8_t stripIndex) {
@@ -675,19 +694,19 @@ void updateDimming(uint8_t stripIndex) {
     reachedLimit = true;
   }
   
-  // Премигване само при достигане на MAX, не при MIN
+  // Blinking only when reaching MAX, not at MIN
   if (reachedLimit && !state.blinkActive) {
     state.dimmingActive = false;
     state.lastDimmingWasIncrease = state.dimmingDirection;
     
     if (state.dimmingDirection) {
-      // Само при увеличаване до MAX - премигване
+      // Only when increasing to MAX - blink
       state.blinkActive = true;
       state.blinkStartTime = millis();
       state.savedBrightnessForBlink = newBrightness;
       Serial.println("✨ Strip " + String(stripIndex) + " reached MAX brightness - blinking");
     } else {
-      // При намаляване до MIN - без премигване
+      // When decreasing to MIN - no blinking
       Serial.println("✨ Strip " + String(stripIndex) + " reached MIN brightness");
     }
     
@@ -700,7 +719,7 @@ void updateDimming(uint8_t stripIndex) {
 }
 
 // ============================================================================
-// ОСНОВНИ ФУНКЦИИ ЗА УПРАВЛЕНИЕ (извикват се от бутон, MQTT, датчици)
+// MAIN CONTROL FUNCTIONS (called from button, MQTT, sensors)
 // ============================================================================
 
 void turnOnStrip(uint8_t stripIndex) {
@@ -709,34 +728,41 @@ void turnOnStrip(uint8_t stripIndex) {
   StripState& state = stripStates[stripIndex];
   if (state.on) {
     Serial.println("⚠️ turnOnStrip called for strip " + String(stripIndex) + " but it's already ON");
-    return;  // Вече е включена
+    return;  // Already on
   }
   
-  Serial.println("🔵 turnOnStrip(" + String(stripIndex) + ") - setting state.on = true");
+  Serial.println("🔵 turnOnStrip(" + String(stripIndex) + ") - Pin: " + String(stripConfigs[stripIndex].pin) + " - setting state.on = true");
   state.on = true;
   
-  // Kitchen: ако управляваме Strip 0, синхронизираме Strip 2 ПРЕДИ да изберем транзакцията
+  // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
+  // IMPORTANT: Only when stripIndex == 0, synchronize Strip 2 (pin 19)
   if (stripIndex == 0) {
     StripState& extState = stripStates[2];
     extState.on = true;
     extState.brightness = state.brightness;
+    Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
+  } else {
+    // Make sure Strip 2 (Kitchen extension) does NOT turn on when turning on other strips
+    if (stripIndex != 2) {
+      Serial.println("   Strip 2 (Kitchen extension, pin 19) should remain OFF");
+    }
   }
   
-  // Избираме транзакцията веднъж и я използваме за двете ленти (ако е Kitchen)
+  // Choose transition once and use it for both strips (if Kitchen)
   startTransition(stripIndex, true);
   
-  // Kitchen: копираме същата транзакция към extension лентата
+  // Kitchen: copy the same transition to extension strip
   if (stripIndex == 0) {
     StripState& extState = stripStates[2];
     TransitionState& mainTrans = state.transition;
     TransitionState& extTrans = extState.transition;
     
-    // Копираме транзакцията от main към extension
+    // Copy transition from main to extension
     extTrans.active = mainTrans.active;
     extTrans.type = mainTrans.type;
     extTrans.startTime = mainTrans.startTime;
     extTrans.targetBrightness = mainTrans.targetBrightness;
-    extTrans.randomOrder = nullptr;  // Extension ще използва същия randomOrder ако е нужно
+    extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
     extTrans.randomIndex = 0;
     
     Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
@@ -749,31 +775,31 @@ void turnOffStrip(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
   StripState& state = stripStates[stripIndex];
-  if (!state.on) return;  // Вече е изключена
+  if (!state.on) return;  // Already off
   
   state.on = false;
   
-  // Kitchen: ако управляваме Strip 0, синхронизираме Strip 2 ПРЕДИ да изберем транзакцията
+  // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
   if (stripIndex == 0) {
     StripState& extState = stripStates[2];
     extState.on = false;
   }
   
-  // Избираме транзакцията веднъж и я използваме за двете ленти (ако е Kitchen)
+  // Choose transition once and use it for both strips (if Kitchen)
   startTransition(stripIndex, false);
   
-  // Kitchen: копираме същата транзакция към extension лентата
+  // Kitchen: copy the same transition to extension strip
   if (stripIndex == 0) {
     StripState& extState = stripStates[2];
     TransitionState& mainTrans = state.transition;
     TransitionState& extTrans = extState.transition;
     
-    // Копираме транзакцията от main към extension
+    // Copy transition from main to extension
     extTrans.active = mainTrans.active;
     extTrans.type = mainTrans.type;
     extTrans.startTime = mainTrans.startTime;
     extTrans.targetBrightness = mainTrans.targetBrightness;
-    extTrans.randomOrder = nullptr;  // Extension ще използва същия randomOrder ако е нужно
+    extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
     extTrans.randomIndex = 0;
     
     Serial.println("💡 Kitchen extension (Strip 2): Turning OFF with same transition");
@@ -806,6 +832,9 @@ void toggleStrip(uint8_t stripIndex) {
 void startDimming(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
+  // Strip 3 (motion activated) has no dimming
+  if (stripIndex == MOTION_STRIP_INDEX) return;
+  
   StripState& state = stripStates[stripIndex];
   if (!state.on || state.dimmingActive) return;
   
@@ -815,15 +844,15 @@ void startDimming(uint8_t stripIndex) {
   state.dimmingDirection = !state.lastDimmingWasIncrease;
   state.lastDimmingWasIncrease = state.dimmingDirection;
   
-  // Изчисляваме целевата яркост и времето според разстоянието
+  // Calculate target brightness and time based on distance
   uint8_t targetBrightness = state.dimmingDirection ? MAX_BRIGHTNESS : MIN_BRIGHTNESS;
   uint8_t distance = abs((int)targetBrightness - (int)state.dimmingStartBrightness);
-  state.dimmingDuration = (distance * 1000) / DIMMING_SPEED;  // време в милисекунди
+  state.dimmingDuration = (distance * 1000) / DIMMING_SPEED;  // time in milliseconds
   
   Serial.println("🔆 Strip " + String(stripIndex) + " dimming: " + String(state.dimmingDirection ? "Increasing" : "Decreasing") + 
                  " (distance: " + String(distance) + ", time: " + String(state.dimmingDuration) + "ms)");
   
-  // Kitchen: синхронизираме extension лентата
+  // Kitchen: synchronize extension strip
   syncKitchenExtension(stripIndex);
 }
 
@@ -834,12 +863,12 @@ void stopDimming(uint8_t stripIndex) {
   state.dimmingActive = false;
   Serial.println("🔆 Strip " + String(stripIndex) + " dimming stopped (Brightness: " + String(state.brightness) + ")");
   
-  // Kitchen: синхронизираме extension лентата
+  // Kitchen: synchronize extension strip
   syncKitchenExtension(stripIndex);
 }
 
 // ============================================================================
-// SETUP И LOOP
+// SETUP AND LOOP
 // ============================================================================
 
 void setup() {
@@ -849,7 +878,7 @@ void setup() {
   Serial.println("\n\n✨ LED Controller Starting...");
   Serial.println("Number of strips: " + String(NUM_STRIPS));
   
-  // Инициализация на лентите - използваме различни RMT канали за всяка лента
+  // Initialize strips - using different RMT channels for each strip
   Serial.println("Initializing strip 0 on pin " + String(stripConfigs[0].pin) + " with RMT0...");
   Serial.flush();
   strip0.Begin();
@@ -884,16 +913,16 @@ void setup() {
   stripStates[1].blinkActive = false;
   stripStates[1].transition.active = false;
   stripStates[1].transition.randomOrder = nullptr;
-  Serial.println("Strip 1 - Pin: " + String(stripConfigs[1].pin) + ", LEDs: " + String(stripConfigs[1].ledCount) + " - OK (RMT1)");
+  Serial.println("Strip 1 - Pin: " + String(stripConfigs[1].pin) + ", LEDs: " + String(stripConfigs[1].ledCount) + " - OK (RMT1) Main lighting");
   
-  Serial.println("Initializing strip 2 on pin " + String(stripConfigs[2].pin) + " with RMT2 (Kitchen extension, synced with Strip 0)...");
+  Serial.println("Initializing strip 2 on pin " + String(stripConfigs[2].pin) + " with RMT2 (Kitchen extension - spice rack, synced with Strip 0)...");
   Serial.flush();
   strip2.Begin();
   delay(100);
   strip2.ClearTo(RgbwColor(0, 0, 0, 0));
   strip2.Show();
   stripStates[2].strip = (void*)&strip2;
-  stripStates[2].stripType = 2;  // LedStrip2 (RMT2), синхронизиран с Strip 0 в софтуера
+  stripStates[2].stripType = 2;  // LedStrip2 (RMT2), synchronized with Strip 0 in software
   stripStates[2].on = false;
   stripStates[2].brightness = DEFAULT_BRIGHTNESS;
   stripStates[2].dimmingActive = false;
@@ -902,12 +931,35 @@ void setup() {
   stripStates[2].blinkActive = false;
   stripStates[2].transition.active = false;
   stripStates[2].transition.randomOrder = nullptr;
-  Serial.println("Strip 2 - Pin: " + String(stripConfigs[2].pin) + ", LEDs: " + String(stripConfigs[2].ledCount) + " - OK (RMT2) Kitchen extension");
+  Serial.println("Strip 2 - Pin: " + String(stripConfigs[2].pin) + ", LEDs: " + String(stripConfigs[2].ledCount) + " - OK (RMT2) Kitchen extension (spice rack)");
+  
+  Serial.println("Initializing strip 3 on pin " + String(stripConfigs[3].pin) + " with RMT3 (Bathroom - motion activated)...");
+  Serial.flush();
+  strip3.Begin();
+  delay(100);
+  strip3.ClearTo(RgbwColor(0, 0, 0, 0));
+  strip3.Show();
+  stripStates[3].strip = (void*)&strip3;
+  stripStates[3].stripType = 3;  // LedStrip3 (RMT3)
+  stripStates[3].on = false;
+  stripStates[3].brightness = DEFAULT_BRIGHTNESS;
+  stripStates[3].dimmingActive = false;
+  stripStates[3].dimmingDirection = true;
+  stripStates[3].lastDimmingWasIncrease = true;
+  stripStates[3].blinkActive = false;
+  stripStates[3].transition.active = false;
+  stripStates[3].transition.randomOrder = nullptr;
+  Serial.println("Strip 3 - Pin: " + String(stripConfigs[3].pin) + ", LEDs: " + String(stripConfigs[3].ledCount) + " - OK (RMT3) Bathroom");
+  
+  // Initialize PIR sensor
+  Serial.println("Initializing PIR motion sensor on pin " + String(PIR_SENSOR_PIN) + "...");
+  pinMode(PIR_SENSOR_PIN, INPUT);
+  Serial.println("PIR sensor - Pin: " + String(PIR_SENSOR_PIN) + " - OK");
   
   Serial.println("Dimming speed: " + String(DIMMING_SPEED) + " units/sec, Hold threshold: " + String(HOLD_THRESHOLD) + "ms");
   Serial.println("Transitions: " + String(TRANSITION_DURATION) + "ms");
   
-  // Инициализация на бутоните
+  // Initialize buttons
   Serial.println("Initializing buttons...");
   Serial.flush();
   
@@ -928,15 +980,15 @@ void loop() {
   unsigned long currentTime = millis();
   
   
-  // Обработка на всички бутони
+  // Process all buttons
   for (int btnIndex = 0; btnIndex < NUM_BUTTONS; btnIndex++) {
     ButtonStateMachine& btn = buttons[btnIndex];
     uint8_t stripIndex = btn.stripIndex;
     
-    // Четем състоянието на бутона
+    // Read button state
     bool rawButtonReading = (digitalRead(btn.pin) == LOW);
     
-    // Debounce логика (отделна за всеки бутон)
+    // Debounce logic (separate for each button)
     const unsigned long DEBOUNCE_DELAY = 50;
     
     if (rawButtonReading != btn.lastRawReading) {
@@ -950,7 +1002,7 @@ void loop() {
     btn.lastRawReading = rawButtonReading;
     bool debouncedButtonState = btn.debouncedState;
     
-    // State machine за бутона
+    // Button state machine
     switch (btn.state) {
       case BUTTON_IDLE:
         if (debouncedButtonState) {
@@ -985,15 +1037,51 @@ void loop() {
     }
   }
   
-  // Обновяване на всички ленти
+  // Update all strips
   for (int i = 0; i < NUM_STRIPS; i++) {
     if (stripStates[i].transition.active) {
       updateTransition(i);
     } else {
-      updateDimming(i);
+      // Strip 3 (motion activated) has no dimming
+      if (i != MOTION_STRIP_INDEX) {
+        updateDimming(i);
+      }
       updateBlink(i);
     }
   }
+  
+  // Process PIR sensor for Strip 3 (Bathroom - motion activated)
+  static unsigned long lastMotionTime = 0;
+  static bool lastPirState = false;
+  
+  bool pirState = digitalRead(PIR_SENSOR_PIN) == HIGH;
+  StripState& motionState = stripStates[MOTION_STRIP_INDEX];
+  
+  if (pirState && !lastPirState) {
+    // Motion detected (rising edge)
+    lastMotionTime = currentTime;
+    
+    if (!motionState.on) {
+      // Turn on only Strip 3 (Bathroom) if not already on
+      Serial.println("🏃 Motion detected - turning ON strip " + String(MOTION_STRIP_INDEX) + " (Bathroom, pin " + String(stripConfigs[MOTION_STRIP_INDEX].pin) + ")");
+      Serial.println("   Kitchen strip 2 (pin 19) should remain OFF");
+      turnOnStrip(MOTION_STRIP_INDEX);
+    } else {
+      // Update last motion time
+      lastMotionTime = currentTime;
+    }
+  }
+  
+  // Check if we need to turn off the strip after timeout
+  if (motionState.on && !motionState.transition.active) {
+    if (currentTime - lastMotionTime >= PIR_MOTION_TIMEOUT && lastMotionTime > 0) {
+      Serial.println("⏱️ Motion timeout (" + String(PIR_MOTION_TIMEOUT / 1000) + "s) - turning OFF strip " + String(MOTION_STRIP_INDEX) + " (Bathroom)");
+      turnOffStrip(MOTION_STRIP_INDEX);
+      lastMotionTime = 0;  // Reset
+    }
+  }
+  
+  lastPirState = pirState;
   
   delay(10);
 }
