@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import "./App.css";
 
@@ -9,10 +9,44 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [esp32Connected, setEsp32Connected] = useState(false);
 
+  // State за LED контролер
+  const [ledControllerConnected, setLedControllerConnected] = useState(false);
+  const [ledStrips, setLedStrips] = useState({
+    0: { state: "OFF", brightness: 0 }, // Kitchen
+    1: { state: "OFF", brightness: 0 }, // Lighting
+  });
+  const [relay, setRelay] = useState({ state: "OFF" });
+
+  // Запазваме socket референция за използване в бутоните
+  const socketRef = useRef(null);
+
+  // Helper функция за изчисляване на прогреса на дъгата
+  // Дъгата е от 135° до 45° = 270 градуса общо
+  // Запълва се спрямо brightness стойността
+  const getArcProgress = (brightness, isOn) => {
+    if (!isOn || brightness === 0) {
+      return 0;
+    }
+    // Дължина на дъгата: 270 градуса = π * radius * (270/180) ≈ 377px (за радиус 80)
+    const arcLength = Math.PI * 80 * (270 / 180);
+
+    // Прогрес от 0 до 1 спрямо brightness (0-255)
+    const progress = brightness / 255;
+
+    return progress * arcLength;
+  };
+
   // useEffect = изпълнява се когато компонентът се зареди
   useEffect(() => {
     // Свързваме се с backend WebSocket
-    const socket = io("http://localhost:3000");
+    // В development: използваме Raspberry Pi IP
+    // В production: използваме същия host (relative URL)
+    const isDevelopment = import.meta.env.DEV;
+    const socketUrl = isDevelopment
+      ? "http://192.168.4.1:3000" // Raspberry Pi IP
+      : window.location.origin; // Production - същия host
+    const socket = io(socketUrl);
+    socketRef.current = socket; // Запазваме референцията
 
     // Когато се свържем
     socket.on("connect", () => {
@@ -31,6 +65,7 @@ function App() {
 
     // Timeout за ESP32 - глобална променлива
     let esp32Timeout;
+    let ledControllerTimeout;
 
     // Слушаме за обновления на сензорите
     socket.on("sensorUpdate", (data) => {
@@ -48,12 +83,49 @@ function App() {
       }, 30000); // 30 секунди timeout (20 секунди резерв след ESP32 heartbeat)
     });
 
-    // НЕ стартираме timeout веднага - иконата трябва да е червена до получаване на данни
+    // Слушаме за LED контролер heartbeat
+    socket.on("ledHeartbeat", () => {
+      console.log("💡 LED Controller heartbeat");
+      setLedControllerConnected(true);
+
+      // Рестартираме timeout-а
+      clearTimeout(ledControllerTimeout);
+      ledControllerTimeout = setTimeout(() => {
+        setLedControllerConnected(false);
+      }, 30000); // 30 секунди timeout
+    });
+
+    // Слушаме за LED статус обновления
+    socket.on("ledStatusUpdate", (data) => {
+      console.log("💡 LED Status Update:", data);
+
+      // Всяко статус обновление означава че модулът е жив - обновяваме heartbeat
+      setLedControllerConnected(true);
+      clearTimeout(ledControllerTimeout);
+      ledControllerTimeout = setTimeout(() => {
+        setLedControllerConnected(false);
+      }, 30000); // 30 секунди timeout
+
+      if (data.type === "strip" && typeof data.index === "number") {
+        setLedStrips((prev) => ({
+          ...prev,
+          [data.index]: {
+            ...prev[data.index],
+            [data.dataType]: data.value,
+          },
+        }));
+      } else if (data.type === "relay") {
+        setRelay({ state: data.value });
+      }
+    });
+
+    // НЕ стартираме timeout веднага - иконите трябва да са червени до получаване на данни
 
     // Cleanup функция - изключва socket когато компонентът се unmount-не
     return () => {
       socket.disconnect();
       clearTimeout(esp32Timeout);
+      clearTimeout(ledControllerTimeout);
     };
   }, []); // [] = изпълни само веднъж при зареждане
 
@@ -72,9 +144,16 @@ function App() {
             }`}
           ></i>
         </span>
+        <span className="status-item">
+          <i
+            className={`fas fa-lightbulb ${
+              ledControllerConnected ? "online" : "offline"
+            }`}
+          ></i>
+        </span>
       </div>
 
-      <div className="sensor-cards">
+      <div className="main-content">
         <div className="sensor-card">
           <i className="fas fa-thermometer-half"></i>
           <p className="value">
@@ -85,6 +164,172 @@ function App() {
         <div className="sensor-card">
           <i className="fas fa-tint"></i>
           <p className="value">{humidity !== null ? `${humidity}%` : "—"}</p>
+        </div>
+
+        <div
+          className="led-card"
+          onClick={() => {
+            if (socketRef.current) {
+              socketRef.current.emit("ledCommand", {
+                type: "strip",
+                index: 0,
+                action: ledStrips[0]?.state === "ON" ? "off" : "on",
+              });
+            }
+          }}
+        >
+          <p className="led-name">Kitchen</p>
+          <div
+            className={`neumorphic-button ${
+              ledStrips[0]?.state === "ON" ? "on" : "off"
+            }`}
+          >
+            {(() => {
+              const arcLength = Math.PI * 80 * (270 / 180);
+              const progress = getArcProgress(
+                ledStrips[0]?.brightness || 0,
+                ledStrips[0]?.state === "ON"
+              );
+              return (
+                <svg className="horseshoe-progress" viewBox="0 0 200 200">
+                  <defs>
+                    <linearGradient
+                      id="gradient-0"
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" stopColor="#00C6FF" />
+                      <stop offset="100%" stopColor="#00FF99" />
+                    </linearGradient>
+                  </defs>
+                  {/* Дъга от 135° (начало) до 45° (край) - запълва се спрямо brightness */}
+                  <path
+                    className="horseshoe-fill"
+                    d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6"
+                    fill="none"
+                    stroke="url(#gradient-0)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progress} ${arcLength}`}
+                    strokeDashoffset="0"
+                    opacity={
+                      ledStrips[0]?.state === "ON" && progress > 0 ? 1 : 0
+                    }
+                  />
+                </svg>
+              );
+            })()}
+            <span className="button-text">{ledStrips[0]?.state || "OFF"}</span>
+          </div>
+        </div>
+
+        <div
+          className="led-card"
+          onClick={() => {
+            if (socketRef.current) {
+              socketRef.current.emit("ledCommand", {
+                type: "strip",
+                index: 1,
+                action: ledStrips[1]?.state === "ON" ? "off" : "on",
+              });
+            }
+          }}
+        >
+          <p className="led-name">Lighting</p>
+          <div
+            className={`neumorphic-button ${
+              ledStrips[1]?.state === "ON" ? "on" : "off"
+            }`}
+          >
+            {(() => {
+              const arcLength = Math.PI * 80 * (270 / 180);
+              const progress = getArcProgress(
+                ledStrips[1]?.brightness || 0,
+                ledStrips[1]?.state === "ON"
+              );
+              return (
+                <svg className="horseshoe-progress" viewBox="0 0 200 200">
+                  <defs>
+                    <linearGradient
+                      id="gradient-1"
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" stopColor="#00C6FF" />
+                      <stop offset="100%" stopColor="#00FF99" />
+                    </linearGradient>
+                  </defs>
+                  {/* Дъга от 135° (начало) до 45° (край) - запълва се спрямо brightness */}
+                  <path
+                    className="horseshoe-fill"
+                    d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6"
+                    fill="none"
+                    stroke="url(#gradient-1)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progress} ${arcLength}`}
+                    strokeDashoffset="0"
+                    opacity={
+                      ledStrips[1]?.state === "ON" && progress > 0 ? 1 : 0
+                    }
+                  />
+                </svg>
+              );
+            })()}
+            <span className="button-text">{ledStrips[1]?.state || "OFF"}</span>
+          </div>
+        </div>
+
+        <div
+          className="led-card"
+          onClick={() => {
+            if (socketRef.current) {
+              socketRef.current.emit("ledCommand", {
+                type: "relay",
+                action: "toggle",
+              });
+            }
+          }}
+        >
+          <p className="led-name">Floor</p>
+          <div
+            className={`neumorphic-button ${
+              relay?.state === "ON" ? "on" : "off"
+            }`}
+          >
+            <svg className="horseshoe-progress" viewBox="0 0 200 200">
+              <defs>
+                <linearGradient
+                  id="gradient-2"
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor="#00C6FF" />
+                  <stop offset="100%" stopColor="#00FF99" />
+                </linearGradient>
+              </defs>
+              {/* Затворена окръжност - ако е ON я има, ако е OFF я няма */}
+              {relay?.state === "ON" && (
+                <circle
+                  className="horseshoe-fill"
+                  cx="100"
+                  cy="100"
+                  r="80"
+                  fill="none"
+                  stroke="url(#gradient-2)"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+              )}
+            </svg>
+            <span className="button-text">{relay?.state || "OFF"}</span>
+          </div>
         </div>
       </div>
     </div>

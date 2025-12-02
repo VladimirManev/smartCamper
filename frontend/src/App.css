@@ -13,16 +13,17 @@ body {
 }
 
 .app {
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 3rem;
+  justify-content: flex-start;
+  gap: 2rem;
   position: relative;
+  padding-top: 5rem; /* Оставяме място за статус иконите */
 }
 
 /* Статус икони - горе вляво */
@@ -61,13 +62,24 @@ body {
   transform: scale(1.2);
 }
 
-/* Сензорни карти контейнер */
-.sensor-cards {
+/* Главен контейнер за сензори и LED контроли */
+.main-content {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 2rem;
-  max-width: 400px;
+  max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+}
+
+/* Сензорни карти контейнер - не се използва вече, но оставяме за обратна съвместимост */
+.sensor-cards {
+  display: contents; /* Всички деца стават директни деца на main-content */
+}
+
+/* LED контроли контейнер - не се използва вече, но оставяме за обратна съвместимост */
+.led-controls {
+  display: contents; /* Всички деца стават директни деца на main-content */
 }
 
 /* Сензорни карти */
@@ -75,7 +87,7 @@ body {
   background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   border: 1px solid rgba(179, 229, 179, 0.3);
   border-radius: 20px;
-  padding: 2rem;
+  padding: 2.5rem;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
@@ -86,6 +98,7 @@ body {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-width: 200px;
 }
 
 .sensor-card::before {
@@ -117,11 +130,11 @@ body {
 .sensor-card i {
   color: #b3e5b3;
   font-size: 2rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 
 .value {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 700;
   background: linear-gradient(45deg, #b3e5b3, #27ae60);
   -webkit-background-clip: text;
@@ -130,12 +143,151 @@ body {
   margin: 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  min-width: 120px; /* Фиксирана ширина за да не се свива с тиретата */
+  min-width: 140px; /* Фиксирана ширина за да не се свива с тиретата */
   text-align: center;
 }
 
 .sensor-card:hover .value {
   transform: scale(1.05);
+}
+
+/* LED карти - същия стил като sensor-card */
+.led-card {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border: 1px solid rgba(179, 229, 179, 0.3);
+  border-radius: 20px;
+  padding: 2rem;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: visible;
+  min-width: 200px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 12px 40px rgba(179, 229, 179, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.led-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 60px rgba(179, 229, 179, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.led-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #cccccc;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Neumorphic button container */
+.neumorphic-button {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+/* OFF state - recessed */
+.neumorphic-button.off {
+  background: #282a36;
+  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.05);
+}
+
+/* ON state - raised with gradient ring */
+.neumorphic-button.on {
+  background: #2b2e36;
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.05), 0 0 0 3px transparent;
+}
+
+.neumorphic-button.on::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00c6ff 0%, #00ff99 100%);
+  z-index: -1;
+  opacity: 0.8;
+  filter: blur(2px);
+}
+
+/* Horseshoe SVG */
+.horseshoe-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+}
+
+.horseshoe-bg {
+  opacity: 0.2;
+}
+
+.horseshoe-fill {
+  transition: stroke-dasharray 0.5s ease, opacity 0.3s ease;
+  filter: drop-shadow(0 0 4px rgba(0, 198, 255, 0.6));
+  stroke-linejoin: round;
+}
+
+/* Button text */
+.button-text {
+  position: relative;
+  z-index: 2;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: color 0.3s ease;
+}
+
+.neumorphic-button.off .button-text {
+  color: #cccccc;
+}
+
+.neumorphic-button.on .button-text {
+  color: #66ffcc;
+  text-shadow: 0 0 10px rgba(102, 255, 204, 0.5);
+}
+
+.toggle-btn {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1.5rem;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+}
+
+.toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+}
+
+.toggle-btn:active {
+  transform: translateY(0);
 }
 
 /* Responsive дизайн */
