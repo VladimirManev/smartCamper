@@ -62,12 +62,12 @@ void LEDControllerManager::loop() {
     mqttInitialized = false;
   }
   
-  // Публикуваме heartbeat на интервали (само ако сме свързани)
+  // Публикуваме пълен статус на интервали (само ако сме свързани) - вместо heartbeat
   if (mqttManager.isMQTTConnected()) {
     unsigned long currentTime = millis();
     if (currentTime - lastHeartbeat > HEARTBEAT_INTERVAL) {
       lastHeartbeat = currentTime;
-      publishHeartbeat();
+      publishFullStatus();  // Изпращаме пълен статус вместо heartbeat
     }
   }
 }
@@ -194,63 +194,56 @@ void LEDControllerManager::processMQTTCommand(char* topic, byte* payload, unsign
 }
 
 void LEDControllerManager::publishStatus() {
-  // Публикуваме статус на всички ленти
+  // Публикуваме пълния статус (всички ленти + реле)
+  publishFullStatus();
+}
+
+void LEDControllerManager::publishFullStatus() {
+  // Създаваме JSON обект с всички данни
+  StaticJsonDocument<512> doc;
+  
+  // Добавяме данни за всички ленти
+  JsonObject strips = doc.createNestedObject("strips");
   for (uint8_t i = 0; i < 4; i++) {  // NUM_STRIPS is 4
-    publishStripStatus(i);
+    StripState& state = stripStates[i];
+    JsonObject strip = strips.createNestedObject(String(i));
+    strip["state"] = state.on ? "ON" : "OFF";
+    strip["brightness"] = state.brightness;
   }
   
-  // Публикуваме статус на релето
-  publishRelayStatus();
+  // Добавяме данни за всички релета (формат като лентите)
+  JsonObject relays = doc.createNestedObject("relays");
+  for (uint8_t i = 0; i < NUM_RELAYS; i++) {
+    JsonObject relay = relays.createNestedObject(String(i));
+    relay["state"] = relayStates[i] ? "ON" : "OFF";
+  }
+  
+  // Сериализираме JSON
+  String jsonString;
+  serializeJson(doc, jsonString);
+  
+  // Публикуваме в един топик
+  String topic = "led-controller/status";
+  mqttManager.publishSensorData(topic, jsonString);
+  
+  // Reset heartbeat timer when publishing status
+  lastHeartbeat = millis();
+  
+  if (DEBUG_VERBOSE && DEBUG_MQTT) {
+    Serial.println("📤 Published full status: " + jsonString);
+  }
 }
 
 void LEDControllerManager::publishStripStatus(uint8_t stripIndex) {
-  if (stripIndex >= 4) return;  // NUM_STRIPS is 4
-  
-  StripState& state = stripStates[stripIndex];
-  
-  // Publish state (ON/OFF)
-  String stateTopic = "led-controller/strip/" + String(stripIndex) + "/state";
-  String stateValue = state.on ? "ON" : "OFF";
-  mqttManager.publishSensorData(stateTopic, stateValue);
-  
-  // Publish brightness
-  String brightnessTopic = "led-controller/strip/" + String(stripIndex) + "/brightness";
-  mqttManager.publishSensorData(brightnessTopic, (int)state.brightness);
-  
-  // Reset heartbeat timer when publishing status
-  lastHeartbeat = millis();
-  
-  // Don't log every status publish - too verbose
-  // Only log if DEBUG_VERBOSE is enabled
-  if (DEBUG_VERBOSE && DEBUG_MQTT) {
-    Serial.println("📤 Published strip " + String(stripIndex) + " status: " + stateValue + ", brightness: " + String(state.brightness));
-  }
+  // При всяка промяна в лента, изпращаме пълния статус
+  publishFullStatus();
 }
 
 void LEDControllerManager::publishRelayStatus() {
-  String stateTopic = "led-controller/relay/state";
-  String stateValue = relayState ? "ON" : "OFF";
-  mqttManager.publishSensorData(stateTopic, stateValue);
-  
-  // Reset heartbeat timer when publishing status
-  lastHeartbeat = millis();
-  
-  // Don't log every status publish - too verbose
-  if (DEBUG_VERBOSE && DEBUG_MQTT) {
-    Serial.println("📤 Published relay status: " + stateValue);
-  }
+  // При всяка промяна в релето, изпращаме пълния статус
+  publishFullStatus();
 }
 
-void LEDControllerManager::publishHeartbeat() {
-  // Publish simple heartbeat message - module is alive
-  String heartbeatTopic = "led-controller/heartbeat";
-  mqttManager.publishSensorData(heartbeatTopic, "alive");
-  
-  // Don't log heartbeat - too frequent and not useful for debugging
-  // if (DEBUG_MQTT) {
-  //   Serial.println("💓 Published heartbeat");
-  // }
-}
 
 bool LEDControllerManager::isWiFiConnected() {
   return networkManager.isWiFiConnected();

@@ -48,20 +48,31 @@ const setupSocketIO = (io, aedes) => {
       }
       // Обработка на LED контролер данни
       else if (sensorType === "led-controller") {
-        // Формат: smartcamper/sensors/led-controller/strip/{index}/state
+        // НОВ ФОРМАТ: smartcamper/sensors/led-controller/status (JSON с всички данни)
+        // СТАР ФОРМАТ (за обратна съвместимост): smartcamper/sensors/led-controller/strip/{index}/state
         // или: smartcamper/sensors/led-controller/strip/{index}/brightness
         // или: smartcamper/sensors/led-controller/relay/state
-        // или: smartcamper/sensors/led-controller/heartbeat
 
         if (topicParts.length >= 4) {
-          const subType = topicParts[3]; // strip, relay, или heartbeat
+          const subType = topicParts[3]; // status, strip, или relay
 
-          if (subType === "heartbeat") {
-            // Heartbeat - модулът е жив
-            io.emit("ledHeartbeat", {
-              timestamp: new Date().toISOString(),
-            });
-          } else if (subType === "strip" && topicParts.length >= 6) {
+          // НОВ ФОРМАТ: Пълен статус в един JSON обект (включва heartbeat)
+          if (subType === "status") {
+            try {
+              const statusData = JSON.parse(message);
+              
+              // Изпращаме пълния статус на frontend
+              io.emit("ledStatusUpdate", {
+                type: "full",
+                data: statusData,
+                timestamp: new Date().toISOString(),
+              });
+            } catch (error) {
+              console.log(`❌ Failed to parse LED status JSON: ${error.message}`);
+            }
+          } 
+          // СТАР ФОРМАТ (за обратна съвместимост - може да се премахне в бъдеще)
+          else if (subType === "strip" && topicParts.length >= 6) {
             // Strip данни: smartcamper/sensors/led-controller/strip/{index}/{type}
             const stripIndex = parseInt(topicParts[4]);
             const dataType = topicParts[5]; // state или brightness

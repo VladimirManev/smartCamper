@@ -31,7 +31,8 @@ StripConfig stripConfigs[NUM_STRIPS] = {
 #define BUTTON_PIN_3 27  // Button for relay circuit (toggle button)
 
 // Relay settings (for LED diodes circuit)
-#define RELAY_PIN 26     // Pin for relay control (OUTPUT)
+// NUM_RELAYS е дефинирана в Config.h
+#define RELAY_PIN_0 26   // Pin for relay 0 control (OUTPUT)
 
 // PIR sensor settings (HC-SR501)
 #define PIR_SENSOR_PIN 2        // Pin for PIR sensor
@@ -112,8 +113,8 @@ ButtonStateMachine buttons[NUM_BUTTONS] = {
   {BUTTON_IDLE, 0, BUTTON_PIN_3, 255, false, 0, false} // Button 2 -> Relay (stripIndex 255 = relay, not a strip)
 };
 
-// Relay state
-bool relayState = false;  // false = OFF, true = ON
+// Relay states (array for multiple relays)
+bool relayStates[NUM_RELAYS] = {false};  // false = OFF, true = ON
 
 // LED Controller Manager (WiFi + MQTT)
 LEDControllerManager ledControllerManager;
@@ -831,10 +832,13 @@ void toggleStrip(uint8_t stripIndex) {
   Serial.flush();
 }
 
-void toggleRelay() {
-  relayState = !relayState;
-  digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
-  Serial.println("🔌 Relay " + String(relayState ? "ON" : "OFF") + " (Pin " + String(RELAY_PIN) + ")");
+void toggleRelay(uint8_t relayIndex) {
+  if (relayIndex >= NUM_RELAYS) return;
+  
+  relayStates[relayIndex] = !relayStates[relayIndex];
+  uint8_t relayPin = (relayIndex == 0) ? RELAY_PIN_0 : 0;  // Add more pins as needed
+  digitalWrite(relayPin, relayStates[relayIndex] ? HIGH : LOW);
+  Serial.println("🔌 Relay " + String(relayIndex) + " " + String(relayStates[relayIndex] ? "ON" : "OFF") + " (Pin " + String(relayPin) + ")");
   
   // Publish status after relay toggle
   ledControllerManager.publishRelayStatus();
@@ -1051,12 +1055,12 @@ void setup() {
   pinMode(PIR_SENSOR_PIN, INPUT);
   Serial.println("PIR sensor - Pin: " + String(PIR_SENSOR_PIN) + " - OK");
   
-  // Initialize relay
-  Serial.println("Initializing relay on pin " + String(RELAY_PIN) + "...");
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);  // Start with relay OFF
-  relayState = false;
-  Serial.println("Relay - Pin: " + String(RELAY_PIN) + " - OK (initialized OFF)");
+  // Initialize relays
+  Serial.println("Initializing relays...");
+  pinMode(RELAY_PIN_0, OUTPUT);
+  digitalWrite(RELAY_PIN_0, LOW);  // Start with relay OFF
+  relayStates[0] = false;
+  Serial.println("Relay 0 - Pin: " + String(RELAY_PIN_0) + " - OK (initialized OFF)");
   
   Serial.println("Dimming speed: " + String(DIMMING_SPEED) + " units/sec, Hold threshold: " + String(HOLD_THRESHOLD) + "ms");
   Serial.println("Transitions: " + String(TRANSITION_DURATION) + "ms");

@@ -15,7 +15,9 @@ function App() {
     0: { state: "OFF", brightness: 0 }, // Kitchen
     1: { state: "OFF", brightness: 0 }, // Lighting
   });
-  const [relay, setRelay] = useState({ state: "OFF" });
+  const [relays, setRelays] = useState({
+    0: { state: "OFF" }, // Relay 0
+  });
 
   // Запазваме socket референция за използване в бутоните
   const socketRef = useRef(null);
@@ -83,17 +85,7 @@ function App() {
       }, 30000); // 30 секунди timeout (20 секунди резерв след ESP32 heartbeat)
     });
 
-    // Слушаме за LED контролер heartbeat
-    socket.on("ledHeartbeat", () => {
-      console.log("💡 LED Controller heartbeat");
-      setLedControllerConnected(true);
-
-      // Рестартираме timeout-а
-      clearTimeout(ledControllerTimeout);
-      ledControllerTimeout = setTimeout(() => {
-        setLedControllerConnected(false);
-      }, 30000); // 30 секунди timeout
-    });
+    // Heartbeat вече се обработва чрез ledStatusUpdate (пълен статус на интервали)
 
     // Слушаме за LED статус обновления
     socket.on("ledStatusUpdate", (data) => {
@@ -106,7 +98,35 @@ function App() {
         setLedControllerConnected(false);
       }, 30000); // 30 секунди timeout
 
-      if (data.type === "strip" && typeof data.index === "number") {
+      // НОВ ФОРМАТ: Пълен статус в един обект
+      if (data.type === "full" && data.data) {
+        const statusData = data.data;
+        
+        // Обновяваме всички ленти
+        if (statusData.strips) {
+          const newStrips = {};
+          for (const [index, stripData] of Object.entries(statusData.strips)) {
+            newStrips[index] = {
+              state: stripData.state,
+              brightness: stripData.brightness,
+            };
+          }
+          setLedStrips(newStrips);
+        }
+        
+        // Обновяваме всички релета (формат като лентите)
+        if (statusData.relays) {
+          const newRelays = {};
+          for (const [index, relayData] of Object.entries(statusData.relays)) {
+            newRelays[index] = {
+              state: relayData.state,
+            };
+          }
+          setRelays(newRelays);
+        }
+      }
+      // СТАР ФОРМАТ (за обратна съвместимост)
+      else if (data.type === "strip" && typeof data.index === "number") {
         setLedStrips((prev) => ({
           ...prev,
           [data.index]: {
@@ -115,7 +135,11 @@ function App() {
           },
         }));
       } else if (data.type === "relay") {
-        setRelay({ state: data.value });
+        // Стар формат - обновяваме relay 0
+        setRelays((prev) => ({
+          ...prev,
+          0: { state: data.value },
+        }));
       }
     });
 
@@ -298,7 +322,7 @@ function App() {
           <p className="led-name">Floor</p>
           <div
             className={`neumorphic-button ${
-              relay?.state === "ON" ? "on" : "off"
+              relays[0]?.state === "ON" ? "on" : "off"
             }`}
           >
             <svg className="horseshoe-progress" viewBox="0 0 200 200">
@@ -315,7 +339,7 @@ function App() {
                 </linearGradient>
               </defs>
               {/* Затворена окръжност - ако е ON я има, ако е OFF я няма */}
-              {relay?.state === "ON" && (
+              {relays[0]?.state === "ON" && (
                 <circle
                   className="horseshoe-fill"
                   cx="100"
@@ -328,7 +352,7 @@ function App() {
                 />
               )}
             </svg>
-            <span className="button-text">{relay?.state || "OFF"}</span>
+            <span className="button-text">{relays[0]?.state || "OFF"}</span>
           </div>
         </div>
       </div>

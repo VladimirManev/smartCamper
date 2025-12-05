@@ -10,7 +10,7 @@
 
 // Forward declarations - променливите и функциите от main.cpp които ще използваме
 #include "StripState.h"  // Full definition needed for accessing members
-extern bool relayState;
+extern bool relayStates[];
 extern StripState stripStates[];
 
 // Functions from main.cpp
@@ -18,7 +18,7 @@ extern void turnOnStrip(uint8_t stripIndex);
 extern void turnOffStrip(uint8_t stripIndex);
 extern void toggleStrip(uint8_t stripIndex);
 extern void setBrightnessSmooth(uint8_t stripIndex, uint8_t targetBrightness);
-extern void toggleRelay();
+extern void toggleRelay(uint8_t relayIndex = 0);
 extern bool isAnyButtonPressed();
 
 class LEDControllerManager {
@@ -36,6 +36,9 @@ private:
   // MQTT callback handler
   static void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
   void processMQTTCommand(char* topic, byte* payload, unsigned int length);
+  
+  // Публикуване на пълен статус (всички ленти + реле)
+  void publishFullStatus();
 
 public:
   LEDControllerManager();
@@ -47,7 +50,6 @@ public:
   void publishStatus();
   void publishStripStatus(uint8_t stripIndex);
   void publishRelayStatus();
-  void publishHeartbeat();  // Heartbeat - модулът е жив
   
   // Проверки за връзка
   bool isWiFiConnected();

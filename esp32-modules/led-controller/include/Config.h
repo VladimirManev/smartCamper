@@ -18,13 +18,16 @@
 #define MQTT_TOPIC_SENSORS "smartcamper/sensors/"
 #define MQTT_TOPIC_COMMANDS "smartcamper/commands/"
 
+// Hardware настройки
+#define NUM_RELAYS 1     // Number of relays (easily expandable)
+
 // Timing настройки
 #define MQTT_RECONNECT_DELAY 2000  // 2 секунди
 #define WIFI_RECONNECT_DELAY 3000  // 3 секунди
 #define WIFI_CHECK_INTERVAL 2000   // 2 секунди - проверка на WiFi връзката
 #define WIFI_PING_TIMEOUT 1000     // 1 секунда timeout за ping
 #define STATUS_PUBLISH_INTERVAL 5000  // 5 секунди - публикуване на статус (deprecated, не се използва)
-#define HEARTBEAT_INTERVAL 10000  // 10 секунди - heartbeat (модулът е жив)
+#define HEARTBEAT_INTERVAL 10000  // 10 секунди - интервал за изпращане на пълен статус
 
 // Debug настройки
 #define DEBUG_SERIAL true
