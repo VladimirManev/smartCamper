@@ -14,6 +14,7 @@ function App() {
   const [ledStrips, setLedStrips] = useState({
     0: { state: "OFF", brightness: 0 }, // Kitchen
     1: { state: "OFF", brightness: 0 }, // Lighting
+    3: { state: "OFF", brightness: 0, mode: "OFF" }, // Bathroom (motion-activated)
   });
   const [relays, setRelays] = useState({
     0: { state: "OFF" }, // Relay 0
@@ -109,6 +110,7 @@ function App() {
             newStrips[index] = {
               state: stripData.state,
               brightness: stripData.brightness,
+              ...(stripData.mode && { mode: stripData.mode }), // Add mode if present (for Strip 3)
             };
           }
           setLedStrips(newStrips);
@@ -305,6 +307,93 @@ function App() {
               );
             })()}
             <span className="button-text">{ledStrips[1]?.state || "OFF"}</span>
+          </div>
+        </div>
+
+        {/* Strip 3 - Bathroom (motion-activated) with 3-position button */}
+        <div
+          className="led-card"
+          onClick={() => {
+            if (socketRef.current) {
+              const currentMode = ledStrips[3]?.mode || "OFF";
+              let nextMode;
+              // Cycle: OFF -> AUTO -> ON -> OFF
+              if (currentMode === "OFF") {
+                nextMode = "AUTO";
+              } else if (currentMode === "AUTO") {
+                nextMode = "ON";
+              } else {
+                nextMode = "OFF";
+              }
+              
+              socketRef.current.emit("ledCommand", {
+                type: "strip",
+                index: 3,
+                action: "mode",
+                value: nextMode,
+              });
+            }
+          }}
+        >
+          <p className="led-name">Bathroom</p>
+          <div
+            className={`neumorphic-button ${
+              ledStrips[3]?.mode === "ON" || ledStrips[3]?.state === "ON"
+                ? "on"
+                : ledStrips[3]?.mode === "AUTO"
+                ? "auto"
+                : "off"
+            }`}
+          >
+            {(() => {
+              const progress = getArcProgress(
+                ledStrips[3]?.brightness || 0,
+                ledStrips[3]?.state === "ON"
+              );
+              return (
+                <svg className="horseshoe-progress" viewBox="0 0 200 200">
+                  <defs>
+                    <linearGradient
+                      id="gradient-3"
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" stopColor="#FF6B6B" />
+                      <stop offset="100%" stopColor="#FFD93D" />
+                    </linearGradient>
+                  </defs>
+                  {/* Horseshoe arc */}
+                  <path
+                    d="M 100,20 A 80,80 0 0,1 100,180"
+                    fill="none"
+                    stroke="#333"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                  {/* Progress fill */}
+                  <path
+                    d="M 100,20 A 80,80 0 0,1 100,180"
+                    fill="none"
+                    stroke="url(#gradient-3)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progress} 377`}
+                    opacity={
+                      ledStrips[3]?.state === "ON" && progress > 0 ? 1 : 0
+                    }
+                  />
+                </svg>
+              );
+            })()}
+            <span className="button-text">
+              {ledStrips[3]?.mode === "AUTO"
+                ? "AUTO"
+                : ledStrips[3]?.state === "ON"
+                ? "ON"
+                : "OFF"}
+            </span>
           </div>
         </div>
 

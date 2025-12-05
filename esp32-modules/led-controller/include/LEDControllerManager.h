@@ -18,6 +18,7 @@ extern void turnOnStrip(uint8_t stripIndex);
 extern void turnOffStrip(uint8_t stripIndex);
 extern void toggleStrip(uint8_t stripIndex);
 extern void setBrightnessSmooth(uint8_t stripIndex, uint8_t targetBrightness);
+extern void setStripMode(uint8_t stripIndex, StripMode mode);
 extern void toggleRelay(uint8_t relayIndex = 0);
 extern bool isAnyButtonPressed();
 

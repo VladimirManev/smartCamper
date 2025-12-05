@@ -6,6 +6,13 @@
 
 #include <Arduino.h>
 
+// Strip mode (for motion-activated strips)
+enum StripMode {
+  STRIP_MODE_OFF,   // 0: Strip is off
+  STRIP_MODE_AUTO,  // 1: Automatic (motion-activated)
+  STRIP_MODE_ON     // 2: Strip is on
+};
+
 // Transition types
 enum TransitionType {
   TRANSITION_NONE,
@@ -35,6 +42,10 @@ struct StripState {
   uint8_t stripType;  // 0 = LedStrip0 (RMT0), 1 = LedStrip1 (RMT1), 2 = LedStrip2 (RMT2), 3 = LedStrip3 (RMT3)
   bool on;
   uint8_t brightness;
+  
+  // Mode (for motion-activated strips like Strip 3)
+  StripMode mode;  // OFF, AUTO, or ON
+  uint8_t lastAutoBrightness;  // Remember brightness when in AUTO mode
   
   // Dimming
   bool dimmingActive;

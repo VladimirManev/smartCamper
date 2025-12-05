@@ -133,6 +133,10 @@ const setupSocketIO = (io, aedes) => {
         if (data.action === "brightness" && typeof data.value === "number") {
           mqttPayload = JSON.stringify({ value: data.value });
         }
+        // Ако има mode стойност, добавяме я в payload
+        else if (data.action === "mode" && data.value) {
+          mqttPayload = JSON.stringify({ mode: data.value });
+        }
       } else if (data.type === "relay" && data.action === "toggle") {
         // Relay команда: relay/toggle
         mqttTopic = `smartcamper/commands/led-controller/relay/toggle`;

@@ -775,6 +775,11 @@ void turnOffStrip(uint8_t stripIndex) {
   StripState& state = stripStates[stripIndex];
   if (!state.on) return;  // Already off
   
+  // If in AUTO mode, remember brightness before turning off
+  if (state.mode == STRIP_MODE_AUTO) {
+    state.lastAutoBrightness = state.brightness;
+  }
+  
   state.on = false;
   
   // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
@@ -842,6 +847,41 @@ void toggleRelay(uint8_t relayIndex) {
   
   // Publish status after relay toggle
   ledControllerManager.publishRelayStatus();
+}
+
+// Set strip mode (for motion-activated strips like Strip 3)
+void setStripMode(uint8_t stripIndex, StripMode mode) {
+  if (stripIndex >= NUM_STRIPS) return;
+  
+  StripState& state = stripStates[stripIndex];
+  state.mode = mode;
+  
+  if (mode == STRIP_MODE_OFF) {
+    // Turn off the strip
+    if (state.on) {
+      turnOffStrip(stripIndex);
+    }
+    Serial.println("🔧 Strip " + String(stripIndex) + " mode: OFF");
+  } else if (mode == STRIP_MODE_ON) {
+    // Turn on the strip with current brightness
+    if (!state.on) {
+      turnOnStrip(stripIndex);
+    }
+    Serial.println("🔧 Strip " + String(stripIndex) + " mode: ON");
+  } else if (mode == STRIP_MODE_AUTO) {
+    // AUTO mode - remember current brightness if strip is on
+    if (state.on) {
+      state.lastAutoBrightness = state.brightness;
+    }
+    // Turn off if currently on (will be controlled by PIR sensor)
+    if (state.on) {
+      turnOffStrip(stripIndex);
+    }
+    Serial.println("🔧 Strip " + String(stripIndex) + " mode: AUTO (brightness: " + String(state.lastAutoBrightness) + ")");
+  }
+  
+  // Publish status after mode change
+  ledControllerManager.publishStripStatus(stripIndex);
 }
 
 void startDimming(uint8_t stripIndex) {
@@ -1040,6 +1080,8 @@ void setup() {
   stripStates[3].stripType = 3;  // LedStrip3 (RMT3)
   stripStates[3].on = false;
   stripStates[3].brightness = DEFAULT_BRIGHTNESS;
+  stripStates[3].mode = STRIP_MODE_OFF;  // Initial mode: OFF
+  stripStates[3].lastAutoBrightness = 128;  // 50% initial brightness for AUTO mode
   stripStates[3].dimmingActive = false;
   stripStates[3].dimmingDirection = true;
   stripStates[3].dimmingTargetBrightness = DEFAULT_BRIGHTNESS;
@@ -1048,7 +1090,7 @@ void setup() {
   stripStates[3].blinkActive = false;
   stripStates[3].transition.active = false;
   stripStates[3].transition.randomOrder = nullptr;
-  Serial.println("Strip 3 - Pin: " + String(stripConfigs[3].pin) + ", LEDs: " + String(stripConfigs[3].ledCount) + " - OK (RMT3) Bathroom");
+  Serial.println("Strip 3 - Pin: " + String(stripConfigs[3].pin) + ", LEDs: " + String(stripConfigs[3].ledCount) + " - OK (RMT3) Bathroom (motion-activated)");
   
   // Initialize PIR sensor
   Serial.println("Initializing PIR motion sensor on pin " + String(PIR_SENSOR_PIN) + "...");
@@ -1178,39 +1220,50 @@ void loop() {
   }
   
   // Process PIR sensor for Strip 3 (Bathroom - motion activated)
+  // Only works in AUTO mode
   static unsigned long lastMotionTime = 0;
   static bool lastPirState = false;
   
-  bool pirState = digitalRead(PIR_SENSOR_PIN) == HIGH;
   StripState& motionState = stripStates[MOTION_STRIP_INDEX];
   
-  if (pirState && !lastPirState) {
-    // Motion detected (rising edge)
-    lastMotionTime = currentTime;
+  // PIR sensor only works in AUTO mode
+  if (motionState.mode == STRIP_MODE_AUTO) {
+    bool pirState = digitalRead(PIR_SENSOR_PIN) == HIGH;
     
-    if (!motionState.on) {
-      // Turn on only Strip 3 (Bathroom) if not already on
-      Serial.println("🏃 Motion detected - turning ON strip " + String(MOTION_STRIP_INDEX) + " (Bathroom, pin " + String(stripConfigs[MOTION_STRIP_INDEX].pin) + ")");
-      if (DEBUG_VERBOSE) {
-        Serial.println("   Kitchen strip 2 (pin 19) should remain OFF");
-      }
-      turnOnStrip(MOTION_STRIP_INDEX);
-    } else {
-      // Update last motion time
+    if (pirState && !lastPirState) {
+      // Motion detected (rising edge)
       lastMotionTime = currentTime;
+      
+      if (!motionState.on) {
+        // Turn on only Strip 3 (Bathroom) if not already on
+        // Use lastAutoBrightness for brightness
+        motionState.brightness = motionState.lastAutoBrightness;
+        Serial.println("🏃 Motion detected - turning ON strip " + String(MOTION_STRIP_INDEX) + " (Bathroom, pin " + String(stripConfigs[MOTION_STRIP_INDEX].pin) + ")");
+        if (DEBUG_VERBOSE) {
+          Serial.println("   Kitchen strip 2 (pin 19) should remain OFF");
+        }
+        turnOnStrip(MOTION_STRIP_INDEX);
+      } else {
+        // Update last motion time
+        lastMotionTime = currentTime;
+      }
     }
-  }
-  
-  // Check if we need to turn off the strip after timeout
-  if (motionState.on && !motionState.transition.active) {
-    if (currentTime - lastMotionTime >= PIR_MOTION_TIMEOUT && lastMotionTime > 0) {
-      Serial.println("⏱️ Motion timeout (" + String(PIR_MOTION_TIMEOUT / 1000) + "s) - turning OFF strip " + String(MOTION_STRIP_INDEX) + " (Bathroom)");
-      turnOffStrip(MOTION_STRIP_INDEX);
-      lastMotionTime = 0;  // Reset
+    
+    // Check if we need to turn off the strip after timeout
+    if (motionState.on && !motionState.transition.active) {
+      if (currentTime - lastMotionTime >= PIR_MOTION_TIMEOUT && lastMotionTime > 0) {
+        Serial.println("⏱️ Motion timeout (" + String(PIR_MOTION_TIMEOUT / 1000) + "s) - turning OFF strip " + String(MOTION_STRIP_INDEX) + " (Bathroom)");
+        turnOffStrip(MOTION_STRIP_INDEX);
+        lastMotionTime = 0;  // Reset
+      }
     }
+    
+    lastPirState = pirState;
+  } else {
+    // In OFF or ON mode, ignore PIR sensor
+    lastPirState = false;
+    lastMotionTime = 0;
   }
-  
-  lastPirState = pirState;
   
   delay(10);
 }

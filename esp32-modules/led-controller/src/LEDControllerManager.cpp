@@ -107,6 +107,7 @@ void LEDControllerManager::processMQTTCommand(char* topic, byte* payload, unsign
   // - smartcamper/commands/led-controller/strip/{index}/off
   // - smartcamper/commands/led-controller/strip/{index}/toggle
   // - smartcamper/commands/led-controller/strip/{index}/brightness
+  // - smartcamper/commands/led-controller/strip/{index}/mode
   // - smartcamper/commands/led-controller/relay/toggle
   
   String commandPrefix = String(MQTT_TOPIC_COMMANDS) + "led-controller/";
@@ -184,6 +185,43 @@ void LEDControllerManager::processMQTTCommand(char* topic, byte* payload, unsign
         // Status will be published when transition completes (in updateDimming)
         // But we'll also publish immediately to update UI
         publishStripStatus(stripIndex);
+      } else if (action == "mode") {
+        // Parse JSON payload: {"mode": "OFF"|"ON"|"AUTO"}
+        StaticJsonDocument<200> doc;
+        DeserializationError error = deserializeJson(doc, message);
+        
+        if (error) {
+          if (DEBUG_SERIAL) {
+            Serial.println("❌ Failed to parse JSON: " + String(error.c_str()));
+          }
+          return;
+        }
+        
+        if (!doc.containsKey("mode")) {
+          if (DEBUG_SERIAL) {
+            Serial.println("❌ Missing 'mode' field in JSON");
+          }
+          return;
+        }
+        
+        String modeStr = doc["mode"].as<String>();
+        StripMode mode;
+        
+        if (modeStr == "OFF") {
+          mode = STRIP_MODE_OFF;
+        } else if (modeStr == "ON") {
+          mode = STRIP_MODE_ON;
+        } else if (modeStr == "AUTO") {
+          mode = STRIP_MODE_AUTO;
+        } else {
+          if (DEBUG_SERIAL) {
+            Serial.println("❌ Invalid mode: " + modeStr);
+          }
+          return;
+        }
+        
+        setStripMode(stripIndex, mode);
+        publishStripStatus(stripIndex);
       } else {
         if (DEBUG_SERIAL) {
           Serial.println("❌ Unknown action: " + action);
@@ -209,6 +247,19 @@ void LEDControllerManager::publishFullStatus() {
     JsonObject strip = strips.createNestedObject(String(i));
     strip["state"] = state.on ? "ON" : "OFF";
     strip["brightness"] = state.brightness;
+    
+    // Add mode for motion-activated strips (Strip 3)
+    if (i == 3) {  // MOTION_STRIP_INDEX
+      const char* modeStr;
+      if (state.mode == STRIP_MODE_OFF) {
+        modeStr = "OFF";
+      } else if (state.mode == STRIP_MODE_ON) {
+        modeStr = "ON";
+      } else {
+        modeStr = "AUTO";
+      }
+      strip["mode"] = modeStr;
+    }
   }
   
   // Добавяме данни за всички релета (формат като лентите)
