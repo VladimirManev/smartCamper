@@ -102,7 +102,7 @@ function App() {
       // НОВ ФОРМАТ: Пълен статус в един обект
       if (data.type === "full" && data.data) {
         const statusData = data.data;
-        
+
         // Обновяваме всички ленти
         if (statusData.strips) {
           const newStrips = {};
@@ -115,7 +115,7 @@ function App() {
           }
           setLedStrips(newStrips);
         }
-        
+
         // Обновяваме всички релета (формат като лентите)
         if (statusData.relays) {
           const newRelays = {};
@@ -325,7 +325,7 @@ function App() {
               } else {
                 nextMode = "OFF";
               }
-              
+
               socketRef.current.emit("ledCommand", {
                 type: "strip",
                 index: 3,
@@ -346,6 +346,7 @@ function App() {
             }`}
           >
             {(() => {
+              const arcLength = Math.PI * 80 * (270 / 180);
               const progress = getArcProgress(
                 ledStrips[3]?.brightness || 0,
                 ledStrips[3]?.state === "ON"
@@ -360,26 +361,20 @@ function App() {
                       x2="0%"
                       y2="100%"
                     >
-                      <stop offset="0%" stopColor="#FF6B6B" />
-                      <stop offset="100%" stopColor="#FFD93D" />
+                      <stop offset="0%" stopColor="#00C6FF" />
+                      <stop offset="100%" stopColor="#00FF99" />
                     </linearGradient>
                   </defs>
-                  {/* Horseshoe arc */}
+                  {/* Дъга от 135° (начало) до 45° (край) - запълва се спрямо brightness */}
                   <path
-                    d="M 100,20 A 80,80 0 0,1 100,180"
-                    fill="none"
-                    stroke="#333"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  {/* Progress fill */}
-                  <path
-                    d="M 100,20 A 80,80 0 0,1 100,180"
+                    className="horseshoe-fill"
+                    d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6"
                     fill="none"
                     stroke="url(#gradient-3)"
                     strokeWidth="8"
                     strokeLinecap="round"
-                    strokeDasharray={`${progress} 377`}
+                    strokeDasharray={`${progress} ${arcLength}`}
+                    strokeDashoffset="0"
                     opacity={
                       ledStrips[3]?.state === "ON" && progress > 0 ? 1 : 0
                     }
