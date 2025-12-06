@@ -9,7 +9,7 @@
 // ============================================================================
 
 // Number of strips (easily changeable)
-#define NUM_STRIPS 4
+#define NUM_STRIPS 5
 
 // Strip settings (add new strips here)
 struct StripConfig {
@@ -21,14 +21,16 @@ StripConfig stripConfigs[NUM_STRIPS] = {
   {33, 44},   // Strip 0: Pin 33, 44 LEDs - Kitchen (main)
   {18, 178},  // Strip 1: Pin 18, 178 LEDs - Main lighting
   {19, 23},   // Strip 2: Pin 19, 23 LEDs - Kitchen (extension for spice rack, mirrors strip 0)
-  {25, 53}    // Strip 3: Pin 25, 53 LEDs - Bathroom (motion activated, no button, no dimming)
+  {25, 53},   // Strip 3: Pin 25, 53 LEDs - Bathroom (motion activated, no button, no dimming)
+  {5, 60}     // Strip 4: Pin 5, 60 LEDs - Test strip (unknown type, testing)
 };
 
 // Button settings
-#define NUM_BUTTONS 3    // Number of buttons (Strip 2 is automatically controlled by Strip 0)
+#define NUM_BUTTONS 4    // Number of buttons (Strip 2 is automatically controlled by Strip 0)
 #define BUTTON_PIN_1 4   // Button for strip 0 (Kitchen - controls Strip 0 and Strip 2)
 #define BUTTON_PIN_2 12  // Button for strip 1
 #define BUTTON_PIN_3 27  // Button for relay circuit (toggle button)
+#define BUTTON_PIN_4 13  // Button for strip 4 (Test strip)
 
 // Relay settings (for LED diodes circuit)
 // NUM_RELAYS е дефинирана в Config.h
@@ -66,6 +68,9 @@ typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip0;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt1Ws2812xMethod> LedStrip1;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt2Ws2812xMethod> LedStrip2;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt3Ws2812xMethod> LedStrip3;
+// Test strip - RGB type (no white channel)
+// Using WS2812x protocol (most common) with RMT4 channel
+typedef NeoPixelBus<NeoRgbFeature, NeoEsp32Rmt4Ws2812xMethod> LedStrip4;
 
 // Common type for pointers
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip;
@@ -89,9 +94,10 @@ LedStrip0 strip0(stripConfigs[0].ledCount, stripConfigs[0].pin);  // Kitchen mai
 LedStrip1 strip1(stripConfigs[1].ledCount, stripConfigs[1].pin);  // Main lighting
 LedStrip2 strip2(stripConfigs[2].ledCount, stripConfigs[2].pin);  // Kitchen extension (spice rack)
 LedStrip3 strip3(stripConfigs[3].ledCount, stripConfigs[3].pin);  // Bathroom (motion activated)
+LedStrip4 strip4(stripConfigs[4].ledCount, stripConfigs[4].pin);  // Test strip (unknown type)
 
 // Pointers to strips (for universality)
-LedStrip* strips[NUM_STRIPS] = {(LedStrip*)&strip0, (LedStrip*)&strip1, (LedStrip*)&strip2, (LedStrip*)&strip3};
+LedStrip* strips[NUM_STRIPS] = {(LedStrip*)&strip0, (LedStrip*)&strip1, (LedStrip*)&strip2, (LedStrip*)&strip3, (LedStrip*)&strip4};
 StripState stripStates[NUM_STRIPS];
 
 // Buttons
@@ -110,7 +116,8 @@ struct ButtonStateMachine {
 ButtonStateMachine buttons[NUM_BUTTONS] = {
   {BUTTON_IDLE, 0, BUTTON_PIN_1, 0, false, 0, false},  // Button 0 -> Strip 0 (Kitchen - controls Strip 0 and Strip 2)
   {BUTTON_IDLE, 0, BUTTON_PIN_2, 1, false, 0, false},  // Button 1 -> Strip 1
-  {BUTTON_IDLE, 0, BUTTON_PIN_3, 255, false, 0, false} // Button 2 -> Relay (stripIndex 255 = relay, not a strip)
+  {BUTTON_IDLE, 0, BUTTON_PIN_3, 255, false, 0, false}, // Button 2 -> Relay (stripIndex 255 = relay, not a strip)
+  {BUTTON_IDLE, 0, BUTTON_PIN_4, 4, false, 0, false}   // Button 3 -> Strip 4 (Test strip)
 };
 
 // Relay states (array for multiple relays)
@@ -134,6 +141,12 @@ RgbwColor whiteColor(uint8_t brightness) {
   return RgbwColor(brightness, brightness, brightness, brightness);
 }
 
+// Helper function to create white color for RGB strips (no W channel)
+RgbColor whiteColorRgb(uint8_t brightness) {
+  // Use RGB channels for white color
+  return RgbColor(brightness, brightness, brightness);
+}
+
 // Helper functions for working with different strip types
 void setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwColor color) {
   if (stripIndex >= NUM_STRIPS) return;
@@ -144,8 +157,12 @@ void setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwColor color) {
     ((LedStrip1*)state.strip)->SetPixelColor(pixelIndex, color);
   } else if (state.stripType == 2) {
     ((LedStrip2*)state.strip)->SetPixelColor(pixelIndex, color);
-  } else {
+  } else if (state.stripType == 3) {
     ((LedStrip3*)state.strip)->SetPixelColor(pixelIndex, color);
+  } else if (state.stripType == 4) {
+    // Strip 4 is RGB, convert RgbwColor to RgbColor
+    RgbColor rgbColor(color.R, color.G, color.B);
+    ((LedStrip4*)state.strip)->SetPixelColor(pixelIndex, rgbColor);
   }
 }
 
@@ -158,8 +175,12 @@ void clearStrip(uint8_t stripIndex, RgbwColor color) {
     ((LedStrip1*)state.strip)->ClearTo(color);
   } else if (state.stripType == 2) {
     ((LedStrip2*)state.strip)->ClearTo(color);
-  } else {
+  } else if (state.stripType == 3) {
     ((LedStrip3*)state.strip)->ClearTo(color);
+  } else if (state.stripType == 4) {
+    // Strip 4 is RGB, convert RgbwColor to RgbColor
+    RgbColor rgbColor(color.R, color.G, color.B);
+    ((LedStrip4*)state.strip)->ClearTo(rgbColor);
   }
 }
 
@@ -174,6 +195,8 @@ void showStrip(uint8_t stripIndex) {
     ((LedStrip2*)state.strip)->Show();
   } else if (state.stripType == 3) {
     ((LedStrip3*)state.strip)->Show();
+  } else if (state.stripType == 4) {
+    ((LedStrip4*)state.strip)->Show();
   }
 }
 
@@ -1091,6 +1114,28 @@ void setup() {
   stripStates[3].transition.active = false;
   stripStates[3].transition.randomOrder = nullptr;
   Serial.println("Strip 3 - Pin: " + String(stripConfigs[3].pin) + ", LEDs: " + String(stripConfigs[3].ledCount) + " - OK (RMT3) Bathroom (motion-activated)");
+  
+  Serial.println("Initializing strip 4 on pin " + String(stripConfigs[4].pin) + " with RMT4 (Test strip - RGB type)...");
+  Serial.flush();
+  strip4.Begin();
+  delay(100);
+  strip4.ClearTo(RgbColor(0, 0, 0));  // RGB strip uses RgbColor
+  strip4.Show();
+  stripStates[4].strip = (void*)&strip4;
+  stripStates[4].stripType = 4;  // LedStrip4 (RMT4)
+  stripStates[4].on = false;
+  stripStates[4].brightness = DEFAULT_BRIGHTNESS;
+  stripStates[4].mode = STRIP_MODE_OFF;  // Not used for regular strips (only Strip 3 uses mode)
+  stripStates[4].lastAutoBrightness = DEFAULT_BRIGHTNESS;
+  stripStates[4].dimmingActive = false;
+  stripStates[4].dimmingDirection = true;
+  stripStates[4].dimmingTargetBrightness = DEFAULT_BRIGHTNESS;
+  stripStates[4].isSmoothTransition = false;
+  stripStates[4].lastDimmingWasIncrease = true;
+  stripStates[4].blinkActive = false;
+  stripStates[4].transition.active = false;
+  stripStates[4].transition.randomOrder = nullptr;
+  Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGB type)");
   
   // Initialize PIR sensor
   Serial.println("Initializing PIR motion sensor on pin " + String(PIR_SENSOR_PIN) + "...");

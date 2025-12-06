@@ -310,6 +310,66 @@ function App() {
           </div>
         </div>
 
+        {/* Strip 4 - Test strip (similar to Lighting) */}
+        <div
+          className="led-card"
+          onClick={() => {
+            if (socketRef.current) {
+              socketRef.current.emit("ledCommand", {
+                type: "strip",
+                index: 4,
+                action: ledStrips[4]?.state === "ON" ? "off" : "on",
+              });
+            }
+          }}
+        >
+          <p className="led-name">Test Strip</p>
+          <div
+            className={`neumorphic-button ${
+              ledStrips[4]?.state === "ON" ? "on" : "off"
+            }`}
+          >
+            {(() => {
+              const arcLength = Math.PI * 80 * (270 / 180);
+              const progress = getArcProgress(
+                ledStrips[4]?.brightness || 0,
+                ledStrips[4]?.state === "ON"
+              );
+              return (
+                <svg className="horseshoe-progress" viewBox="0 0 200 200">
+                  <defs>
+                    <linearGradient
+                      id="gradient-4"
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" stopColor="#00C6FF" />
+                      <stop offset="100%" stopColor="#00FF99" />
+                    </linearGradient>
+                  </defs>
+                  {/* Дъга от 135° (начало) до 45° (край) - запълва се спрямо brightness */}
+                  <path
+                    className="horseshoe-fill"
+                    d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6"
+                    fill="none"
+                    stroke="url(#gradient-4)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progress} ${arcLength}`}
+                    strokeDashoffset="0"
+                    opacity={
+                      ledStrips[4]?.state === "ON" && progress > 0 ? 1 : 0
+                    }
+                  />
+                </svg>
+              );
+            })()}
+            <span className="button-text">{ledStrips[4]?.state || "OFF"}</span>
+          </div>
+        </div>
+
         {/* Strip 3 - Bathroom (motion-activated) with 3-position button */}
         <div
           className="led-card"

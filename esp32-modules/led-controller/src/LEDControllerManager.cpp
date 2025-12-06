@@ -5,6 +5,12 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
+// Include NUM_STRIPS definition from main.cpp
+// NUM_STRIPS is defined in main.cpp, we need it here too
+#ifndef NUM_STRIPS
+#define NUM_STRIPS 5  // Should match main.cpp
+#endif
+
 // Include main.cpp structures - we need full definition of StripState
 // Forward declaration is not enough for accessing members
 // We'll access stripStates array which is extern declared in header
@@ -138,7 +144,7 @@ void LEDControllerManager::processMQTTCommand(char* topic, byte* payload, unsign
       uint8_t stripIndex = stripIndexStr.toInt();
       
       // Validate strip index
-      if (stripIndex >= 4) {  // NUM_STRIPS is 4
+      if (stripIndex >= NUM_STRIPS) {  // Check against actual NUM_STRIPS
         if (DEBUG_SERIAL) {
           Serial.println("❌ Invalid strip index: " + String(stripIndex));
         }
@@ -242,7 +248,7 @@ void LEDControllerManager::publishFullStatus() {
   
   // Добавяме данни за всички ленти
   JsonObject strips = doc.createNestedObject("strips");
-  for (uint8_t i = 0; i < 4; i++) {  // NUM_STRIPS is 4
+  for (uint8_t i = 0; i < NUM_STRIPS; i++) {  // Include all strips (0-4)
     StripState& state = stripStates[i];
     JsonObject strip = strips.createNestedObject(String(i));
     strip["state"] = state.on ? "ON" : "OFF";
