@@ -14,6 +14,7 @@ private:
   unsigned long lastReconnectAttempt;
   unsigned long lastWiFiCheck;
   bool isConnected;
+  bool disconnectPending;  // Флаг дали трябва да извикаме disconnect преди следващия опит
   
   // Активна проверка на WiFi връзката
   bool checkWiFiConnection();

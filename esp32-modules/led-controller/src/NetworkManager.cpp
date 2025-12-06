@@ -9,6 +9,7 @@ NetworkManager::NetworkManager() {
   this->lastReconnectAttempt = 0;
   this->lastWiFiCheck = 0;
   this->isConnected = false;
+  this->disconnectPending = false;
 }
 
 NetworkManager::NetworkManager(String ssid, String password) {
@@ -17,15 +18,16 @@ NetworkManager::NetworkManager(String ssid, String password) {
   this->lastReconnectAttempt = 0;
   this->lastWiFiCheck = 0;
   this->isConnected = false;
+  this->disconnectPending = false;
 }
 
 void NetworkManager::begin() {
   // Не записваме SSID в flash (всеки boot е "чист")
   WiFi.persistent(false);
   
-  // Изчистваме всички стари WiFi записи
+  // Изчистваме всички стари WiFi записи (неблокиращо - само веднъж)
   WiFi.disconnect(true, true);  // true,true = изчистване на flash
-  delay(500);
+  // НЕ използваме delay() тук - неблокиращо
   
   // Задаваме режим и настройки
   WiFi.mode(WIFI_STA);
@@ -38,39 +40,15 @@ void NetworkManager::begin() {
     Serial.println("🔌 Connecting to WiFi: " + ssid);
   }
   
-  // Започваме свързване
+  // Започваме свързване (неблокиращо)
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  // Правим първи опит за свързване (чакаме до 10 секунди)
+  // НЕ чакаме тук - ще проверим статуса в loop()
+  isConnected = false;
+  lastReconnectAttempt = millis();
+  
   if (DEBUG_SERIAL) {
-    Serial.println("⏳ Waiting for initial connection...");
-  }
-  
-  int initialAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && initialAttempts < 20) {
-    delay(500);
-    initialAttempts++;
-    if (DEBUG_SERIAL && initialAttempts % 5 == 0) {
-      Serial.print(".");
-    }
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    isConnected = true;
-    if (DEBUG_SERIAL) {
-      Serial.println();
-      Serial.println("✅ Initial WiFi connection successful!");
-      Serial.println("IP: " + getLocalIP());
-    }
-  } else {
-    isConnected = false;
-    if (DEBUG_SERIAL) {
-      Serial.println();
-      Serial.println("⚠️ Initial WiFi connection failed, will retry in loop()");
-      Serial.println("WiFi Status: " + String(WiFi.status()));
-    }
-    // Задаваме lastReconnectAttempt, за да може loop() да опита отново след WIFI_RECONNECT_DELAY
-    lastReconnectAttempt = millis();
+    Serial.println("⏳ WiFi connection started, will check status in loop()");
   }
 }
 
@@ -90,6 +68,7 @@ void NetworkManager::loop() {
         }
         isConnected = false;
         WiFi.disconnect();
+        disconnectPending = true;  // Маркираме че трябва disconnect преди следващия опит
         lastReconnectAttempt = currentTime - WIFI_RECONNECT_DELAY; // Форсираме опит за реконекция
       } else {
         isConnected = true;
@@ -100,8 +79,50 @@ void NetworkManager::loop() {
   if (!isWiFiConnected()) {
     if (currentTime - lastReconnectAttempt > WIFI_RECONNECT_DELAY) {
       lastReconnectAttempt = currentTime;
-      connect();
+      
+      // Проверяваме дали WiFi се е свързал между опитите (от auto-reconnect)
+      if (WiFi.status() == WL_CONNECTED) {
+        isConnected = true;
+        disconnectPending = false;  // Успешна конекция, не трябва disconnect
+        if (DEBUG_SERIAL) {
+          Serial.println("✅ WiFi connected (auto-reconnect)!");
+          Serial.println("IP: " + getLocalIP());
+        }
+      } else {
+        // Все още не сме свързани, правим нов опит
+        disconnectPending = true;  // Маркираме че трябва disconnect преди следващия опит
+        connect();  // Започваме опит (неблокиращо)
+        
+        // Проверяваме статуса веднага (без delay) - рядко ще е свързан веднага
+        if (WiFi.status() == WL_CONNECTED) {
+          isConnected = true;
+          disconnectPending = false;
+          if (DEBUG_SERIAL) {
+            Serial.println("✅ WiFi connected!");
+            Serial.println("IP: " + getLocalIP());
+          }
+        } else {
+          isConnected = false;
+          if (DEBUG_SERIAL) {
+            Serial.println("❌ WiFi connection attempt started, checking status in next loop...");
+            Serial.println("WiFi Status: " + String(WiFi.status()));
+          }
+        }
+      }
+    } else {
+      // Все още чакаме между опитите, но проверяваме дали случайно не се свързахме
+      if (WiFi.status() == WL_CONNECTED) {
+        isConnected = true;
+        disconnectPending = false;
+        if (DEBUG_SERIAL) {
+          Serial.println("✅ WiFi connected!");
+          Serial.println("IP: " + getLocalIP());
+        }
+      }
     }
+  } else {
+    // Вече сме свързани, не трябва disconnect
+    disconnectPending = false;
   }
 }
 
@@ -109,9 +130,12 @@ bool NetworkManager::connect() {
   // Не записваме SSID в flash
   WiFi.persistent(false);
   
-  // Изчистваме старите записи преди всеки опит
-  WiFi.disconnect(true, true);
-  delay(500);
+  // Изчистваме старите записи само ако е нужно (преди нов опит след неуспешен)
+  if (disconnectPending) {
+    WiFi.disconnect(true, true);
+    disconnectPending = false;
+    // Не използваме delay() - неблокиращо
+  }
   
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
@@ -121,38 +145,13 @@ bool NetworkManager::connect() {
     Serial.println("🔄 Attempting WiFi connection...");
   }
   
-  // Започваме свързване
+  // Започваме свързване (неблокиращо)
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {  // Увеличаваме до 30 опита (15 секунди)
-    delay(500);
-    attempts++;
-    if (DEBUG_SERIAL) {
-      Serial.print(".");
-    }
-  }
+  // НЕ блокираме тук - просто започваме опита и ще проверим статуса в следващия loop()
+  // Статусът ще се провери в loop() на следващата итерация
   
-  if (WiFi.status() == WL_CONNECTED) {
-    isConnected = true;
-    if (DEBUG_SERIAL) {
-      Serial.println();
-      Serial.println("✅ WiFi connected!");
-      Serial.println("IP: " + getLocalIP());
-      Serial.println("Gateway: " + WiFi.gatewayIP().toString());
-      Serial.println("DNS: " + WiFi.dnsIP().toString());
-    }
-    return true;
-  } else {
-    isConnected = false;
-    if (DEBUG_SERIAL) {
-      Serial.println();
-      Serial.println("❌ WiFi connection failed");
-      Serial.println("WiFi Status: " + String(WiFi.status()));
-      Serial.println("Local IP: " + WiFi.localIP().toString());
-    }
-    return false;
-  }
+  return false;  // Все още не сме свързани, ще проверим в loop()
 }
 
 void NetworkManager::disconnect() {
