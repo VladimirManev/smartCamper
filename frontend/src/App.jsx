@@ -310,7 +310,7 @@ function App() {
           </div>
         </div>
 
-        {/* Strip 4 - Test strip (similar to Lighting) */}
+        {/* Strip 4 - Bedroom (similar to Lighting) */}
         <div
           className="led-card"
           onClick={() => {
@@ -323,7 +323,7 @@ function App() {
             }
           }}
         >
-          <p className="led-name">Test Strip</p>
+          <p className="led-name">Bedroom</p>
           <div
             className={`neumorphic-button ${
               ledStrips[4]?.state === "ON" ? "on" : "off"

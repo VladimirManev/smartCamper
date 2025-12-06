@@ -244,7 +244,8 @@ void LEDControllerManager::publishStatus() {
 
 void LEDControllerManager::publishFullStatus() {
   // Създаваме JSON обект с всички данни
-  StaticJsonDocument<512> doc;
+  // Увеличаваме размера за да поберем всички 5 ленти + релета
+  StaticJsonDocument<1024> doc;
   
   // Добавяме данни за всички ленти
   JsonObject strips = doc.createNestedObject("strips");

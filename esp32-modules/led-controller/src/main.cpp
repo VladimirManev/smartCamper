@@ -22,7 +22,7 @@ StripConfig stripConfigs[NUM_STRIPS] = {
   {18, 178},  // Strip 1: Pin 18, 178 LEDs - Main lighting
   {19, 23},   // Strip 2: Pin 19, 23 LEDs - Kitchen (extension for spice rack, mirrors strip 0)
   {25, 53},   // Strip 3: Pin 25, 53 LEDs - Bathroom (motion activated, no button, no dimming)
-  {5, 60}     // Strip 4: Pin 5, 60 LEDs - Test strip (unknown type, testing)
+  {5, 60}     // Strip 4: Pin 5, 60 LEDs - Bedroom
 };
 
 // Button settings
@@ -30,7 +30,7 @@ StripConfig stripConfigs[NUM_STRIPS] = {
 #define BUTTON_PIN_1 4   // Button for strip 0 (Kitchen - controls Strip 0 and Strip 2)
 #define BUTTON_PIN_2 12  // Button for strip 1
 #define BUTTON_PIN_3 27  // Button for relay circuit (toggle button)
-#define BUTTON_PIN_4 13  // Button for strip 4 (Test strip)
+#define BUTTON_PIN_4 13  // Button for strip 4 (Bedroom)
 
 // Relay settings (for LED diodes circuit)
 // NUM_RELAYS е дефинирана в Config.h
@@ -68,7 +68,7 @@ typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip0;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt1Ws2812xMethod> LedStrip1;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt2Ws2812xMethod> LedStrip2;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt3Ws2812xMethod> LedStrip3;
-// Test strip - RGB type (no white channel)
+// Bedroom strip - RGB type (no white channel)
 // Using WS2812x protocol (most common) with RMT4 channel
 typedef NeoPixelBus<NeoRgbFeature, NeoEsp32Rmt4Ws2812xMethod> LedStrip4;
 
@@ -94,7 +94,7 @@ LedStrip0 strip0(stripConfigs[0].ledCount, stripConfigs[0].pin);  // Kitchen mai
 LedStrip1 strip1(stripConfigs[1].ledCount, stripConfigs[1].pin);  // Main lighting
 LedStrip2 strip2(stripConfigs[2].ledCount, stripConfigs[2].pin);  // Kitchen extension (spice rack)
 LedStrip3 strip3(stripConfigs[3].ledCount, stripConfigs[3].pin);  // Bathroom (motion activated)
-LedStrip4 strip4(stripConfigs[4].ledCount, stripConfigs[4].pin);  // Test strip (unknown type)
+LedStrip4 strip4(stripConfigs[4].ledCount, stripConfigs[4].pin);  // Bedroom
 
 // Pointers to strips (for universality)
 LedStrip* strips[NUM_STRIPS] = {(LedStrip*)&strip0, (LedStrip*)&strip1, (LedStrip*)&strip2, (LedStrip*)&strip3, (LedStrip*)&strip4};
@@ -117,7 +117,7 @@ ButtonStateMachine buttons[NUM_BUTTONS] = {
   {BUTTON_IDLE, 0, BUTTON_PIN_1, 0, false, 0, false},  // Button 0 -> Strip 0 (Kitchen - controls Strip 0 and Strip 2)
   {BUTTON_IDLE, 0, BUTTON_PIN_2, 1, false, 0, false},  // Button 1 -> Strip 1
   {BUTTON_IDLE, 0, BUTTON_PIN_3, 255, false, 0, false}, // Button 2 -> Relay (stripIndex 255 = relay, not a strip)
-  {BUTTON_IDLE, 0, BUTTON_PIN_4, 4, false, 0, false}   // Button 3 -> Strip 4 (Test strip)
+  {BUTTON_IDLE, 0, BUTTON_PIN_4, 4, false, 0, false}   // Button 3 -> Strip 4 (Bedroom)
 };
 
 // Relay states (array for multiple relays)
@@ -145,6 +145,27 @@ RgbwColor whiteColor(uint8_t brightness) {
 RgbColor whiteColorRgb(uint8_t brightness) {
   // Use RGB channels for white color
   return RgbColor(brightness, brightness, brightness);
+}
+
+// Helper function to create warm white color for RGB strips (Bedroom - Strip 4)
+// Warm white: more red, less blue for cozy bedroom lighting
+RgbwColor warmWhiteColor(uint8_t brightness) {
+  // Warm white proportions: R=100%, G=90%, B=75%
+  // This creates a warmer, more cozy light suitable for bedroom
+  uint8_t r = brightness;                    // 100% red
+  uint8_t g = (brightness * 90) / 100;      // 90% green
+  uint8_t b = (brightness * 75) / 100;      // 75% blue
+  return RgbwColor(r, g, b, 0);  // No W channel for RGB strip
+}
+
+// Helper function to get the appropriate white color for a strip
+// Strip 4 (Bedroom) uses warm white, others use standard white
+RgbwColor getWhiteColorForStrip(uint8_t stripIndex, uint8_t brightness) {
+  if (stripIndex == 4) {
+    return warmWhiteColor(brightness);
+  } else {
+    return whiteColor(brightness);
+  }
 }
 
 // Helper functions for working with different strip types
@@ -247,7 +268,7 @@ void updateStrip(uint8_t stripIndex) {
   
   if (state.on) {
     for (int i = 0; i < stripConfigs[stripIndex].ledCount; i++) {
-      setPixelColor(stripIndex, i, whiteColor(state.brightness));
+      setPixelColor(stripIndex, i, getWhiteColorForStrip(stripIndex, state.brightness));
     }
   } else {
     clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
@@ -278,10 +299,10 @@ void transitionOnCenterToEdges(uint8_t stripIndex) {
   STRIP_CLEAR(stripIndex, RgbwColor(0, 0, 0, 0));
   for (int i = 0; i <= currentDistance; i++) {
     if (center - i >= 0) {
-      STRIP_SET_PIXEL(stripIndex, center - i, whiteColor(trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center - i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
     }
     if (center + i < ledCount) {
-      STRIP_SET_PIXEL(stripIndex, center + i, whiteColor(trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center + i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
     }
   }
   STRIP_SHOW(stripIndex);
@@ -319,7 +340,7 @@ void transitionOnRandomLeds(uint8_t stripIndex) {
   
   for (int i = 0; i < targetCount && i < ledCount; i++) {
     STRIP_SET_PIXEL(stripIndex, trans.randomOrder[i], 
-                    whiteColor(trans.targetBrightness));
+                    getWhiteColorForStrip(stripIndex, trans.targetBrightness));
   }
   STRIP_SHOW(stripIndex);
   
@@ -343,7 +364,7 @@ void transitionOnLeftToRight(uint8_t stripIndex) {
   
   STRIP_CLEAR(stripIndex, RgbwColor(0, 0, 0, 0));
   for (int i = 0; i < currentEnd; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
   }
   STRIP_SHOW(stripIndex);
   
@@ -368,10 +389,10 @@ void transitionOnEdgesToCenter(uint8_t stripIndex) {
   STRIP_CLEAR(stripIndex, RgbwColor(0, 0, 0, 0));
   for (int i = 0; i <= maxDistance - currentDistance; i++) {
     if (center - i >= 0) {
-      STRIP_SET_PIXEL(stripIndex, center - i, whiteColor(trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center - i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
     }
     if (center + i < ledCount) {
-      STRIP_SET_PIXEL(stripIndex, center + i, whiteColor(trans.targetBrightness));
+      STRIP_SET_PIXEL(stripIndex, center + i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
     }
   }
   STRIP_SHOW(stripIndex);
@@ -399,7 +420,7 @@ void transitionOffEdgesToCenter(uint8_t stripIndex) {
   int currentDistance = (int)(maxDistance * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
   }
   
   for (int i = 0; i < currentDistance; i++) {
@@ -449,7 +470,7 @@ void transitionOffRandomLeds(uint8_t stripIndex) {
   int offCount = (int)(ledCount * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
   }
   
   for (int i = 0; i < offCount && i < ledCount; i++) {
@@ -476,7 +497,7 @@ void transitionOffLeftToRight(uint8_t stripIndex) {
   int currentEnd = (int)(ledCount * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
   }
   
   for (int i = 0; i < currentEnd; i++) {
@@ -503,7 +524,7 @@ void transitionOffCenterToEdges(uint8_t stripIndex) {
   int currentDistance = (int)(maxDistance * progress);
   
   for (int i = 0; i < ledCount; i++) {
-    STRIP_SET_PIXEL(stripIndex, i, whiteColor(trans.targetBrightness));
+    STRIP_SET_PIXEL(stripIndex, i, getWhiteColorForStrip(stripIndex, trans.targetBrightness));
   }
   
   for (int i = 0; i <= currentDistance; i++) {
@@ -632,7 +653,7 @@ void updateBlink(uint8_t stripIndex) {
     uint8_t currentBrightness = (uint8_t)(state.savedBrightnessForBlink * brightnessFactor);
     
     for (int i = 0; i < stripConfigs[stripIndex].ledCount; i++) {
-      STRIP_SET_PIXEL(stripIndex, i, whiteColor(currentBrightness));
+      STRIP_SET_PIXEL(stripIndex, i, getWhiteColorForStrip(stripIndex, currentBrightness));
     }
     STRIP_SHOW(stripIndex);
     
@@ -1115,7 +1136,7 @@ void setup() {
   stripStates[3].transition.randomOrder = nullptr;
   Serial.println("Strip 3 - Pin: " + String(stripConfigs[3].pin) + ", LEDs: " + String(stripConfigs[3].ledCount) + " - OK (RMT3) Bathroom (motion-activated)");
   
-  Serial.println("Initializing strip 4 on pin " + String(stripConfigs[4].pin) + " with RMT4 (Test strip - RGB type)...");
+  Serial.println("Initializing strip 4 on pin " + String(stripConfigs[4].pin) + " with RMT4 (Bedroom - RGB type)...");
   Serial.flush();
   strip4.Begin();
   delay(100);
@@ -1135,7 +1156,7 @@ void setup() {
   stripStates[4].blinkActive = false;
   stripStates[4].transition.active = false;
   stripStates[4].transition.randomOrder = nullptr;
-  Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGB type)");
+  Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGB type) Bedroom");
   
   // Initialize PIR sensor
   Serial.println("Initializing PIR motion sensor on pin " + String(PIR_SENSOR_PIN) + "...");

@@ -19,6 +19,7 @@ private:
   
   unsigned long lastSensorRead;
   unsigned long lastDataSent;        // Последно изпращане на данни
+  unsigned long lastStatusLog;       // Последно логване на статус (когато не сме свързани)
   float lastTemperature;
   float lastHumidity;
   bool forceUpdateRequested;

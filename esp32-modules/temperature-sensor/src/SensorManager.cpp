@@ -10,6 +10,7 @@ SensorManager* SensorManager::currentInstance = nullptr;
 SensorManager::SensorManager() : dht(25, DHT22), commandHandler(&mqttManager, this, "temperature-sensor") {
   lastSensorRead = 0;
   lastDataSent = 0;              // Инициализираме последното изпращане
+  lastStatusLog = 0;             // Инициализираме последното логване на статус
   lastTemperature = 0.0;
   lastHumidity = 0.0;
   forceUpdateRequested = false;
@@ -45,8 +46,9 @@ void SensorManager::loop() {
   // Обновяваме мрежата
   networkManager.loop();
   
-  // Обновяваме MQTT
-  mqttManager.loop();
+  // Обновяваме MQTT с WiFi статус
+  bool wifiConnected = networkManager.isWiFiConnected();
+  mqttManager.loop(wifiConnected);
   
   // Обновяваме Command Handler
   commandHandler.loop();
@@ -56,7 +58,11 @@ void SensorManager::loop() {
   if (currentTime - lastSensorRead > SENSOR_READ_INTERVAL || forceUpdateRequested) {
     lastSensorRead = currentTime;
     
-    if (networkManager.isWiFiConnected() && mqttManager.isMQTTConnected()) {
+    // Проверяваме статуса на връзките
+    bool wifiOk = networkManager.isWiFiConnected();
+    bool mqttOk = mqttManager.isMQTTConnected();
+    
+    if (wifiOk && mqttOk) {
       // Четем реални данни от AM2301
       float temperature = readTemperature();
       float humidity = readHumidity();
@@ -94,9 +100,19 @@ void SensorManager::loop() {
         // Ресетираме force update флага
         forceUpdateRequested = false;
       } else {
+        if (DEBUG_SERIAL) {
         Serial.println("❌ Invalid sensor readings!");
+        }
         forceUpdateRequested = false;
       }
+    } else {
+      // Ако не сме свързани, логваме статуса периодично (на всеки 30 секунди)
+      // Това помага да видим какво се случва по време на интервалите без данни
+      if (DEBUG_SERIAL && (currentTime - lastStatusLog > 30000)) {
+        lastStatusLog = currentTime;
+        Serial.println("⚠️ Skipping sensor read - not connected (WiFi: " + String(wifiOk ? "OK" : "FAIL") + ", MQTT: " + String(mqttOk ? "OK" : "FAIL") + ")");
+      }
+      forceUpdateRequested = false;
     }
   }
 }

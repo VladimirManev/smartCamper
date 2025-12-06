@@ -29,11 +29,15 @@ MQTTManager::MQTTManager(String clientId, String brokerIP, int brokerPort) {
 
 void MQTTManager::begin() {
   mqttClient.setServer(brokerIP.c_str(), brokerPort);
+  // Увеличаваме MQTT buffer size за да можем да публикуваме по-големи съобщения
+  // По подразбиране PubSubClient има лимит от 256 байта, ние го увеличаваме на 1024
+  mqttClient.setBufferSize(1024);
   
   if (DEBUG_SERIAL) {
     Serial.println("🔌 MQTT Manager initialized");
     Serial.println("Client ID: " + clientId);
     Serial.println("Broker: " + brokerIP + ":" + String(brokerPort));
+    Serial.println("MQTT Buffer Size: 1024 bytes");
   }
 }
 
