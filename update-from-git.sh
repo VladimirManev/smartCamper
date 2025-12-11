@@ -59,13 +59,19 @@ if git diff --name-only HEAD@{1} HEAD | grep -q "package.json\|package-lock.json
     FRONTEND_CHANGED=true
 fi
 
+# Проверка дали package.json е променен (трябва да инсталираме dependencies)
+PACKAGE_CHANGED=false
+if git diff --name-only HEAD@{1} HEAD 2>/dev/null | grep -q "package.json\|package-lock.json"; then
+    PACKAGE_CHANGED=true
+fi
+
 # Ако има промени във frontend, build-ваме
-if [ "$FRONTEND_CHANGED" = true ] || [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
+if [ "$FRONTEND_CHANGED" = true ] || [ "$PACKAGE_CHANGED" = true ] || [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
     echo -e "${YELLOW}📦 Има промени във frontend или липсва build. Build-ваме React приложението...${NC}"
     cd "$PROJECT_DIR/frontend"
     
-    # Проверка дали node_modules съществува
-    if [ ! -d "node_modules" ]; then
+    # Инсталираме dependencies ако няма node_modules или package.json е променен
+    if [ ! -d "node_modules" ] || [ "$PACKAGE_CHANGED" = true ]; then
         echo -e "${YELLOW}📥 Инсталиране на frontend dependencies...${NC}"
         npm install
     fi
