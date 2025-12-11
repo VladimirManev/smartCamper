@@ -48,25 +48,20 @@ fi
 echo -e "${GREEN}⬇️  Изтегляне на промени от git...${NC}"
 git pull
 
-# Проверка дали има промени във frontend
+# Проверка дали има промени във frontend (сравняваме с последния commit преди pull)
 FRONTEND_CHANGED=false
-if git diff --name-only HEAD@{1} HEAD | grep -q "^frontend/"; then
-    FRONTEND_CHANGED=true
-fi
-
-# Проверка дали има промени в package.json или package-lock.json
-if git diff --name-only HEAD@{1} HEAD | grep -q "package.json\|package-lock.json"; then
+if git diff HEAD@{1}..HEAD --name-only 2>/dev/null | grep -q "^frontend/"; then
     FRONTEND_CHANGED=true
 fi
 
 # Проверка дали package.json е променен (трябва да инсталираме dependencies)
 PACKAGE_CHANGED=false
-if git diff --name-only HEAD@{1} HEAD 2>/dev/null | grep -q "package.json\|package-lock.json"; then
+if git diff HEAD@{1}..HEAD --name-only 2>/dev/null | grep -q "frontend/package.json\|frontend/package-lock.json"; then
     PACKAGE_CHANGED=true
 fi
 
 # Ако има промени във frontend, build-ваме
-if [ "$FRONTEND_CHANGED" = true ] || [ "$PACKAGE_CHANGED" = true ] || [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
+if [ "$FRONTEND_CHANGED" = true ] || [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
     echo -e "${YELLOW}📦 Има промени във frontend или липсва build. Build-ваме React приложението...${NC}"
     cd "$PROJECT_DIR/frontend"
     
