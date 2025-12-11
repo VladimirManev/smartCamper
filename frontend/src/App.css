@@ -176,11 +176,15 @@ body {
   position: relative;
   width: 105px;
   height: 105px;
+  min-width: 105px;
+  min-height: 105px;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 /* OFF state - recessed */
@@ -359,6 +363,8 @@ body {
   .neumorphic-button {
     width: 70px;
     height: 70px;
+    min-width: 70px;
+    min-height: 70px;
   }
 
   .button-text {
@@ -412,6 +418,8 @@ body {
   .neumorphic-button {
     width: 55px;
     height: 55px;
+    min-width: 55px;
+    min-height: 55px;
   }
 
   .button-text {
@@ -464,6 +472,8 @@ body {
   .neumorphic-button {
     width: 65px;
     height: 65px;
+    min-width: 65px;
+    min-height: 65px;
   }
 
   .button-text {
@@ -516,6 +526,8 @@ body {
   .neumorphic-button {
     width: 60px;
     height: 60px;
+    min-width: 60px;
+    min-height: 60px;
   }
 
   .button-text {
@@ -543,5 +555,7 @@ body {
   .neumorphic-button {
     width: 45px;
     height: 45px;
+    min-width: 45px;
+    min-height: 45px;
   }
 }
