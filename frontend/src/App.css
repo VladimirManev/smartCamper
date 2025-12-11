@@ -10,20 +10,27 @@ body {
   background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   min-height: 100vh;
   color: #ecf0f1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Предотвратяване на zoom при двойно докосване на мобилни */
+  touch-action: manipulation;
 }
 
 .app {
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
+  padding-top: 4rem;
   text-align: center;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 2rem;
+  align-items: center;
+  gap: 1rem;
   position: relative;
-  padding-top: 5rem; /* Оставяме място за статус иконите */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Статус икони - горе вляво */
@@ -62,14 +69,17 @@ body {
   transform: scale(1.2);
 }
 
-/* Главен контейнер за сензори и LED контроли */
+/* Главен контейнер за сензори и LED контроли - iPhone меню стил */
 .main-content {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
   width: 100%;
+  max-width: 100%;
+  justify-items: stretch;
+  align-items: stretch;
+  padding: 0;
+  margin: 0 auto;
 }
 
 /* Сензорни карти контейнер - не се използва вече, но оставяме за обратна съвместимост */
@@ -82,59 +92,53 @@ body {
   display: contents; /* Всички деца стават директни деца на main-content */
 }
 
-/* Сензорни карти */
-.sensor-card {
+/* Сензорни карти - унифицирани с LED карти */
+.sensor-card,
+.led-card {
   background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   border: 1px solid rgba(179, 229, 179, 0.3);
   border-radius: 20px;
-  padding: 2.5rem;
+  padding: 1.5rem;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
   box-shadow: 0 12px 40px rgba(179, 229, 179, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
-  min-width: 200px;
-}
-
-.sensor-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
+  overflow: visible;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(179, 229, 179, 0.1),
-    transparent
-  );
-  transition: left 0.5s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-.sensor-card:hover::before {
-  left: 100%;
-}
-
-.sensor-card:hover {
+.sensor-card:hover,
+.led-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 20px 60px rgba(179, 229, 179, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* Active state за мобилни устройства */
+.sensor-card:active,
+.led-card:active {
+  transform: translateY(-2px) scale(0.98);
+  box-shadow: 0 8px 25px rgba(179, 229, 179, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
 .sensor-card i {
   color: #b3e5b3;
-  font-size: 2rem;
-  margin-bottom: 1.2rem;
+  font-size: 2.1rem;
+  margin: 0;
 }
 
 .value {
-  font-size: 2.2rem;
+  font-size: 2.1rem;
   font-weight: 700;
   background: linear-gradient(45deg, #b3e5b3, #27ae60);
   -webkit-background-clip: text;
@@ -143,40 +147,18 @@ body {
   margin: 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  min-width: 140px; /* Фиксирана ширина за да не се свива с тиретата */
   text-align: center;
+  width: 100%;
+  line-height: 1.2;
 }
 
 .sensor-card:hover .value {
   transform: scale(1.05);
 }
 
-/* LED карти - същия стил като sensor-card */
 .led-card {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  border: 1px solid rgba(179, 229, 179, 0.3);
-  border-radius: 20px;
-  padding: 2rem;
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: visible;
-  min-width: 200px;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 12px 40px rgba(179, 229, 179, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.led-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 60px rgba(179, 229, 179, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .led-name {
@@ -185,14 +167,15 @@ body {
   color: #cccccc;
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
 /* Neumorphic button container */
 .neumorphic-button {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: 105px;
+  height: 105px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -252,10 +235,10 @@ body {
 .button-text {
   position: relative;
   z-index: 2;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   transition: color 0.3s ease;
 }
 
@@ -316,59 +299,249 @@ body {
 }
 
 /* Responsive дизайн */
-@media (max-width: 768px) {
+
+/* Tablet и по-малки екрани */
+@media (max-width: 1024px) {
+  .main-content {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.9rem;
+    width: 100%;
+  }
+
   .app {
     padding: 1rem;
-    gap: 2rem;
-  }
-
-  .status-icons {
-    top: 0.5rem;
-    left: 0.5rem;
-  }
-
-  .status-item {
-    font-size: 1.5rem;
-  }
-
-  .sensor-cards {
-    max-width: 300px;
-    gap: 1.5rem;
-  }
-
-  .sensor-card {
-    padding: 1.5rem;
-  }
-
-  .value {
-    font-size: 2rem;
-  }
-
-  .sensor-card i {
-    font-size: 1.8rem;
+    padding-top: 4rem;
   }
 }
 
-@media (max-width: 480px) {
+/* Мобилни устройства - среден размер */
+@media (max-width: 768px) {
+  .app {
+    padding: 0.75rem;
+    padding-top: 3.5rem;
+    gap: 0.75rem;
+  }
+
+  .main-content {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+  }
+
   .status-icons {
     top: 0.5rem;
     left: 0.5rem;
+    gap: 0.75rem;
   }
 
   .status-item {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
   }
 
-  .sensor-cards {
-    grid-template-columns: 1fr;
-    max-width: 200px;
-  }
-
-  .value {
-    font-size: 1.8rem;
+  .sensor-card,
+  .led-card {
+    padding: 1rem;
+    border-radius: 15px;
   }
 
   .sensor-card i {
+    font-size: 1.6rem;
+  }
+
+  .value {
     font-size: 1.5rem;
+  }
+
+  .led-name {
+    font-size: 0.8rem;
+  }
+
+  .neumorphic-button {
+    width: 70px;
+    height: 70px;
+  }
+
+  .button-text {
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+  }
+}
+
+/* Специфичен за iPhone SE и подобни (375px) */
+@media (max-width: 375px) {
+  .app {
+    padding: 0.5rem;
+    padding-top: 3rem;
+    gap: 0.5rem;
+  }
+
+  .main-content {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .status-icons {
+    top: 0.4rem;
+    left: 0.4rem;
+    gap: 0.4rem;
+  }
+
+  .status-item {
+    font-size: 1rem;
+  }
+
+  .sensor-card,
+  .led-card {
+    padding: 0.7rem;
+    border-radius: 12px;
+  }
+
+  .sensor-card i {
+    font-size: 1.2rem;
+  }
+
+  .value {
+    font-size: 1.2rem;
+  }
+
+  .led-name {
+    font-size: 0.65rem;
+  }
+
+  .neumorphic-button {
+    width: 55px;
+    height: 55px;
+  }
+
+  .button-text {
+    font-size: 0.65rem;
+  }
+}
+
+/* Малки мобилни устройства */
+@media (max-width: 480px) {
+  .app {
+    padding: 0.5rem;
+    padding-top: 3rem;
+    gap: 0.5rem;
+  }
+
+  .main-content {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .status-icons {
+    top: 0.5rem;
+    left: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .status-item {
+    font-size: 1.1rem;
+  }
+
+  .sensor-card,
+  .led-card {
+    padding: 0.9rem;
+    border-radius: 12px;
+  }
+
+  .sensor-card i {
+    font-size: 1.4rem;
+  }
+
+  .value {
+    font-size: 1.4rem;
+  }
+
+  .led-name {
+    font-size: 0.75rem;
+  }
+
+  .neumorphic-button {
+    width: 65px;
+    height: 65px;
+  }
+
+  .button-text {
+    font-size: 0.75rem;
+  }
+}
+
+/* Много малки екрани */
+@media (max-width: 360px) {
+  .app {
+    padding: 0.4rem;
+    padding-top: 2.5rem;
+    gap: 0.4rem;
+  }
+
+  .main-content {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .status-icons {
+    top: 0.25rem;
+    left: 0.25rem;
+    gap: 0.4rem;
+  }
+
+  .status-item {
+    font-size: 0.9rem;
+  }
+
+  .sensor-card,
+  .led-card {
+    padding: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .sensor-card i {
+    font-size: 1.3rem;
+  }
+
+  .value {
+    font-size: 1.3rem;
+  }
+
+  .led-name {
+    font-size: 0.7rem;
+  }
+
+  .neumorphic-button {
+    width: 60px;
+    height: 60px;
+  }
+
+  .button-text {
+    font-size: 0.7rem;
+  }
+}
+
+/* Landscape ориентация на мобилни */
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 500px) {
+  .app {
+    padding-top: 3rem;
+    gap: 0.5rem;
+  }
+
+  .main-content {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .sensor-card,
+  .led-card {
+    padding: 0.5rem;
+  }
+
+  .neumorphic-button {
+    width: 45px;
+    height: 45px;
   }
 }
