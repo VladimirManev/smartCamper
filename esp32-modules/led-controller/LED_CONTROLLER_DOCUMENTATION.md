@@ -2,14 +2,14 @@
 
 ## Overview
 
-The LED Controller module is an ESP32-based multi-strip LED controller that manages up to 5 independent LED strips (4 WS2815 RGBW strips and 1 RGB strip). It supports button control, motion sensor activation, dimming, transitions, synchronized control for kitchen lighting, and MQTT/WebSocket integration for remote control.
+The LED Controller module is an ESP32-based multi-strip LED controller that manages up to 5 independent LED strips (all WS2815/WS2812 RGBW strips). It supports button control, motion sensor activation, dimming, transitions, synchronized control for kitchen lighting, and MQTT/WebSocket integration for remote control.
 
 ## Hardware Specifications
 
 - **Microcontroller**: ESP32
 - **LED Types**:
   - WS2815 RGBW (12V) - Strips 0-3
-  - RGB (12V) - Strip 4 (Bedroom)
+  - WS2812 RGBW (12V, GRBW protocol) - Strip 4 (Bedroom)
 - **Number of Strips**: 5
 - **RMT Channels**: Each strip uses a separate RMT channel (RMT0-RMT4)
 
@@ -21,7 +21,7 @@ The LED Controller module is an ESP32-based multi-strip LED controller that mana
 | **Strip 1** | 18  | 178       | RMT1        | RGBW     | Main lighting                  | Button 2 (Pin 12)                      |
 | **Strip 2** | 19  | 23        | RMT2        | RGBW     | Kitchen extension (spice rack) | Auto-synced with Strip 0               |
 | **Strip 3** | 25  | 53        | RMT3        | RGBW     | Bathroom                       | Button 4 (Pin 13) + PIR sensor (Pin 2) |
-| **Strip 4** | 5   | 60        | RMT4        | RGB      | Bedroom                        | Button 4 (Pin 13)                      |
+| **Strip 4** | 5   | 30        | RMT4        | RGBW     | Bedroom (GRBW protocol)        | Button 4 (Pin 13)                      |
 
 ### Strip Synchronization
 
@@ -96,12 +96,13 @@ The mode can be changed via:
 
 ## Color Configuration
 
-- **Strips 0-3 (RGBW)**: White using RGB+W channels
+- **All Strips (RGBW)**: White using RGB+W channels
   - All channels (R, G, B, W) are set to the same brightness value
   - Provides full-spectrum white light
-- **Strip 4 (RGB)**: White using RGB channels only
-  - R, G, B channels are set to the same brightness value
-  - No dedicated white channel
+- **Strip 4 (Bedroom)**: Uses warm white color
+  - Special warm white configuration for cozy bedroom lighting
+  - Warm white proportions: R=100%, G=90%, B=75%
+  - Creates warmer, more comfortable light for bedroom environment
 
 ## Brightness Settings
 
@@ -217,7 +218,7 @@ Each LED strip requires a dedicated RMT (Remote Control) channel on ESP32:
 - Strip 1: RMT1 (WS2815 RGBW)
 - Strip 2: RMT2 (WS2815 RGBW)
 - Strip 3: RMT3 (WS2815 RGBW)
-- Strip 4: RMT4 (RGB, WS2812x protocol)
+- Strip 4: RMT4 (WS2812 RGBW, GRBW protocol)
 
 This allows independent timing control for each strip.
 
@@ -297,9 +298,9 @@ Each strip maintains:
 - Strip 3 (Bathroom) has three modes: OFF, AUTO, ON
   - In AUTO mode: motion sensor controls the strip
   - In OFF/ON modes: motion sensor is ignored, manual control only
-- Strip 4 (Bedroom) is RGB type (no white channel)
-- All RGBW strips use white color with RGB+W channels
-- Strip 4 uses RGB channels only for white light
+- Strip 4 (Bedroom) uses RGBW type with GRBW protocol
+- All strips use white color with RGB+W channels
+- Strip 4 uses special warm white configuration for comfortable bedroom lighting
 - Transitions are randomly selected for visual variety
 - System initializes all strips to OFF state
 - Floor lighting (relay circuit) is independent from LED strips
@@ -313,7 +314,7 @@ Each strip maintains:
 - Module: LED Controller
 - Last Updated: 2024
 - Hardware: ESP32
-- LED Types: WS2815 RGBW (Strips 0-3), RGB WS2812x (Strip 4)
+- LED Types: WS2815 RGBW (Strips 0-3), WS2812 RGBW GRBW (Strip 4)
 - Number of Strips: 5
 - Number of Buttons: 4
 - Number of Relays: 1

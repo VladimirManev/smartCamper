@@ -22,7 +22,7 @@ StripConfig stripConfigs[NUM_STRIPS] = {
   {18, 178},  // Strip 1: Pin 18, 178 LEDs - Main lighting
   {19, 23},   // Strip 2: Pin 19, 23 LEDs - Kitchen (extension for spice rack, mirrors strip 0)
   {25, 53},   // Strip 3: Pin 25, 53 LEDs - Bathroom (motion activated, no button, no dimming)
-  {5, 60}     // Strip 4: Pin 5, 60 LEDs - Bedroom
+  {5, 30}     // Strip 4: Pin 5, 30 LEDs - Bedroom (GRBW protocol)
 };
 
 // Button settings
@@ -68,9 +68,9 @@ typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip0;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt1Ws2812xMethod> LedStrip1;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt2Ws2812xMethod> LedStrip2;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt3Ws2812xMethod> LedStrip3;
-// Bedroom strip - RGB type (no white channel)
-// Using WS2812x protocol (most common) with RMT4 channel
-typedef NeoPixelBus<NeoRgbFeature, NeoEsp32Rmt4Ws2812xMethod> LedStrip4;
+// Bedroom strip - RGBW type (with white channel, GRB order)
+// Using WS2812x protocol with RMT4 channel
+typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32Rmt4Ws2812xMethod> LedStrip4;
 
 // Common type for pointers
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip;
@@ -181,9 +181,8 @@ void setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwColor color) {
   } else if (state.stripType == 3) {
     ((LedStrip3*)state.strip)->SetPixelColor(pixelIndex, color);
   } else if (state.stripType == 4) {
-    // Strip 4 is RGB, convert RgbwColor to RgbColor
-    RgbColor rgbColor(color.R, color.G, color.B);
-    ((LedStrip4*)state.strip)->SetPixelColor(pixelIndex, rgbColor);
+    // Strip 4 is RGBW (GRBW protocol)
+    ((LedStrip4*)state.strip)->SetPixelColor(pixelIndex, color);
   }
 }
 
@@ -199,9 +198,8 @@ void clearStrip(uint8_t stripIndex, RgbwColor color) {
   } else if (state.stripType == 3) {
     ((LedStrip3*)state.strip)->ClearTo(color);
   } else if (state.stripType == 4) {
-    // Strip 4 is RGB, convert RgbwColor to RgbColor
-    RgbColor rgbColor(color.R, color.G, color.B);
-    ((LedStrip4*)state.strip)->ClearTo(rgbColor);
+    // Strip 4 is RGBW (GRBW protocol)
+    ((LedStrip4*)state.strip)->ClearTo(color);
   }
 }
 
@@ -1136,11 +1134,11 @@ void setup() {
   stripStates[3].transition.randomOrder = nullptr;
   Serial.println("Strip 3 - Pin: " + String(stripConfigs[3].pin) + ", LEDs: " + String(stripConfigs[3].ledCount) + " - OK (RMT3) Bathroom (motion-activated)");
   
-  Serial.println("Initializing strip 4 on pin " + String(stripConfigs[4].pin) + " with RMT4 (Bedroom - RGB type)...");
+  Serial.println("Initializing strip 4 on pin " + String(stripConfigs[4].pin) + " with RMT4 (Bedroom - RGBW GRBW type)...");
   Serial.flush();
   strip4.Begin();
   delay(100);
-  strip4.ClearTo(RgbColor(0, 0, 0));  // RGB strip uses RgbColor
+  strip4.ClearTo(RgbwColor(0, 0, 0, 0));  // RGBW strip uses RgbwColor
   strip4.Show();
   stripStates[4].strip = (void*)&strip4;
   stripStates[4].stripType = 4;  // LedStrip4 (RMT4)
@@ -1156,7 +1154,7 @@ void setup() {
   stripStates[4].blinkActive = false;
   stripStates[4].transition.active = false;
   stripStates[4].transition.randomOrder = nullptr;
-  Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGB type) Bedroom");
+  Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGBW GRBW type) Bedroom");
   
   // Initialize PIR sensor
   Serial.println("Initializing PIR motion sensor on pin " + String(PIR_SENSOR_PIN) + "...");
