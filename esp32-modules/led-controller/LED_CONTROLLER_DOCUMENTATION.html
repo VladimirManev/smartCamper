@@ -102,8 +102,8 @@
       <h2>Overview</h2>
       <p>
         The LED Controller module is an ESP32-based multi-strip LED controller
-        that manages up to 5 independent LED strips (4 WS2815 RGBW strips and 1
-        RGB strip). It supports button control, motion sensor activation,
+        that manages up to 5 independent LED strips (all WS2815/WS2812 RGBW 
+        strips). It supports button control, motion sensor activation,
         dimming, transitions, synchronized control for kitchen lighting, and
         MQTT/WebSocket integration for remote control.
       </p>
@@ -117,7 +117,7 @@
           <strong>LED Types:</strong>
           <ul>
             <li>WS2815 RGBW (12V) - Strips 0-3</li>
-            <li>RGB (12V) - Strip 4 (Bedroom)</li>
+            <li>WS2812 RGBW (12V, GRBW protocol) - Strip 4 (Bedroom)</li>
           </ul>
         </li>
         <li><strong>Number of Strips:</strong> 5</li>
@@ -182,10 +182,10 @@
           <tr>
             <td><strong>Strip 4</strong></td>
             <td>5</td>
-            <td>60</td>
+            <td>30</td>
             <td>RMT4</td>
-            <td>RGB</td>
-            <td>Bedroom</td>
+            <td>RGBW</td>
+            <td>Bedroom (GRBW protocol)</td>
             <td>Button 4 (Pin 13)</td>
           </tr>
         </tbody>
@@ -367,7 +367,7 @@
       <h2>Color Configuration</h2>
       <ul>
         <li>
-          <strong>Strips 0-3 (RGBW):</strong> White using RGB+W channels
+          <strong>All Strips (RGBW):</strong> White using RGB+W channels
           <ul>
             <li>
               All channels (R, G, B, W) are set to the same brightness value
@@ -376,10 +376,11 @@
           </ul>
         </li>
         <li>
-          <strong>Strip 4 (RGB):</strong> White using RGB channels only
+          <strong>Strip 4 (Bedroom):</strong> Uses warm white color
           <ul>
-            <li>R, G, B channels are set to the same brightness value</li>
-            <li>No dedicated white channel</li>
+            <li>Special warm white configuration for cozy bedroom lighting</li>
+            <li>Warm white proportions: R=100%, G=90%, B=75%</li>
+            <li>Creates warmer, more comfortable light for bedroom environment</li>
           </ul>
         </li>
       </ul>
@@ -610,7 +611,7 @@
         <li>Strip 1: RMT1 (WS2815 RGBW)</li>
         <li>Strip 2: RMT2 (WS2815 RGBW)</li>
         <li>Strip 3: RMT3 (WS2815 RGBW)</li>
-        <li>Strip 4: RMT4 (RGB, WS2812x protocol)</li>
+        <li>Strip 4: RMT4 (WS2812 RGBW, GRBW protocol)</li>
       </ul>
       <p>This allows independent timing control for each strip.</p>
 
@@ -715,9 +716,9 @@
             </li>
           </ul>
         </li>
-        <li>Strip 4 (Bedroom) is RGB type (no white channel)</li>
-        <li>All RGBW strips use white color with RGB+W channels</li>
-        <li>Strip 4 uses RGB channels only for white light</li>
+        <li>Strip 4 (Bedroom) uses RGBW type with GRBW protocol</li>
+        <li>All strips use white color with RGB+W channels</li>
+        <li>Strip 4 uses special warm white configuration for comfortable bedroom lighting</li>
         <li>Transitions are randomly selected for visual variety</li>
         <li>System initializes all strips to OFF state</li>
         <li>Floor lighting (relay circuit) is independent from LED strips</li>
@@ -741,7 +742,7 @@
         <li><strong>Last Updated:</strong> 2024</li>
         <li><strong>Hardware:</strong> ESP32</li>
         <li>
-          <strong>LED Types:</strong> WS2815 RGBW (Strips 0-3), RGB WS2812x
+          <strong>LED Types:</strong> WS2815 RGBW (Strips 0-3), WS2812 RGBW GRBW
           (Strip 4)
         </li>
         <li><strong>Number of Strips:</strong> 5</li>
