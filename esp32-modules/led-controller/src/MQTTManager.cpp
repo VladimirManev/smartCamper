@@ -1,5 +1,5 @@
 // MQTT Manager Implementation
-// Универсален MQTT мениджър за ESP32 модули
+// Universal MQTT manager for ESP32 modules
 
 #include "MQTTManager.h"
 
@@ -29,8 +29,8 @@ MQTTManager::MQTTManager(String clientId, String brokerIP, int brokerPort) {
 
 void MQTTManager::begin() {
   mqttClient.setServer(brokerIP.c_str(), brokerPort);
-  // Увеличаваме MQTT buffer size за да можем да публикуваме по-големи съобщения
-  // По подразбиране PubSubClient има лимит от 256 байта, ние го увеличаваме на 1024
+  // Increase MQTT buffer size to publish larger messages
+  // By default PubSubClient has a limit of 256 bytes, we increase it to 1024
   mqttClient.setBufferSize(1024);
   
   if (DEBUG_SERIAL) {
@@ -42,22 +42,22 @@ void MQTTManager::begin() {
 }
 
 void MQTTManager::loop() {
-  // Проверяваме WiFi статуса директно
+  // Check WiFi status directly
   bool wifiConnected = (WiFi.status() == WL_CONNECTED);
   loop(wifiConnected);
 }
 
 void MQTTManager::loop(bool wifiConnected) {
   if (!mqttClient.connected()) {
-    // Ако WiFi не е свързан, не се опитваме да се реконектираме към MQTT
+    // If WiFi is not connected, don't attempt MQTT reconnection
     if (!wifiConnected) {
-      // Логваме само веднъж на всеки 5 секунди, не на всяка итерация
+      // Log only once every 5 seconds, not on every iteration
       unsigned long currentTime = millis();
       if (DEBUG_SERIAL && (currentTime - lastWiFiWarningTime > 5000)) {
         Serial.println("⚠️ MQTT: WiFi not connected, waiting...");
         lastWiFiWarningTime = currentTime;
       }
-      failedAttempts = 0;  // Нулираме брояча ако WiFi не е свързан
+      failedAttempts = 0;  // Reset counter if WiFi is not connected
       return;
     }
     
@@ -67,11 +67,11 @@ void MQTTManager::loop(bool wifiConnected) {
       bool connected = connect();
       
       if (connected) {
-        failedAttempts = 0;  // Нулираме брояча при успешна връзка
+        failedAttempts = 0;  // Reset counter on successful connection
       } else {
         failedAttempts++;
         
-        // Ако имаме много неуспешни опити (10+), може да има проблем с WiFi
+        // If we have many failed attempts (10+), there might be a WiFi problem
         if (failedAttempts >= 10 && DEBUG_SERIAL) {
           Serial.println("⚠️ MQTT: Many failed attempts (" + String(failedAttempts) + "), check WiFi connection");
           Serial.println("WiFi Status: " + String(WiFi.status()));
@@ -81,12 +81,12 @@ void MQTTManager::loop(bool wifiConnected) {
     }
   } else {
     mqttClient.loop();
-    failedAttempts = 0;  // Нулираме брояча ако сме свързани
+    failedAttempts = 0;  // Reset counter if connected
   }
 }
 
 bool MQTTManager::connect() {
-  // Проверяваме дали WiFi е свързан преди опит за MQTT реконекция
+  // Check if WiFi is connected before attempting MQTT reconnection
   if (WiFi.status() != WL_CONNECTED) {
     if (DEBUG_SERIAL) {
       Serial.println("⚠️ MQTT: Cannot connect - WiFi not connected");

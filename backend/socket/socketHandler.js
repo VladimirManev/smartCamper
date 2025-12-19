@@ -1,39 +1,39 @@
 // Socket.io Handler + MQTT Bridge
-// Обработка на WebSocket комуникация и MQTT ↔ WebSocket bridge
+// WebSocket communication handling and MQTT ↔ WebSocket bridge
 
 const setupSocketIO = (io, aedes) => {
-  // Съхраняваме текущите данни от сензорите
+  // Store current sensor data
   let sensorData = {
     temperature: null,
     humidity: null,
     timestamp: null,
   };
 
-  // MQTT ↔ WebSocket Bridge - слушаме Aedes broker директно
+  // MQTT ↔ WebSocket Bridge - listen to Aedes broker directly
   aedes.on("publish", (packet, client) => {
     const topic = packet.topic;
     const message = packet.payload.toString();
 
     console.log(`📨 MQTT: ${topic} = ${message}`);
 
-    // Проверяваме дали е сензорен топик
+    // Check if it's a sensor topic
     if (topic.startsWith("smartcamper/sensors/")) {
       const topicParts = topic.split("/");
       const sensorType = topicParts[2]; // smartcamper/sensors/temperature
 
-      // Обработка на температурен сензор
+      // Handle temperature sensor
       if (sensorType === "temperature" || sensorType === "humidity") {
-        // Парсираме стойността според типа сензор
+        // Parse value according to sensor type
         let value;
         if (sensorType === "temperature") {
           value = parseFloat(message);
         } else if (sensorType === "humidity") {
-          value = parseInt(message); // Влажността е цяло число
+          value = parseInt(message); // Humidity is an integer
         }
 
-        // Проверяваме дали стойността е валидна
+        // Check if value is valid
         if (!isNaN(value)) {
-          // Обновяваме данните
+          // Update data
           if (sensorType === "temperature") {
             sensorData.temperature = value;
           } else if (sensorType === "humidity") {
@@ -46,38 +46,43 @@ const setupSocketIO = (io, aedes) => {
           io.emit("sensorUpdate", sensorData);
         }
       }
-      // Обработка на LED контролер данни
+      // Handle LED controller data
       else if (sensorType === "led-controller") {
-        // НОВ ФОРМАТ: smartcamper/sensors/led-controller/status (JSON с всички данни)
-        // СТАР ФОРМАТ (за обратна съвместимост): smartcamper/sensors/led-controller/strip/{index}/state
-        // или: smartcamper/sensors/led-controller/strip/{index}/brightness
-        // или: smartcamper/sensors/led-controller/relay/state
+        // NEW FORMAT: smartcamper/sensors/led-controller/status (JSON with all data)
+        // OLD FORMAT (for backward compatibility): smartcamper/sensors/led-controller/strip/{index}/state
+        // or: smartcamper/sensors/led-controller/strip/{index}/brightness
+        // or: smartcamper/sensors/led-controller/relay/state
 
         if (topicParts.length >= 4) {
-          const subType = topicParts[3]; // status, strip, или relay
+          const subType = topicParts[3]; // status, strip, or relay
 
-          // НОВ ФОРМАТ: Пълен статус в един JSON обект (включва heartbeat)
+          // NEW FORMAT: Full status in one JSON object (includes heartbeat)
           if (subType === "status") {
             try {
               const statusData = JSON.parse(message);
-              
-              // Изпращаме пълния статус на frontend
+
+              // Send full status to frontend
               io.emit("ledStatusUpdate", {
                 type: "full",
                 data: statusData,
                 timestamp: new Date().toISOString(),
               });
             } catch (error) {
-              console.log(`❌ Failed to parse LED status JSON: ${error.message}`);
+              console.log(
+                `❌ Failed to parse LED status JSON: ${error.message}`
+              );
             }
-          } 
-          // СТАР ФОРМАТ (за обратна съвместимост - може да се премахне в бъдеще)
+          }
+          // OLD FORMAT (for backward compatibility - may be removed in the future)
           else if (subType === "strip" && topicParts.length >= 6) {
-            // Strip данни: smartcamper/sensors/led-controller/strip/{index}/{type}
+            // Strip data: smartcamper/sensors/led-controller/strip/{index}/{type}
             const stripIndex = parseInt(topicParts[4]);
-            const dataType = topicParts[5]; // state или brightness
+            const dataType = topicParts[5]; // state or brightness
 
-            if (!isNaN(stripIndex) && (dataType === "state" || dataType === "brightness")) {
+            if (
+              !isNaN(stripIndex) &&
+              (dataType === "state" || dataType === "brightness")
+            ) {
               io.emit("ledStatusUpdate", {
                 type: "strip",
                 index: stripIndex,
@@ -87,7 +92,7 @@ const setupSocketIO = (io, aedes) => {
               });
             }
           } else if (subType === "relay" && topicParts.length >= 5) {
-            // Relay данни: smartcamper/sensors/led-controller/relay/state
+            // Relay data: smartcamper/sensors/led-controller/relay/state
             const dataType = topicParts[4]; // state
 
             if (dataType === "state") {
@@ -106,16 +111,16 @@ const setupSocketIO = (io, aedes) => {
 
   // WebSocket connection events
   io.on("connection", (socket) => {
-    console.log("✅ Frontend се свърза с WebSocket");
+    console.log("✅ Frontend connected via WebSocket");
 
-    // НЕ изпращаме стари данни - frontend ще получи данни само при нови MQTT съобщения
-    // Това гарантира, че иконите започват червени и стават зелени само при реални данни
+    // Do NOT send old data - frontend will receive data only on new MQTT messages
+    // This ensures icons start red and turn green only on real data
 
-    // Обработка на LED команди от frontend
+    // Handle LED commands from frontend
     socket.on("ledCommand", (data) => {
       console.log("💡 LED Command received:", data);
 
-      // Валидираме данните
+      // Validate data
       if (!data || !data.type) {
         console.log("❌ Invalid LED command format");
         return;
@@ -124,28 +129,32 @@ const setupSocketIO = (io, aedes) => {
       let mqttTopic;
       let mqttPayload = "{}";
 
-      // Конструираме MQTT topic и payload според типа команда
-      if (data.type === "strip" && typeof data.index === "number" && data.action) {
-        // Strip команда: strip/{index}/{action}
+      // Construct MQTT topic and payload according to command type
+      if (
+        data.type === "strip" &&
+        typeof data.index === "number" &&
+        data.action
+      ) {
+        // Strip command: strip/{index}/{action}
         mqttTopic = `smartcamper/commands/led-controller/strip/${data.index}/${data.action}`;
 
-        // Ако има brightness стойност, добавяме я в payload
+        // If brightness value exists, add it to payload
         if (data.action === "brightness" && typeof data.value === "number") {
           mqttPayload = JSON.stringify({ value: data.value });
         }
-        // Ако има mode стойност, добавяме я в payload
+        // If mode value exists, add it to payload
         else if (data.action === "mode" && data.value) {
           mqttPayload = JSON.stringify({ mode: data.value });
         }
       } else if (data.type === "relay" && data.action === "toggle") {
-        // Relay команда: relay/toggle
+        // Relay command: relay/toggle
         mqttTopic = `smartcamper/commands/led-controller/relay/toggle`;
       } else {
         console.log("❌ Invalid LED command:", data);
         return;
       }
 
-      // Публикуваме командата към MQTT
+      // Publish command to MQTT
       aedes.publish(
         {
           topic: mqttTopic,
@@ -156,15 +165,17 @@ const setupSocketIO = (io, aedes) => {
           if (err) {
             console.log(`❌ Failed to publish LED command: ${err.message}`);
           } else {
-            console.log(`📤 Published LED command: ${mqttTopic} = ${mqttPayload}`);
+            console.log(
+              `📤 Published LED command: ${mqttTopic} = ${mqttPayload}`
+            );
           }
         }
       );
     });
 
-    // Когато frontend се изключи
+    // When frontend disconnects
     socket.on("disconnect", () => {
-      console.log("❌ Frontend се изключи");
+      console.log("❌ Frontend disconnected");
     });
   });
 };

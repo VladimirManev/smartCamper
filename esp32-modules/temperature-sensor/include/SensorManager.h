@@ -1,5 +1,5 @@
 // Temperature Sensor Manager
-// Специфична логика за температурен сензор
+// Specific logic for temperature sensor
 
 #ifndef SENSOR_MANAGER_H
 #define SENSOR_MANAGER_H
@@ -18,13 +18,13 @@ private:
   DHT dht;
   
   unsigned long lastSensorRead;
-  unsigned long lastDataSent;        // Последно изпращане на данни
-  unsigned long lastStatusLog;       // Последно логване на статус (когато не сме свързани)
+  unsigned long lastDataSent;        // Last data send
+  unsigned long lastStatusLog;       // Last status log (when not connected)
   float lastTemperature;
   float lastHumidity;
   bool forceUpdateRequested;
   
-  // Сензорни функции
+  // Sensor functions
   float readTemperature();
   float readHumidity();
 
@@ -34,16 +34,16 @@ public:
   void begin();
   void loop();
   
-  // Force update функция (public за CommandHandler)
+  // Force update function (public for CommandHandler)
   void handleForceUpdate();
   
-  // MQTT callback (static за MQTTManager)
+  // MQTT callback (static for MQTTManager)
   static void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
   
   void printStatus();
 
 private:
-  // Статичен указател към текущия инстанс
+  // Static pointer to current instance
   static SensorManager* currentInstance;
 };
 

@@ -1,27 +1,27 @@
 // Static Files Middleware
-// Сервира статичните файлове от React build и пренасочва всички routes към index.html
+// Serves static files from React build and redirects all routes to index.html
 
 const path = require("path");
 const express = require("express");
 
-// Път към build директорията на React приложението
+// Path to React application build directory
 const frontendBuildPath = path.join(__dirname, "../../frontend/dist");
 
-// Middleware за сервиране на статични файлове (JS, CSS, images, etc.)
+// Middleware for serving static files (JS, CSS, images, etc.)
 const staticMiddleware = express.static(frontendBuildPath, {
-  // Cache headers за статични файлове (1 година)
+  // Cache headers for static files (1 year)
   maxAge: "1y",
-  // ETag за оптимизация
+  // ETag for optimization
   etag: true,
   // Last-Modified header
   lastModified: true,
 });
 
-// Fallback middleware - пренасочва всички routes към index.html
-// Това е необходимо за React Router (client-side routing)
+// Fallback middleware - redirects all routes to index.html
+// This is necessary for React Router (client-side routing)
 const fallbackMiddleware = (req, res, next) => {
-  // Ако заявката не е за API endpoint и не е за статичен файл
-  // (т.е. няма file extension), пренасочваме към index.html
+  // If request is not for API endpoint and not for static file
+  // (i.e. no file extension), redirect to index.html
   if (!req.path.startsWith("/api") && !req.path.includes(".")) {
     return res.sendFile(path.join(frontendBuildPath, "index.html"));
   }
@@ -33,4 +33,3 @@ module.exports = {
   fallbackMiddleware,
   frontendBuildPath,
 };
-

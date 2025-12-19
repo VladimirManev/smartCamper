@@ -1,5 +1,5 @@
 // Main Routes
-// Основни API endpoints
+// Main API endpoints
 
 const express = require("express");
 const router = express.Router();

@@ -1,4 +1,4 @@
-/* Reset и основен стил */
+/* Reset and base styles */
 * {
   margin: 0;
   padding: 0;
@@ -12,7 +12,7 @@ body {
   color: #ecf0f1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Предотвратяване на zoom при двойно докосване на мобилни */
+  /* Prevent zoom on double tap on mobile */
   touch-action: manipulation;
 }
 
@@ -33,7 +33,7 @@ body {
   box-sizing: border-box;
 }
 
-/* Статус икони - горе вляво */
+/* Status icons - top left */
 .status-icons {
   position: absolute;
   top: 1rem;
@@ -69,7 +69,7 @@ body {
   transform: scale(1.2);
 }
 
-/* Главен контейнер за сензори и LED контроли - iPhone меню стил */
+/* Main container for sensors and LED controls - iPhone menu style */
 .main-content {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -82,17 +82,17 @@ body {
   margin: 0 auto;
 }
 
-/* Сензорни карти контейнер - не се използва вече, но оставяме за обратна съвместимост */
+/* Sensor cards container - no longer used, but kept for backward compatibility */
 .sensor-cards {
-  display: contents; /* Всички деца стават директни деца на main-content */
+  display: contents; /* All children become direct children of main-content */
 }
 
-/* LED контроли контейнер - не се използва вече, но оставяме за обратна съвместимост */
+/* LED controls container - no longer used, but kept for backward compatibility */
 .led-controls {
-  display: contents; /* Всички деца стават директни деца на main-content */
+  display: contents; /* All children become direct children of main-content */
 }
 
-/* Сензорни карти - унифицирани с LED карти */
+/* Sensor cards - unified with LED cards */
 .sensor-card,
 .led-card {
   background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
@@ -123,7 +123,7 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Active state за мобилни устройства */
+/* Active state for mobile devices */
 .sensor-card:active,
 .led-card:active {
   transform: translateY(-2px) scale(0.98);
@@ -302,9 +302,9 @@ body {
   transform: translateY(0);
 }
 
-/* Responsive дизайн */
+/* Responsive design */
 
-/* Tablet и по-малки екрани */
+/* Tablet and smaller screens */
 @media (max-width: 1024px) {
   .main-content {
     grid-template-columns: repeat(3, 1fr);
@@ -318,7 +318,7 @@ body {
   }
 }
 
-/* Мобилни устройства - среден размер */
+/* Mobile devices - medium size */
 @media (max-width: 768px) {
   .app {
     padding: 0.75rem;
@@ -373,7 +373,7 @@ body {
   }
 }
 
-/* Специфичен за iPhone SE и подобни (375px) */
+/* Specific for iPhone SE and similar (375px) */
 @media (max-width: 375px) {
   .app {
     padding: 0.5rem;
@@ -427,7 +427,7 @@ body {
   }
 }
 
-/* Малки мобилни устройства */
+/* Small mobile devices */
 @media (max-width: 480px) {
   .app {
     padding: 0.5rem;
@@ -481,7 +481,7 @@ body {
   }
 }
 
-/* Много малки екрани */
+/* Very small screens */
 @media (max-width: 360px) {
   .app {
     padding: 0.4rem;
@@ -535,7 +535,7 @@ body {
   }
 }
 
-/* Landscape ориентация на мобилни */
+/* Landscape orientation on mobile */
 @media (max-width: 768px) and (orientation: landscape) and (max-height: 500px) {
   .app {
     padding-top: 3rem;

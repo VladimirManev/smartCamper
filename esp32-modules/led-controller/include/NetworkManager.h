@@ -1,5 +1,5 @@
 // Network Manager
-// Универсален WiFi мениджър за ESP32 модули
+// Universal WiFi manager for ESP32 modules
 
 #ifndef NETWORK_MANAGER_H
 #define NETWORK_MANAGER_H
@@ -14,9 +14,9 @@ private:
   unsigned long lastReconnectAttempt;
   unsigned long lastWiFiCheck;
   bool isConnected;
-  bool disconnectPending;  // Флаг дали трябва да извикаме disconnect преди следващия опит
+  bool disconnectPending;  // Flag whether we need to call disconnect before next attempt
   
-  // Активна проверка на WiFi връзката
+  // Active WiFi connection check
   bool checkWiFiConnection();
 
 public:

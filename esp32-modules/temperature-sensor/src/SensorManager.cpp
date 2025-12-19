@@ -1,21 +1,21 @@
 // Temperature Sensor Manager Implementation
-// Специфична логика за температурен сензор
+// Specific logic for temperature sensor
 
 #include "Config.h"
 #include "SensorManager.h"
 
-// Статичен указател към текущия инстанс
+// Static pointer to current instance
 SensorManager* SensorManager::currentInstance = nullptr;
 
 SensorManager::SensorManager() : dht(25, DHT22), commandHandler(&mqttManager, this, "temperature-sensor") {
   lastSensorRead = 0;
-  lastDataSent = 0;              // Инициализираме последното изпращане
-  lastStatusLog = 0;             // Инициализираме последното логване на статус
+  lastDataSent = 0;              // Initialize last send
+  lastStatusLog = 0;             // Initialize last status log
   lastTemperature = 0.0;
   lastHumidity = 0.0;
   forceUpdateRequested = false;
   
-  // Задаваме текущия инстанс за статичните методи
+  // Set current instance for static methods
   currentInstance = this;
 }
 
@@ -23,63 +23,63 @@ void SensorManager::begin() {
   Serial.begin(115200);
   Serial.println("🌡️ Temperature Sensor Module Starting...");
   
-  // Инициализираме DHT сензора
+  // Initialize DHT sensor
   dht.begin();
   Serial.println("🌡️ AM2301 DHT22 sensor initialized on pin 25");
   
-  // Инициализираме мрежата
+  // Initialize network
   networkManager.begin();
   
-  // Инициализираме MQTT
+  // Initialize MQTT
   mqttManager.begin();
   
-  // Настройваме callback за команди
+  // Setup callback for commands
   mqttManager.setCallback(handleMQTTMessage);
   
-  // Инициализираме Command Handler
+  // Initialize Command Handler
   commandHandler.begin();
   
   Serial.println("✅ Temperature Sensor Module Ready!");
 }
 
 void SensorManager::loop() {
-  // Обновяваме мрежата
+  // Update network
   networkManager.loop();
   
-  // Обновяваме MQTT с WiFi статус
+  // Update MQTT with WiFi status
   bool wifiConnected = networkManager.isWiFiConnected();
   mqttManager.loop(wifiConnected);
   
-  // Обновяваме Command Handler
+  // Update Command Handler
   commandHandler.loop();
   
-  // Четем сензорите на интервали ИЛИ при force update
+  // Read sensors at intervals OR on force update
   unsigned long currentTime = millis();
   if (currentTime - lastSensorRead > SENSOR_READ_INTERVAL || forceUpdateRequested) {
     lastSensorRead = currentTime;
     
-    // Проверяваме статуса на връзките
+    // Check connection status
     bool wifiOk = networkManager.isWiFiConnected();
     bool mqttOk = mqttManager.isMQTTConnected();
     
     if (wifiOk && mqttOk) {
-      // Четем реални данни от AM2301
+      // Read real data from AM2301
       float temperature = readTemperature();
       float humidity = readHumidity();
       
-      // Закръгляме данните
-      temperature = round(temperature * 10) / 10;  // До 1 десетичен знак (23.4°C)
-      humidity = round(humidity);                  // До цяло число (65%)
+      // Round data
+      temperature = round(temperature * 10) / 10;  // To 1 decimal place (23.4°C)
+      humidity = round(humidity);                  // To whole number (65%)
       
-      // Публикуваме данните само ако са валидни
+      // Publish data only if valid
       if (!isnan(temperature) && !isnan(humidity)) {
         bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
         bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
         bool heartbeatNeeded = (currentTime - lastDataSent > HEARTBEAT_INTERVAL);
         
-        // Публикуваме ако има промяна ИЛИ е нужен heartbeat ИЛИ е първото четене
+        // Publish if there's a change OR heartbeat needed OR first read
         if (tempChanged || humidityChanged || heartbeatNeeded || lastTemperature == 0.0) {
-          // Публикуваме само променените данни ИЛИ при heartbeat
+          // Publish only changed data OR on heartbeat
           if (tempChanged || heartbeatNeeded || lastTemperature == 0.0) {
             mqttManager.publishSensorData("temperature", temperature);
             Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
@@ -90,14 +90,14 @@ void SensorManager::loop() {
             Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));
           }
           
-          // Запазваме за сравнение
+          // Save for comparison
           lastTemperature = temperature;
           lastHumidity = humidity;
-          lastDataSent = currentTime;  // Обновяваме времето на последното изпращане
+          lastDataSent = currentTime;  // Update last send time
         }
-        // Ако няма промяна и не е нужен heartbeat - не печатаме нищо
+        // If no change and heartbeat not needed - don't print anything
         
-        // Ресетираме force update флага
+        // Reset force update flag
         forceUpdateRequested = false;
       } else {
         if (DEBUG_SERIAL) {
@@ -106,8 +106,8 @@ void SensorManager::loop() {
         forceUpdateRequested = false;
       }
     } else {
-      // Ако не сме свързани, логваме статуса периодично (на всеки 30 секунди)
-      // Това помага да видим какво се случва по време на интервалите без данни
+      // If not connected, log status periodically (every 30 seconds)
+      // This helps see what happens during intervals without data
       if (DEBUG_SERIAL && (currentTime - lastStatusLog > 30000)) {
         lastStatusLog = currentTime;
         Serial.println("⚠️ Skipping sensor read - not connected (WiFi: " + String(wifiOk ? "OK" : "FAIL") + ", MQTT: " + String(mqttOk ? "OK" : "FAIL") + ")");
@@ -118,7 +118,7 @@ void SensorManager::loop() {
 }
 
 float SensorManager::readTemperature() {
-  // Четем температура от AM2301
+  // Read temperature from AM2301
   float temp = dht.readTemperature();
   
   if (isnan(temp)) {
@@ -130,7 +130,7 @@ float SensorManager::readTemperature() {
 }
 
 float SensorManager::readHumidity() {
-  // Четем влажност от AM2301
+  // Read humidity from AM2301
   float humidity = dht.readHumidity();
   
   if (isnan(humidity)) {
@@ -148,7 +148,7 @@ void SensorManager::handleForceUpdate() {
   }
 }
 
-// Статичен MQTT callback метод
+// Static MQTT callback method
 void SensorManager::handleMQTTMessage(char* topic, byte* payload, unsigned int length) {
   if (currentInstance) {
     currentInstance->commandHandler.handleMQTTMessage(topic, payload, length);

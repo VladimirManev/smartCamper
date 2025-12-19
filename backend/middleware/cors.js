@@ -1,23 +1,23 @@
 // CORS Middleware
-// Позволява на фронтенда да комуникира с бекенда
+// Allows frontend to communicate with backend
 
 const corsMiddleware = (req, res, next) => {
-  // Позволяваме заявки от всеки домейн
+  // Allow requests from any domain
   res.header("Access-Control-Allow-Origin", "*");
 
-  // Позволяваме определени headers
+  // Allow specific headers
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // Позволяваме определени HTTP методи
+  // Allow specific HTTP methods
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 
-  // Ако е OPTIONS заявка (preflight), връщаме веднага
+  // If OPTIONS request (preflight), return immediately
   if (req.method === "OPTIONS") {
     res.sendStatus(200);
     return;
   }
 
-  // Предаваме контрола на следващия middleware
+  // Pass control to next middleware
   next();
 };
 

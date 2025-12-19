@@ -1,5 +1,5 @@
 // LED Controller Manager Implementation
-// Координира WiFi, MQTT и LED управлението
+// Coordinates WiFi, MQTT and LED control
 
 #include "LEDControllerManager.h"
 #include <Arduino.h>
@@ -15,7 +15,7 @@
 // Forward declaration is not enough for accessing members
 // We'll access stripStates array which is extern declared in header
 
-// Статичен указател към текущия инстанс
+// Static pointer to current instance
 LEDControllerManager* LEDControllerManager::currentInstance = nullptr;
 
 LEDControllerManager::LEDControllerManager() {
@@ -23,7 +23,7 @@ LEDControllerManager::LEDControllerManager() {
   this->lastHeartbeat = 0;
   this->mqttInitialized = false;
   
-  // Задаваме текущия инстанс за статичните методи
+  // Set current instance for static methods
   currentInstance = this;
 }
 
@@ -32,13 +32,13 @@ void LEDControllerManager::begin() {
     Serial.println("💡 LED Controller Manager Starting...");
   }
   
-  // Инициализираме мрежата
+  // Initialize network
   networkManager.begin();
   
-  // Инициализираме MQTT
+  // Initialize MQTT
   mqttManager.begin();
   
-  // Настройваме callback за команди (ще се абонираме след като се свържем)
+  // Setup callback for commands (will subscribe after connection)
   mqttManager.setCallback(handleMQTTMessage);
   
   if (DEBUG_SERIAL) {
@@ -47,14 +47,14 @@ void LEDControllerManager::begin() {
 }
 
 void LEDControllerManager::loop() {
-  // Обновяваме мрежата
+  // Update network
   networkManager.loop();
   
-  // Обновяваме MQTT с WiFi статус
+  // Update MQTT with WiFi status
   bool wifiConnected = networkManager.isWiFiConnected();
   mqttManager.loop(wifiConnected);
   
-  // Ако MQTT е свързан и все още не сме се абонирали, го правим сега
+  // If MQTT is connected and we haven't subscribed yet, do it now
   if (mqttManager.isMQTTConnected() && !mqttInitialized) {
     mqttManager.subscribeToCommands("led-controller");
     mqttInitialized = true;
@@ -63,23 +63,23 @@ void LEDControllerManager::loop() {
     }
   }
   
-  // Ако MQTT се е изключил, ресетираме флага
+  // If MQTT disconnected, reset flag
   if (!mqttManager.isMQTTConnected() && mqttInitialized) {
     mqttInitialized = false;
   }
   
-  // Публикуваме пълен статус на интервали (само ако сме свързани) - вместо heartbeat
+  // Publish full status at intervals (only if connected) - instead of heartbeat
   if (mqttManager.isMQTTConnected()) {
     unsigned long currentTime = millis();
     if (currentTime - lastHeartbeat > HEARTBEAT_INTERVAL) {
       lastHeartbeat = currentTime;
-      publishFullStatus();  // Изпращаме пълен статус вместо heartbeat
+      publishFullStatus();  // Send full status instead of heartbeat
     }
   }
 }
 
 void LEDControllerManager::handleMQTTMessage(char* topic, byte* payload, unsigned int length) {
-  // Статичен метод - извикваме инстанс метода
+  // Static method - call instance method
   if (currentInstance != nullptr) {
     currentInstance->processMQTTCommand(topic, payload, length);
   }
@@ -238,16 +238,16 @@ void LEDControllerManager::processMQTTCommand(char* topic, byte* payload, unsign
 }
 
 void LEDControllerManager::publishStatus() {
-  // Публикуваме пълния статус (всички ленти + реле)
+  // Publish full status (all strips + relays)
   publishFullStatus();
 }
 
 void LEDControllerManager::publishFullStatus() {
-  // Създаваме JSON обект с всички данни
-  // Увеличаваме размера за да поберем всички 5 ленти + релета
+  // Create JSON object with all data
+  // Increase size to fit all 5 strips + relays
   StaticJsonDocument<1024> doc;
   
-  // Добавяме данни за всички ленти
+  // Add data for all strips
   JsonObject strips = doc.createNestedObject("strips");
   for (uint8_t i = 0; i < NUM_STRIPS; i++) {  // Include all strips (0-4)
     StripState& state = stripStates[i];
@@ -269,18 +269,18 @@ void LEDControllerManager::publishFullStatus() {
     }
   }
   
-  // Добавяме данни за всички релета (формат като лентите)
+  // Add data for all relays (format like strips)
   JsonObject relays = doc.createNestedObject("relays");
   for (uint8_t i = 0; i < NUM_RELAYS; i++) {
     JsonObject relay = relays.createNestedObject(String(i));
     relay["state"] = relayStates[i] ? "ON" : "OFF";
   }
   
-  // Сериализираме JSON
+  // Serialize JSON
   String jsonString;
   serializeJson(doc, jsonString);
   
-  // Публикуваме в един топик
+  // Publish in one topic
   String topic = "led-controller/status";
   mqttManager.publishSensorData(topic, jsonString);
   
@@ -293,12 +293,12 @@ void LEDControllerManager::publishFullStatus() {
 }
 
 void LEDControllerManager::publishStripStatus(uint8_t stripIndex) {
-  // При всяка промяна в лента, изпращаме пълния статус
+  // On every strip change, send full status
   publishFullStatus();
 }
 
 void LEDControllerManager::publishRelayStatus() {
-  // При всяка промяна в релето, изпращаме пълния статус
+  // On every relay change, send full status
   publishFullStatus();
 }
 

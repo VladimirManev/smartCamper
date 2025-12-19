@@ -1,11 +1,11 @@
 // MQTT Broker Setup
-// Aedes MQTT broker конфигурация
+// Aedes MQTT broker configuration
 
 const aedes = require("aedes")();
 const net = require("net");
 
 const setupMQTTBroker = () => {
-  // Стартираме MQTT broker на порт 1883
+  // Start MQTT broker on port 1883
   const mqttServer = net.createServer(aedes.handle);
 
   mqttServer.listen(1883, () => {
@@ -14,17 +14,17 @@ const setupMQTTBroker = () => {
 
   // MQTT broker events
   aedes.on("client", (client) => {
-    console.log(`📱 MQTT клиент се свърза: ${client.id}`);
+    console.log(`📱 MQTT client connected: ${client.id}`);
   });
 
   aedes.on("clientDisconnect", (client) => {
-    console.log(`📱 MQTT клиент се изключи: ${client.id}`);
+    console.log(`📱 MQTT client disconnected: ${client.id}`);
   });
 
   aedes.on("publish", (packet, client) => {
     if (client) {
       console.log(
-        `📨 MQTT публикуване: ${packet.topic} = ${packet.payload.toString()}`
+        `📨 MQTT publish: ${packet.topic} = ${packet.payload.toString()}`
       );
     }
   });

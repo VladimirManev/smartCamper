@@ -1,5 +1,5 @@
 // LED Controller Manager
-// Координира WiFi, MQTT и LED управлението
+// Coordinates WiFi, MQTT and LED control
 
 #ifndef LED_CONTROLLER_MANAGER_H
 #define LED_CONTROLLER_MANAGER_H
@@ -8,7 +8,7 @@
 #include "NetworkManager.h"
 #include "MQTTManager.h"
 
-// Forward declarations - променливите и функциите от main.cpp които ще използваме
+// Forward declarations - variables and functions from main.cpp that we'll use
 #include "StripState.h"  // Full definition needed for accessing members
 extern bool relayStates[];
 extern StripState stripStates[];
@@ -31,14 +31,14 @@ private:
   unsigned long lastHeartbeat;
   bool mqttInitialized;
   
-  // Статичен указател за MQTT callback
+  // Static pointer for MQTT callback
   static LEDControllerManager* currentInstance;
   
   // MQTT callback handler
   static void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
   void processMQTTCommand(char* topic, byte* payload, unsigned int length);
   
-  // Публикуване на пълен статус (всички ленти + реле)
+  // Publish full status (all strips + relays)
   void publishFullStatus();
 
 public:
@@ -47,12 +47,12 @@ public:
   void begin();
   void loop();
   
-  // Публикуване на статус данни
+  // Publish status data
   void publishStatus();
   void publishStripStatus(uint8_t stripIndex);
   void publishRelayStatus();
   
-  // Проверки за връзка
+  // Connection checks
   bool isWiFiConnected();
   bool isMQTTConnected();
   

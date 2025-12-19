@@ -1,5 +1,5 @@
 // MQTT Manager
-// Универсален MQTT мениджър за ESP32 модули
+// Universal MQTT manager for ESP32 modules
 
 #ifndef MQTT_MANAGER_H
 #define MQTT_MANAGER_H
@@ -17,8 +17,8 @@ private:
   int brokerPort;
   unsigned long lastReconnectAttempt;
   bool isConnected;
-  int failedAttempts;  // Брояч на неуспешни опити
-  unsigned long lastWiFiWarningTime;  // Последно време на предупреждение за WiFi
+  int failedAttempts;  // Counter for failed attempts
+  unsigned long lastWiFiWarningTime;  // Last time of WiFi warning
 
 public:
   MQTTManager();
@@ -26,21 +26,21 @@ public:
   
   void begin();
   void loop();
-  void loop(bool wifiConnected);  // Overload с WiFi статус
+  void loop(bool wifiConnected);  // Overload with WiFi status
   bool connect();
   void disconnect();
   bool isMQTTConnected();
   int getFailedAttempts();
   
-  // Публикуване на данни
+  // Publish data
   bool publishSensorData(String sensorType, String value);
   bool publishSensorData(String sensorType, float value);
   bool publishSensorData(String sensorType, int value);
   
-  // Абониране за команди
+  // Subscribe to commands
   bool subscribeToCommands(String moduleType);
   
-  // Callback за получени съобщения
+  // Callback for received messages
   void setCallback(void (*callback)(char* topic, byte* payload, unsigned int length));
   
   void printStatus();

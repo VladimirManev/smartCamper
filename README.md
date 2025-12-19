@@ -1,64 +1,134 @@
-# SmartCamper - Управление на електрическата система
+# SmartCamper - Electrical System Management
 
-Интелигентна система за управление на електрическата система на кемпера с три основни компонента:
+Intelligent system for managing the electrical system of a camper with three main components:
 
-## 🏗️ Архитектура
+## 🏗️ Architecture
 
-### 1. **Backend (Мозък)**
-- **Raspberry Pi 4** с Express.js сървър
-- **MongoDB** за данни
-- **MQTT Broker** за комуникация с модулите
-- **REST API** за дашборда
+### 1. **Backend (Brain)**
 
-### 2. **Frontend (Дашборд)**
-- **React** уеб приложение
-- **Real-time** мониторинг
-- **Responsive** дизайн за мобилни устройства
+- **Raspberry Pi 4** with Express.js server
+- **MQTT Broker (Aedes)** for module communication
+- **Socket.io** for real-time WebSocket communication
+- **MQTT ↔ WebSocket Bridge** for synchronization between ESP32 modules and frontend
 
-### 3. **ESP32 Модули**
-- **Arduino C++** код
-- **MQTT** клиенти
-- **Сензори**: температура, влажност, резервоар за вода, и др.
+### 2. **Frontend (Dashboard)**
 
-## 📁 Структура на проекта
+- **React** web application with Vite
+- **Socket.io Client** for real-time updates
+- **Responsive** design for mobile devices
+- **Real-time** monitoring of sensors and LED controls
+
+### 3. **ESP32 Modules**
+
+- **PlatformIO** project structure
+- **Arduino C++** code
+- **MQTT** clients for communication
+- **Modules**:
+  - Temperature Sensor (DHT22/AM2301) - temperature and humidity
+  - LED Controller - LED strip control with buttons, motion sensor and dimming
+
+## 📁 Project Structure
 
 ```
 smartCamper/
-├── backend/           # Express.js сървър
-├── frontend/          # React приложение
-├── esp32-modules/     # Arduino код за ESP32
-├── docs/             # Документация
-└── docker/           # Docker конфигурации
+├── backend/              # Express.js server + Socket.io + MQTT
+│   ├── server.js         # Main server file
+│   ├── middleware/       # CORS, Logger, Static
+│   ├── routes/           # API routes
+│   ├── socket/           # Socket.io handler
+│   └── mqtt/            # MQTT broker (Aedes)
+├── frontend/             # React application (Vite)
+│   ├── src/
+│   │   ├── App.jsx      # Main component
+│   │   └── App.css      # Styles
+│   └── package.json
+├── esp32-modules/        # ESP32 modules (PlatformIO)
+│   ├── temperature-sensor/  # Temperature sensor
+│   └── led-controller/      # LED controller
+└── update-from-git.sh   # Script for updating on Raspberry Pi
 ```
 
-## 🚀 Стартиране
+## 🚀 Getting Started
 
 ### Backend
+
 ```bash
 cd backend
+npm install
+npm start
+# or for development:
+npm run dev
+```
+
+Backend runs on port **3000**:
+
+- `http://localhost:3000` - main page
+- `http://localhost:3000/health` - health check
+- `ws://localhost:3000` - WebSocket server
+- `mqtt://localhost:1883` - MQTT broker
+
+### Frontend
+
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-### Frontend
+Frontend runs on port **5174** (Vite dev server):
+
+- `http://localhost:5174` - React dashboard
+
+### ESP32 Modules
+
+Use **PlatformIO** for compilation and upload:
+
 ```bash
-cd frontend
-npm install
-npm start
+cd esp32-modules/temperature-sensor
+pio run --target upload
+
+cd esp32-modules/led-controller
+pio run --target upload
 ```
 
-### ESP32 Модули
-Отворете Arduino IDE и заредете съответния код за всеки модул.
+## 📡 Communication
 
-## 📡 Комуникация
+- **MQTT**: ESP32 ↔ Backend (Aedes broker)
+- **WebSocket**: Frontend ↔ Backend (Socket.io)
+- **MQTT ↔ WebSocket Bridge**: Automatic data synchronization
 
-- **MQTT**: ESP32 ↔ Backend
-- **HTTP/REST**: Frontend ↔ Backend
-- **WebSocket**: Real-time updates
+### MQTT Topics
 
-## 🔧 Технологии
+**Sensors:**
 
-- **Backend**: Node.js, Express.js, MongoDB, MQTT
-- **Frontend**: React, Material-UI, Chart.js
-- **ESP32**: Arduino C++, MQTT Client
-- **DevOps**: Docker, PM2 
+- `smartcamper/sensors/temperature` - temperature
+- `smartcamper/sensors/humidity` - humidity
+- `smartcamper/sensors/led-controller/status` - LED controller status
+
+**Commands:**
+
+- `smartcamper/commands/led-controller/strip/{index}/on` - turn on strip
+- `smartcamper/commands/led-controller/strip/{index}/off` - turn off strip
+- `smartcamper/commands/led-controller/strip/{index}/brightness` - brightness
+
+## 🔧 Technologies
+
+- **Backend**: Node.js, Express.js, Socket.io, Aedes (MQTT)
+- **Frontend**: React, Vite, Socket.io-client, Font Awesome
+- **ESP32**: Arduino C++, PlatformIO, PubSubClient (MQTT), NeoPixelBus (LED)
+- **DevOps**: PM2, systemd services
+
+## 📚 Documentation
+
+- `LED_CONTROLLER_DOCUMENTATION.md` - Complete LED controller documentation
+- `RASPBERRY_PI_COMMANDS.md` - Raspberry Pi management commands
+- `update-from-git.sh` - Script for updating project on Raspberry Pi
+
+## 🎯 Features
+
+- ✅ Real-time sensor monitoring
+- ✅ LED control with buttons, dimming and transitions
+- ✅ Motion sensor activation for bathroom
+- ✅ Offline operation - backend serves frontend
+- ✅ Automatic WiFi and MQTT reconnection
+- ✅ Modular architecture for easy expansion

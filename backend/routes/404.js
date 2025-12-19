@@ -1,10 +1,10 @@
 // 404 Routes
-// Обработка на непознати пътища
+// Handle unknown paths
 
 const express = require("express");
 const router = express.Router();
 
-// 404 handler - трябва да е последен!
+// 404 handler - must be last!
 router.use((req, res) => {
   res.status(404).json({
     error: "Not Found",

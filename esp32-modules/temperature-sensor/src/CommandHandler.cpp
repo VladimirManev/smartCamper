@@ -1,5 +1,5 @@
 // Command Handler Implementation
-// Обработка на команди от Backend
+// Handle commands from Backend
 
 #include "CommandHandler.h"
 #include "SensorManager.h"
@@ -13,7 +13,7 @@ CommandHandler::CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String 
 }
 
 void CommandHandler::begin() {
-  // Абонираме се за команди
+  // Subscribe to commands
   String commandTopic = MQTT_TOPIC_COMMANDS + moduleType + "/#";
   mqttManager->subscribeToCommands(moduleType);
   
@@ -24,7 +24,7 @@ void CommandHandler::begin() {
 }
 
 void CommandHandler::loop() {
-  // Нищо специално за loop
+  // Nothing special for loop
 }
 
 void CommandHandler::handleMQTTMessage(char* topic, byte* payload, unsigned int length) {
@@ -41,14 +41,14 @@ void CommandHandler::handleMQTTMessage(char* topic, byte* payload, unsigned int 
     Serial.println("  Message: " + message);
   }
   
-  // Проверяваме дали е force_update команда
+  // Check if it's a force_update command
   if (topicStr.endsWith("/force_update")) {
     if (DEBUG_SERIAL) {
       Serial.println("🔄 Force update requested!");
     }
     
-    // Извикваме force update функцията
-    // Това ще се извика от SensorManager
+    // Call force update function
+    // This will be called from SensorManager
     forceUpdate();
   }
 }

@@ -1,5 +1,5 @@
 // Command Handler
-// Обработка на команди от Backend
+// Handle commands from Backend
 
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
@@ -23,10 +23,10 @@ public:
   void begin();
   void loop();
   
-  // MQTT callback за команди
+  // MQTT callback for commands
   void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
   
-  // Force update функция
+  // Force update function
   void forceUpdate();
   
   void printStatus();

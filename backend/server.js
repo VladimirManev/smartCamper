@@ -1,67 +1,67 @@
 // SmartCamper Backend Server
-// Главен файл за Express сървъра
+// Main file for Express server
 
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-// Импортираме middleware-ите
+// Import middleware
 const corsMiddleware = require("./middleware/cors");
 const loggerMiddleware = require("./middleware/logger");
 const { staticMiddleware, fallbackMiddleware } = require("./middleware/static");
 
-// Импортираме routes
+// Import routes
 const mainRoutes = require("./routes/main");
 const notFoundRoutes = require("./routes/404");
 
-// Импортираме MQTT broker
+// Import MQTT broker
 const setupMQTTBroker = require("./mqtt/broker");
 
-// Импортираме Socket.io handler
+// Import Socket.io handler
 const setupSocketIO = require("./socket/socketHandler");
 
-// Създаваме Express приложение
+// Create Express application
 const app = express();
 
-// Създаваме HTTP сървър (нужен за Socket.io)
+// Create HTTP server (needed for Socket.io)
 const server = http.createServer(app);
 
-// Създаваме Socket.io сървър
+// Create Socket.io server
 const io = new Server(server, {
   cors: {
-    origin: "*", // Разрешава всички origins (за development)
+    origin: "*", // Allow all origins (for development)
     methods: ["GET", "POST"],
   },
 });
 
-// Middleware за парсиране на JSON данни
+// Middleware for parsing JSON data
 app.use(express.json());
 
-// Наши custom middleware-и
+// Custom middleware
 app.use(corsMiddleware);
 app.use(loggerMiddleware);
 
-// API Routes - трябва да са преди static middleware
+// API Routes - must be before static middleware
 app.use("/", mainRoutes);
 
-// Static files middleware - сервира React build файловете
-// Трябва да е преди fallback middleware
+// Static files middleware - serves React build files
+// Must be before fallback middleware
 app.use(staticMiddleware);
 
-// Fallback middleware - пренасочва всички routes към index.html (за React Router)
-// Трябва да е преди 404 handler
+// Fallback middleware - redirects all routes to index.html (for React Router)
+// Must be before 404 handler
 app.use(fallbackMiddleware);
 
-// 404 handler - трябва да е последен!
+// 404 handler - must be last!
 app.use(notFoundRoutes);
 
-// Инициализираме MQTT broker
+// Initialize MQTT broker
 const aedes = setupMQTTBroker();
 
-// Инициализираме Socket.io с MQTT Bridge
+// Initialize Socket.io with MQTT Bridge
 setupSocketIO(io, aedes);
 
-// Стартираме HTTP + WebSocket сървъра на порт 3000
+// Start HTTP + WebSocket server on port 3000
 const PORT = 3000;
 server.listen(PORT, () => {
   console.log(`🚀 SmartCamper Backend running on port ${PORT}`);

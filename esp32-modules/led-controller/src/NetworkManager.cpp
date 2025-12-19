@@ -1,5 +1,5 @@
 // Network Manager Implementation
-// Универсален WiFi мениджър за ESP32 модули
+// Universal WiFi manager for ESP32 modules
 
 #include "NetworkManager.h"
 
@@ -22,28 +22,28 @@ NetworkManager::NetworkManager(String ssid, String password) {
 }
 
 void NetworkManager::begin() {
-  // Не записваме SSID в flash (всеки boot е "чист")
+  // Don't save SSID to flash (each boot is "clean")
   WiFi.persistent(false);
   
-  // Изчистваме всички стари WiFi записи (неблокиращо - само веднъж)
-  WiFi.disconnect(true, true);  // true,true = изчистване на flash
-  // НЕ използваме delay() тук - неблокиращо
+  // Clear all old WiFi entries (non-blocking - only once)
+  WiFi.disconnect(true, true);  // true,true = clear flash
+  // Do NOT use delay() here - non-blocking
   
-  // Задаваме режим и настройки
+  // Set mode and settings
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   
-  // Гарантираме, че използваме DHCP (не статичен IP)
+  // Ensure we use DHCP (not static IP)
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
   
   if (DEBUG_SERIAL) {
     Serial.println("🔌 Connecting to WiFi: " + ssid);
   }
   
-  // Започваме свързване (неблокиращо)
+  // Start connection (non-blocking)
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  // НЕ чакаме тук - ще проверим статуса в loop()
+  // Do NOT wait here - we'll check status in loop()
   isConnected = false;
   lastReconnectAttempt = millis();
   
@@ -55,21 +55,21 @@ void NetworkManager::begin() {
 void NetworkManager::loop() {
   unsigned long currentTime = millis();
   
-  // Активна проверка на WiFi връзката на интервали
+  // Active WiFi connection check at intervals
   if (currentTime - lastWiFiCheck > WIFI_CHECK_INTERVAL) {
     lastWiFiCheck = currentTime;
     
-    // Ако WiFi.status() показва свързано, но ping не работи, считаме че е мъртва връзка
+    // If WiFi.status() shows connected but ping doesn't work, consider it a dead connection
     if (WiFi.status() == WL_CONNECTED) {
       if (!checkWiFiConnection()) {
-        // Връзката е мъртва, форсираме реконекция
+        // Connection is dead, force reconnection
         if (DEBUG_SERIAL) {
           Serial.println("⚠️ WiFi connection is dead (no ping response), forcing reconnect");
         }
         isConnected = false;
         WiFi.disconnect();
-        disconnectPending = true;  // Маркираме че трябва disconnect преди следващия опит
-        lastReconnectAttempt = currentTime - WIFI_RECONNECT_DELAY; // Форсираме опит за реконекция
+        disconnectPending = true;  // Mark that we need disconnect before next attempt
+        lastReconnectAttempt = currentTime - WIFI_RECONNECT_DELAY; // Force reconnection attempt
       } else {
         isConnected = true;
       }
@@ -80,20 +80,20 @@ void NetworkManager::loop() {
     if (currentTime - lastReconnectAttempt > WIFI_RECONNECT_DELAY) {
       lastReconnectAttempt = currentTime;
       
-      // Проверяваме дали WiFi се е свързал между опитите (от auto-reconnect)
+      // Check if WiFi connected between attempts (from auto-reconnect)
       if (WiFi.status() == WL_CONNECTED) {
         isConnected = true;
-        disconnectPending = false;  // Успешна конекция, не трябва disconnect
+        disconnectPending = false;  // Successful connection, no need to disconnect
         if (DEBUG_SERIAL) {
           Serial.println("✅ WiFi connected (auto-reconnect)!");
           Serial.println("IP: " + getLocalIP());
         }
       } else {
-        // Все още не сме свързани, правим нов опит
-        disconnectPending = true;  // Маркираме че трябва disconnect преди следващия опит
-        connect();  // Започваме опит (неблокиращо)
+        // Still not connected, make new attempt
+        disconnectPending = true;  // Mark that we need disconnect before next attempt
+        connect();  // Start attempt (non-blocking)
         
-        // Проверяваме статуса веднага (без delay) - рядко ще е свързан веднага
+        // Check status immediately (without delay) - rarely will be connected immediately
         if (WiFi.status() == WL_CONNECTED) {
           isConnected = true;
           disconnectPending = false;
@@ -110,7 +110,7 @@ void NetworkManager::loop() {
         }
       }
     } else {
-      // Все още чакаме между опитите, но проверяваме дали случайно не се свързахме
+      // Still waiting between attempts, but check if we accidentally connected
       if (WiFi.status() == WL_CONNECTED) {
         isConnected = true;
         disconnectPending = false;
@@ -121,20 +121,20 @@ void NetworkManager::loop() {
       }
     }
   } else {
-    // Вече сме свързани, не трябва disconnect
+    // Already connected, no need to disconnect
     disconnectPending = false;
   }
 }
 
 bool NetworkManager::connect() {
-  // Не записваме SSID в flash
+  // Don't save SSID to flash
   WiFi.persistent(false);
   
-  // Изчистваме старите записи само ако е нужно (преди нов опит след неуспешен)
+  // Clear old entries only if needed (before new attempt after failed)
   if (disconnectPending) {
     WiFi.disconnect(true, true);
     disconnectPending = false;
-    // Не използваме delay() - неблокиращо
+    // Do NOT use delay() - non-blocking
   }
   
   WiFi.mode(WIFI_STA);
@@ -145,13 +145,13 @@ bool NetworkManager::connect() {
     Serial.println("🔄 Attempting WiFi connection...");
   }
   
-  // Започваме свързване (неблокиращо)
+  // Start connection (non-blocking)
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  // НЕ блокираме тук - просто започваме опита и ще проверим статуса в следващия loop()
-  // Статусът ще се провери в loop() на следващата итерация
+  // Do NOT block here - just start attempt and check status in next loop()
+  // Status will be checked in loop() on next iteration
   
-  return false;  // Все още не сме свързани, ще проверим в loop()
+  return false;  // Still not connected, will check in loop()
 }
 
 void NetworkManager::disconnect() {
@@ -167,26 +167,26 @@ bool NetworkManager::isWiFiConnected() {
 }
 
 bool NetworkManager::checkWiFiConnection() {
-  // Проверяваме дали имаме gateway IP
+  // Check if we have gateway IP
   IPAddress gateway = WiFi.gatewayIP();
   if (gateway == INADDR_NONE || gateway[0] == 0) {
     return false;
   }
   
-  // Проверяваме дали имаме валиден local IP
+  // Check if we have valid local IP
   IPAddress localIP = WiFi.localIP();
   if (localIP == INADDR_NONE || localIP[0] == 0) {
     return false;
   }
   
-  // Допълнителна проверка - дали RSSI е разумен (не е -100 dBm)
+  // Additional check - if RSSI is reasonable (not -100 dBm)
   int rssi = WiFi.RSSI();
   if (rssi < -90) {
-    // Сигналът е много слаб, може да има проблем
+    // Signal is very weak, might be a problem
     if (DEBUG_SERIAL) {
       Serial.println("⚠️ WiFi RSSI is very weak: " + String(rssi) + " dBm");
     }
-    // Не считаме за мъртва връзка, но е предупреждение
+    // Don't consider it dead connection, but it's a warning
   }
   
   return true;

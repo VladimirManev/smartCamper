@@ -1,5 +1,5 @@
 // Network Manager
-// Универсален WiFi мениджър за ESP32 модули
+// Universal WiFi manager for ESP32 modules
 
 #ifndef NETWORK_MANAGER_H
 #define NETWORK_MANAGER_H
@@ -15,7 +15,7 @@ private:
   unsigned long lastWiFiCheck;
   bool isConnected;
   
-  // Активна проверка на WiFi връзката
+  // Active WiFi connection check
   bool checkWiFiConnection();
 
 public:

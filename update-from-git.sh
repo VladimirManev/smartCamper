@@ -1,142 +1,142 @@
 #!/bin/bash
 # Update SmartCamper from Git
-# Скрипт за обновяване на проекта от git и рестартиране на услугите
+# Script for updating project from git and restarting services
 
-set -e  # Спира при грешка
+set -e  # Stop on error
 
-# Цветове за output
+# Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}🔄 Обновяване на SmartCamper от Git...${NC}"
+echo -e "${GREEN}🔄 Updating SmartCamper from Git...${NC}"
 
-# Определяме пътя на проекта (от home директорията)
+# Determine project path (from home directory)
 PROJECT_DIR="$HOME/smartCamper"
 
-# Проверка дали директорията съществува
+# Check if directory exists
 if [ ! -d "$PROJECT_DIR" ]; then
-    echo -e "${RED}❌ Грешка: Директорията $PROJECT_DIR не съществува!${NC}"
+    echo -e "${RED}❌ Error: Directory $PROJECT_DIR does not exist!${NC}"
     exit 1
 fi
 
-# Отиваме в директорията на проекта
+# Go to project directory
 cd "$PROJECT_DIR"
 
-# Проверка дали е git repository
+# Check if it's a git repository
 if [ ! -d ".git" ]; then
-    echo -e "${RED}❌ Грешка: $PROJECT_DIR не е git repository!${NC}"
+    echo -e "${RED}❌ Error: $PROJECT_DIR is not a git repository!${NC}"
     exit 1
 fi
 
-# Показваме текущия статус
-echo -e "${YELLOW}📊 Текущ статус:${NC}"
+# Show current status
+echo -e "${YELLOW}📊 Current status:${NC}"
 git status --short
 
-# Ако има локални промени само в package-lock.json, ги discard-ваме
-# (този файл се генерира автоматично при npm install)
+# If there are local changes only in package-lock.json, discard them
+# (this file is auto-generated on npm install)
 if git diff --name-only | grep -q "^frontend/package-lock.json$" && [ $(git diff --name-only | wc -l) -eq 1 ]; then
-    echo -e "${YELLOW}⚠️  Отхвърляне на локални промени в package-lock.json (ще се регенерира)...${NC}"
+    echo -e "${YELLOW}⚠️  Discarding local changes in package-lock.json (will be regenerated)...${NC}"
     git checkout -- frontend/package-lock.json
 fi
 
-# Ако има други локални промени, питаме дали да продължим
+# If there are other local changes, ask if we should continue
 if [ $(git status --porcelain | wc -l) -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Има локални промени в други файлове:${NC}"
+    echo -e "${YELLOW}⚠️  There are local changes in other files:${NC}"
     git status --short
     if [ -t 0 ]; then
-        read -p "Продължи с git pull? (локалните промени може да бъдат презаписани) (y/n) " -n 1 -r
+        read -p "Continue with git pull? (local changes may be overwritten) (y/n) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${YELLOW}Отказано.${NC}"
+            echo -e "${YELLOW}Cancelled.${NC}"
             exit 0
         fi
     fi
-    # Stash локалните промени
-    echo -e "${YELLOW}💾 Запазване на локалните промени...${NC}"
+    # Stash local changes
+    echo -e "${YELLOW}💾 Saving local changes...${NC}"
     git stash
     STASHED=true
 else
     STASHED=false
 fi
 
-# Pull от git
-echo -e "${GREEN}⬇️  Изтегляне на промени от git...${NC}"
+# Pull from git
+echo -e "${GREEN}⬇️  Pulling changes from git...${NC}"
 git pull
 
-# Ако сме stash-нали промени, опитваме се да ги приложим отново
+# If we stashed changes, try to apply them again
 if [ "$STASHED" = true ]; then
-    echo -e "${YELLOW}🔄 Опит за прилагане на запазените промени...${NC}"
+    echo -e "${YELLOW}🔄 Attempting to apply stashed changes...${NC}"
     if git stash pop 2>/dev/null; then
-        echo -e "${GREEN}✅ Запазените промени са приложени.${NC}"
+        echo -e "${GREEN}✅ Stashed changes applied.${NC}"
     else
-        echo -e "${YELLOW}⚠️  Има конфликти със запазените промени. Провери с 'git stash list'.${NC}"
+        echo -e "${YELLOW}⚠️  There are conflicts with stashed changes. Check with 'git stash list'.${NC}"
     fi
 fi
 
-# Проверка дали има промени във frontend (сравняваме с последния commit преди pull)
+# Check if there are changes in frontend (compare with last commit before pull)
 FRONTEND_CHANGED=false
 if git diff HEAD@{1}..HEAD --name-only 2>/dev/null | grep -q "^frontend/"; then
     FRONTEND_CHANGED=true
 fi
 
-# Проверка дали package.json е променен (трябва да инсталираме dependencies)
+# Check if package.json changed (need to install dependencies)
 PACKAGE_CHANGED=false
 if git diff HEAD@{1}..HEAD --name-only 2>/dev/null | grep -q "frontend/package.json\|frontend/package-lock.json"; then
     PACKAGE_CHANGED=true
 fi
 
-# Ако има промени във frontend, build-ваме
+# If there are changes in frontend, build
 if [ "$FRONTEND_CHANGED" = true ] || [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
-    echo -e "${YELLOW}📦 Има промени във frontend или липсва build. Build-ваме React приложението...${NC}"
+    echo -e "${YELLOW}📦 There are changes in frontend or build is missing. Building React application...${NC}"
     cd "$PROJECT_DIR/frontend"
     
-    # Инсталираме dependencies ако няма node_modules или package.json е променен
+    # Install dependencies if node_modules doesn't exist or package.json changed
     if [ ! -d "node_modules" ] || [ "$PACKAGE_CHANGED" = true ]; then
-        echo -e "${YELLOW}📥 Инсталиране на frontend dependencies...${NC}"
+        echo -e "${YELLOW}📥 Installing frontend dependencies...${NC}"
         npm install
     fi
     
     # Build
-    echo -e "${GREEN}🔨 Build на React приложението...${NC}"
+    echo -e "${GREEN}🔨 Building React application...${NC}"
     npm run build
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Build успешен!${NC}"
+        echo -e "${GREEN}✅ Build successful!${NC}"
     else
-        echo -e "${RED}❌ Build неуспешен!${NC}"
+        echo -e "${RED}❌ Build failed!${NC}"
         exit 1
     fi
     
     cd "$PROJECT_DIR"
 else
-    echo -e "${GREEN}✅ Няма промени във frontend, пропускаме build.${NC}"
+    echo -e "${GREEN}✅ No changes in frontend, skipping build.${NC}"
 fi
 
-# Проверка дали има промени в backend
+# Check if there are changes in backend
 BACKEND_CHANGED=false
 if git diff --name-only HEAD@{1} HEAD | grep -q "^backend/"; then
     BACKEND_CHANGED=true
 fi
 
-# Рестартиране на backend service
+# Restart backend service
 if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
-    echo -e "${YELLOW}🔄 Рестартиране на backend service...${NC}"
+    echo -e "${YELLOW}🔄 Restarting backend service...${NC}"
     sudo systemctl restart smartcamper-backend
     
-    # Проверка на статуса
+    # Check status
     sleep 2
     if sudo systemctl is-active --quiet smartcamper-backend; then
-        echo -e "${GREEN}✅ Backend service рестартиран успешно!${NC}"
+        echo -e "${GREEN}✅ Backend service restarted successfully!${NC}"
     else
-        echo -e "${RED}❌ Backend service не работи! Провери логовете:${NC}"
+        echo -e "${RED}❌ Backend service is not running! Check logs:${NC}"
         echo -e "${YELLOW}   sudo journalctl -u smartcamper-backend -n 50${NC}"
         exit 1
     fi
 else
-    echo -e "${GREEN}✅ Няма промени в backend, няма нужда от рестарт.${NC}"
+    echo -e "${GREEN}✅ No changes in backend, no restart needed.${NC}"
 fi
 
-echo -e "${GREEN}✨ Обновяването завърши успешно!${NC}"
-echo -e "${YELLOW}📡 Приложението е достъпно на: http://192.168.4.1:3000${NC}"
+echo -e "${GREEN}✨ Update completed successfully!${NC}"
+echo -e "${YELLOW}📡 Application is available at: http://192.168.4.1:3000${NC}"
