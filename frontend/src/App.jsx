@@ -224,19 +224,19 @@ function App() {
         </div>
 
         <div className="sensor-card water-tank-card">
-          <i className="fas fa-water" style={{ marginBottom: "0.5rem" }}></i>
+          <p className="water-tank-label">Gray Water</p>
           <div className="water-tank-container">
             <svg
               className="water-tank"
-              viewBox="0 0 100 120"
+              viewBox="0 0 100 100"
               preserveAspectRatio="xMidYMid meet"
             >
               {/* Tank outline */}
               <rect
-                x="20"
+                x="25"
                 y="10"
-                width="60"
-                height="100"
+                width="50"
+                height="80"
                 fill="none"
                 stroke="#b3e5b3"
                 strokeWidth="2"
@@ -246,11 +246,11 @@ function App() {
               {/* Water fill - fills from bottom up */}
               {grayWaterLevel !== null && (
                 <rect
-                  x="22"
-                  y={110 - (grayWaterLevel / 100) * 100}
-                  width="56"
-                  height={(grayWaterLevel / 100) * 100}
-                  fill="url(#waterGradient)"
+                  x="27"
+                  y={90 - (grayWaterLevel / 100) * 80}
+                  width="46"
+                  height={(grayWaterLevel / 100) * 80}
+                  fill="url(#grayWaterGradient)"
                   rx="2"
                   style={{
                     transition: "y 0.5s ease, height 0.5s ease",
@@ -258,48 +258,45 @@ function App() {
                 />
               )}
               
-              {/* Water gradient */}
+              {/* Gray water gradient */}
               <defs>
-                <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.8" />
-                  <stop offset="50%" stopColor="#357abd" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="#2c5aa0" stopOpacity="1" />
+                <linearGradient id="grayWaterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#95a5a6" stopOpacity="0.8" />
+                  <stop offset="50%" stopColor="#7f8c8d" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#5d6d7e" stopOpacity="1" />
                 </linearGradient>
               </defs>
               
               {/* Water level indicator lines (optional) */}
               <line
-                x1="18"
+                x1="22"
                 y1="30"
-                x2="22"
+                x2="25"
                 y2="30"
                 stroke="#b3e5b3"
                 strokeWidth="1"
                 opacity="0.5"
               />
               <line
-                x1="18"
-                y1="60"
-                x2="22"
-                y2="60"
+                x1="22"
+                y1="50"
+                x2="25"
+                y2="50"
                 stroke="#b3e5b3"
                 strokeWidth="1"
                 opacity="0.5"
               />
               <line
-                x1="18"
-                y1="90"
-                x2="22"
-                y2="90"
+                x1="22"
+                y1="70"
+                x2="25"
+                y2="70"
                 stroke="#b3e5b3"
                 strokeWidth="1"
                 opacity="0.5"
               />
             </svg>
           </div>
-          <p className="value" style={{ marginTop: "0.5rem" }}>
-            {grayWaterLevel !== null ? `${grayWaterLevel.toFixed(1)}%` : "—"}
-          </p>
         </div>
 
         <div

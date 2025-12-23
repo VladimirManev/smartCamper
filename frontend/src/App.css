@@ -159,21 +159,37 @@ body {
 /* Water tank visualization */
 .water-tank-container {
   width: 100%;
-  height: 120px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0.5rem 0;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .water-tank {
   width: 100%;
-  max-width: 80px;
+  max-width: 70px;
   height: 100%;
 }
 
 .water-tank-card {
   position: relative;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding-top: 0.6rem;
+  gap: 0.1rem;
+}
+
+.water-tank-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #cccccc;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  flex-shrink: 0;
 }
 
 .led-card {
