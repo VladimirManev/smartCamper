@@ -6,6 +6,7 @@ const setupSocketIO = (io, aedes) => {
   let sensorData = {
     temperature: null,
     humidity: null,
+    grayWaterLevel: null,
     timestamp: null,
   };
 
@@ -44,6 +45,27 @@ const setupSocketIO = (io, aedes) => {
 
           // Bridge: MQTT → WebSocket
           io.emit("sensorUpdate", sensorData);
+        }
+      }
+      // Handle gray water level sensor
+      else if (sensorType === "gray-water") {
+        // Format: smartcamper/sensors/gray-water/level
+        if (topicParts.length >= 4 && topicParts[3] === "level") {
+          const value = parseFloat(message);
+
+          // Check if value is valid
+          if (!isNaN(value) && value >= 0 && value <= 100) {
+            // Update data
+            sensorData.grayWaterLevel = value;
+            sensorData.timestamp = new Date().toISOString();
+
+            // Bridge: MQTT → WebSocket
+            io.emit("sensorUpdate", sensorData);
+          } else {
+            console.log(
+              `⚠️ Invalid gray water level value: ${message} (must be 0-100)`
+            );
+          }
         }
       }
       // Handle LED controller data

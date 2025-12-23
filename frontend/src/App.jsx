@@ -8,6 +8,10 @@ function App() {
   const [humidity, setHumidity] = useState(null);
   const [connected, setConnected] = useState(false);
   const [esp32Connected, setEsp32Connected] = useState(false);
+  
+  // State for gray water level
+  const [grayWaterLevel, setGrayWaterLevel] = useState(null);
+  const [grayWaterConnected, setGrayWaterConnected] = useState(false);
 
   // State for LED controller
   const [ledControllerConnected, setLedControllerConnected] = useState(false);
@@ -57,6 +61,7 @@ function App() {
       setConnected(true);
       // ESP32 status remains false until we receive data
       setEsp32Connected(false); // Force reset ESP32 status
+      setGrayWaterConnected(false); // Force reset gray water status
     });
 
     // When disconnected
@@ -64,26 +69,44 @@ function App() {
       console.log("❌ Disconnected from backend");
       setConnected(false);
       setEsp32Connected(false); // Reset ESP32 status on backend disconnect
+      setGrayWaterConnected(false); // Reset gray water status on backend disconnect
     });
 
     // Timeout for ESP32 - global variable
     let esp32Timeout;
     let ledControllerTimeout;
+    let grayWaterTimeout;
 
     // Listen for sensor updates
     socket.on("sensorUpdate", (data) => {
       console.log("📊 New data:", data);
       setTemperature(data.temperature);
       setHumidity(data.humidity);
-      setEsp32Connected(true);
-
-      // Restart timeout every time we receive data
-      clearTimeout(esp32Timeout);
-      esp32Timeout = setTimeout(() => {
-        setEsp32Connected(false);
-        setTemperature(null); // Clear temperature
-        setHumidity(null); // Clear humidity
-      }, 30000); // 30 second timeout (20 second reserve after ESP32 heartbeat)
+      
+      // Handle gray water level
+      if (data.grayWaterLevel !== undefined && data.grayWaterLevel !== null) {
+        setGrayWaterLevel(data.grayWaterLevel);
+        setGrayWaterConnected(true);
+        
+        // Restart timeout for gray water sensor
+        clearTimeout(grayWaterTimeout);
+        grayWaterTimeout = setTimeout(() => {
+          setGrayWaterConnected(false);
+          setGrayWaterLevel(null);
+        }, 30000); // 30 second timeout
+      }
+      
+      // Handle temperature/humidity (ESP32 sensor)
+      if (data.temperature !== undefined || data.humidity !== undefined) {
+        setEsp32Connected(true);
+        // Restart timeout every time we receive data
+        clearTimeout(esp32Timeout);
+        esp32Timeout = setTimeout(() => {
+          setEsp32Connected(false);
+          setTemperature(null); // Clear temperature
+          setHumidity(null); // Clear humidity
+        }, 30000); // 30 second timeout (20 second reserve after ESP32 heartbeat)
+      }
     });
 
     // Heartbeat is now handled via ledStatusUpdate (full status at intervals)
@@ -152,6 +175,7 @@ function App() {
       socket.disconnect();
       clearTimeout(esp32Timeout);
       clearTimeout(ledControllerTimeout);
+      clearTimeout(grayWaterTimeout);
     };
   }, []); // [] = execute only once on load
 
@@ -177,6 +201,13 @@ function App() {
             }`}
           ></i>
         </span>
+        <span className="status-item">
+          <i
+            className={`fas fa-water ${
+              grayWaterConnected ? "online" : "offline"
+            }`}
+          ></i>
+        </span>
       </div>
 
       <div className="main-content">
@@ -190,6 +221,85 @@ function App() {
         <div className="sensor-card">
           <i className="fas fa-tint"></i>
           <p className="value">{humidity !== null ? `${humidity}%` : "—"}</p>
+        </div>
+
+        <div className="sensor-card water-tank-card">
+          <i className="fas fa-water" style={{ marginBottom: "0.5rem" }}></i>
+          <div className="water-tank-container">
+            <svg
+              className="water-tank"
+              viewBox="0 0 100 120"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              {/* Tank outline */}
+              <rect
+                x="20"
+                y="10"
+                width="60"
+                height="100"
+                fill="none"
+                stroke="#b3e5b3"
+                strokeWidth="2"
+                rx="3"
+              />
+              
+              {/* Water fill - fills from bottom up */}
+              {grayWaterLevel !== null && (
+                <rect
+                  x="22"
+                  y={110 - (grayWaterLevel / 100) * 100}
+                  width="56"
+                  height={(grayWaterLevel / 100) * 100}
+                  fill="url(#waterGradient)"
+                  rx="2"
+                  style={{
+                    transition: "y 0.5s ease, height 0.5s ease",
+                  }}
+                />
+              )}
+              
+              {/* Water gradient */}
+              <defs>
+                <linearGradient id="waterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#4a90e2" stopOpacity="0.8" />
+                  <stop offset="50%" stopColor="#357abd" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#2c5aa0" stopOpacity="1" />
+                </linearGradient>
+              </defs>
+              
+              {/* Water level indicator lines (optional) */}
+              <line
+                x1="18"
+                y1="30"
+                x2="22"
+                y2="30"
+                stroke="#b3e5b3"
+                strokeWidth="1"
+                opacity="0.5"
+              />
+              <line
+                x1="18"
+                y1="60"
+                x2="22"
+                y2="60"
+                stroke="#b3e5b3"
+                strokeWidth="1"
+                opacity="0.5"
+              />
+              <line
+                x1="18"
+                y1="90"
+                x2="22"
+                y2="90"
+                stroke="#b3e5b3"
+                strokeWidth="1"
+                opacity="0.5"
+              />
+            </svg>
+          </div>
+          <p className="value" style={{ marginTop: "0.5rem" }}>
+            {grayWaterLevel !== null ? `${grayWaterLevel.toFixed(1)}%` : "—"}
+          </p>
         </div>
 
         <div

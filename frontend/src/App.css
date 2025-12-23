@@ -156,6 +156,26 @@ body {
   transform: scale(1.05);
 }
 
+/* Water tank visualization */
+.water-tank-container {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.water-tank {
+  width: 100%;
+  max-width: 80px;
+  height: 100%;
+}
+
+.water-tank-card {
+  position: relative;
+}
+
 .led-card {
   cursor: pointer;
   user-select: none;
