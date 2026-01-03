@@ -119,21 +119,37 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
   temperature = round(temperature * 10) / 10;  // To 1 decimal place (23.4°C)
   humidity = round(humidity);                  // To whole number (65%)
   
-  // Check for changes
+  // If force publish is requested, always publish both values
+  if (forcePublish) {
+    mqttManager->publishSensorData("temperature", temperature);
+    mqttManager->publishSensorData("humidity", humidity);
+    
+    if (DEBUG_SERIAL) {
+      Serial.println("🔄 Force update: Published temperature = " + String(temperature, 1) + "°C, humidity = " + String((int)humidity) + "%");
+    }
+    
+    // Save for comparison
+    lastTemperature = temperature;
+    lastHumidity = humidity;
+    lastDataSent = currentTime;
+    return;
+  }
+  
+  // Normal publishing logic - only publish on change or first read
   bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
   bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
   
-  // Publish if there's a change OR first read OR force update requested
-  if (tempChanged || humidityChanged || lastTemperature == 0.0 || forcePublish) {
-    // Publish if changed, first read, or forced
-    if (tempChanged || lastTemperature == 0.0 || forcePublish) {
+  // Publish if there's a change OR first read
+  if (tempChanged || humidityChanged || lastTemperature == 0.0) {
+    // Publish only changed data OR on first read
+    if (tempChanged || lastTemperature == 0.0) {
       mqttManager->publishSensorData("temperature", temperature);
       if (DEBUG_SERIAL) {
         Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
       }
     }
     
-    if (humidityChanged || lastHumidity == 0.0 || forcePublish) {
+    if (humidityChanged || lastHumidity == 0.0) {
       mqttManager->publishSensorData("humidity", humidity);
       if (DEBUG_SERIAL) {
         Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));
