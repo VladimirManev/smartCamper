@@ -23,40 +23,42 @@ The gray water tank has 8 stainless steel bolts mounted on one wall:
 
 ### Level Detection Bolts (from bottom to top)
 
-| Bolt | GPIO Pin | Level Percentage | Description                    |
-| ---- | -------- | ---------------- | ------------------------------ |
-| **Bolt 1** | 4        | 15%              | Lowest level detection point   |
-| **Bolt 2** | 5        | 30%              | Second level detection point   |
-| **Bolt 3** | 18       | 45%              | Third level detection point    |
-| **Bolt 4** | 19       | 60%              | Fourth level detection point   |
-| **Bolt 5** | 21       | 75%              | Fifth level detection point    |
-| **Bolt 6** | 22       | 90%              | Sixth level detection point    |
-| **Bolt 7** | 23       | 100%             | Highest level detection point  |
+| Bolt       | GPIO Pin | Level Percentage | Description                   |
+| ---------- | -------- | ---------------- | ----------------------------- |
+| **Bolt 1** | 4        | 15%              | Lowest level detection point  |
+| **Bolt 2** | 5        | 30%              | Second level detection point  |
+| **Bolt 3** | 18       | 45%              | Third level detection point   |
+| **Bolt 4** | 19       | 60%              | Fourth level detection point  |
+| **Bolt 5** | 21       | 75%              | Fifth level detection point   |
+| **Bolt 6** | 22       | 90%              | Sixth level detection point   |
+| **Bolt 7** | 23       | 100%             | Highest level detection point |
 
 ### Pin Configuration
 
-| Component      | Pin | Direction       | Description                    |
-| -------------- | --- | --------------- | ------------------------------ |
-| **Level Pin 1** | 4   | Input (Pull-up) | 15% level detection            |
-| **Level Pin 2** | 5   | Input (Pull-up) | 30% level detection            |
-| **Level Pin 3** | 18  | Input (Pull-up) | 45% level detection            |
-| **Level Pin 4** | 19  | Input (Pull-up) | 60% level detection            |
-| **Level Pin 5** | 21  | Input (Pull-up) | 75% level detection            |
-| **Level Pin 6** | 22  | Input (Pull-up) | 90% level detection            |
-| **Level Pin 7** | 23  | Input (Pull-up) | 100% level detection            |
-| **GND Bolt**   | GND | Ground          | Common reference electrode     |
+| Component       | Pin | Direction       | Description                |
+| --------------- | --- | --------------- | -------------------------- |
+| **Level Pin 1** | 4   | Input (Pull-up) | 15% level detection        |
+| **Level Pin 2** | 5   | Input (Pull-up) | 30% level detection        |
+| **Level Pin 3** | 18  | Input (Pull-up) | 45% level detection        |
+| **Level Pin 4** | 19  | Input (Pull-up) | 60% level detection        |
+| **Level Pin 5** | 21  | Input (Pull-up) | 75% level detection        |
+| **Level Pin 6** | 22  | Input (Pull-up) | 90% level detection        |
+| **Level Pin 7** | 23  | Input (Pull-up) | 100% level detection       |
+| **GND Bolt**    | GND | Ground          | Common reference electrode |
 
 ## Measurement Algorithm
 
 ### Level Detection Logic
 
 1. **Measurement Process**:
+
    - Pins are configured as INPUT_PULLUP before measurement
    - Measurement scans from top to bottom (Pin 7 → Pin 1)
    - Stops at the first pin that reads LOW (covered by water)
    - After measurement, all pins are set to LOW (INPUT mode) to minimize current flow
 
 2. **Why Top-to-Bottom?**:
+
    - If a higher bolt is covered, all lower bolts are also covered
    - Finding the highest covered bolt gives the current water level
    - More efficient than checking all pins
@@ -69,11 +71,13 @@ The gray water tank has 8 stainless steel bolts mounted on one wall:
 ### Data Processing
 
 1. **Individual Measurements**:
+
    - Measurement taken every 1 second
    - Each measurement returns a level index (0-6) or -1 for 0%
    - Level index is converted to percentage (15%, 30%, 45%, 60%, 75%, 90%, 100%)
 
 2. **Averaging**:
+
    - Last 5 measurements are stored in a buffer
    - Every 5 seconds, average of the 5 measurements is calculated
    - Average is rounded to 1 decimal place
@@ -121,13 +125,13 @@ Payload: "45.2"  (percentage as string, 1 decimal place)
 
 ## Timing Configuration
 
-| Setting              | Value    | Description                                    |
-| -------------------- | -------- | ---------------------------------------------- |
-| **Read Interval**    | 1000 ms  | Time between individual measurements           |
-| **Average Interval**  | 5000 ms  | Time between average calculations              |
+| Setting                | Value    | Description                                     |
+| ---------------------- | -------- | ----------------------------------------------- |
+| **Read Interval**      | 1000 ms  | Time between individual measurements            |
+| **Average Interval**   | 5000 ms  | Time between average calculations               |
 | **Heartbeat Interval** | 15000 ms | Guaranteed publish interval (even if no change) |
-| **MQTT Reconnect**   | 2000 ms  | Delay between MQTT reconnection attempts       |
-| **WiFi Reconnect**   | 3000 ms  | Delay between WiFi reconnection attempts       |
+| **MQTT Reconnect**     | 2000 ms  | Delay between MQTT reconnection attempts        |
+| **WiFi Reconnect**     | 3000 ms  | Delay between WiFi reconnection attempts        |
 
 ## Features
 
@@ -218,16 +222,16 @@ Payload: "45.2"  (percentage as string, 1 decimal place)
 
 ### Level to Percentage Mapping
 
-| Level Index | Bolt | Percentage |
-| ----------- | ---- | ---------- |
-| -1          | None | 0%         |
-| 0           | Bolt 1 | 15%      |
-| 1           | Bolt 2 | 30%      |
-| 2           | Bolt 3 | 45%      |
-| 3           | Bolt 4 | 60%      |
-| 4           | Bolt 5 | 75%      |
-| 5           | Bolt 6 | 90%      |
-| 6           | Bolt 7 | 100%     |
+| Level Index | Bolt   | Percentage |
+| ----------- | ------ | ---------- |
+| -1          | None   | 0%         |
+| 0           | Bolt 1 | 15%        |
+| 1           | Bolt 2 | 30%        |
+| 2           | Bolt 3 | 45%        |
+| 3           | Bolt 4 | 60%        |
+| 4           | Bolt 5 | 75%        |
+| 5           | Bolt 6 | 90%        |
+| 6           | Bolt 7 | 100%       |
 
 ### Data Flow
 
@@ -258,4 +262,3 @@ Measurement (1s) → Buffer (5 values) → Average (5s) → Publish (if changed 
 - Measurement Interval: 1 second
 - Average Interval: 5 seconds
 - Heartbeat Interval: 15 seconds
-

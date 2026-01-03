@@ -8,7 +8,7 @@ function App() {
   const [humidity, setHumidity] = useState(null);
   const [connected, setConnected] = useState(false);
   const [esp32Connected, setEsp32Connected] = useState(false);
-  
+
   // State for gray water level
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
   const [grayWaterConnected, setGrayWaterConnected] = useState(false);
@@ -82,12 +82,12 @@ function App() {
       console.log("📊 New data:", data);
       setTemperature(data.temperature);
       setHumidity(data.humidity);
-      
+
       // Handle gray water level
       if (data.grayWaterLevel !== undefined && data.grayWaterLevel !== null) {
         setGrayWaterLevel(data.grayWaterLevel);
         setGrayWaterConnected(true);
-        
+
         // Restart timeout for gray water sensor
         clearTimeout(grayWaterTimeout);
         grayWaterTimeout = setTimeout(() => {
@@ -95,7 +95,7 @@ function App() {
           setGrayWaterLevel(null);
         }, 30000); // 30 second timeout
       }
-      
+
       // Handle temperature/humidity (ESP32 sensor)
       if (data.temperature !== undefined || data.humidity !== undefined) {
         setEsp32Connected(true);
@@ -242,7 +242,7 @@ function App() {
                 strokeWidth="2"
                 rx="3"
               />
-              
+
               {/* Water fill - fills from bottom up */}
               {grayWaterLevel !== null && (
                 <rect
@@ -257,16 +257,22 @@ function App() {
                   }}
                 />
               )}
-              
+
               {/* Gray water gradient */}
               <defs>
-                <linearGradient id="grayWaterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <linearGradient
+                  id="grayWaterGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
+                >
                   <stop offset="0%" stopColor="#95a5a6" stopOpacity="0.8" />
                   <stop offset="50%" stopColor="#7f8c8d" stopOpacity="0.9" />
                   <stop offset="100%" stopColor="#5d6d7e" stopOpacity="1" />
                 </linearGradient>
               </defs>
-              
+
               {/* Water level indicator lines (optional) */}
               <line
                 x1="22"
