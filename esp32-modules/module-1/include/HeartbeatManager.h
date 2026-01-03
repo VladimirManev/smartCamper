@@ -17,6 +17,7 @@ private:
   unsigned long lastHeartbeatSent;  // Timestamp of last heartbeat sent
   bool enabled;                     // Whether heartbeat is enabled
   unsigned long uptimeStart;        // Module start time for uptime calculation
+  bool lastMQTTState;               // Previous MQTT connection state (for detecting reconnects)
 
   // Internal methods
   bool shouldSendHeartbeat();

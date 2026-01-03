@@ -15,6 +15,7 @@ HeartbeatManager::HeartbeatManager(MQTTManager* mqtt, String moduleId) {
   this->lastHeartbeatSent = 0;
   this->enabled = true;
   this->uptimeStart = millis();
+  this->lastMQTTState = false;  // Initialize as disconnected
 }
 
 void HeartbeatManager::begin() {
@@ -26,12 +27,28 @@ void HeartbeatManager::begin() {
 }
 
 void HeartbeatManager::loop() {
-  // Only send heartbeat if enabled and MQTT is connected
-  if (!enabled || !mqttManager->isMQTTConnected()) {
+  bool mqttConnected = mqttManager->isMQTTConnected();
+  
+  // Detect MQTT reconnection (transition from disconnected to connected)
+  if (mqttConnected && !lastMQTTState) {
+    // MQTT just connected/reconnected - send heartbeat immediately
+    if (enabled) {
+      if (DEBUG_SERIAL) {
+        Serial.println("💓 MQTT reconnected - sending immediate heartbeat");
+      }
+      sendHeartbeat();
+    }
+  }
+  
+  // Update last known MQTT state
+  lastMQTTState = mqttConnected;
+  
+  // Only send periodic heartbeat if enabled and MQTT is connected
+  if (!enabled || !mqttConnected) {
     return;
   }
   
-  // Check if it's time to send heartbeat
+  // Check if it's time to send periodic heartbeat
   if (shouldSendHeartbeat()) {
     sendHeartbeat();
   }
