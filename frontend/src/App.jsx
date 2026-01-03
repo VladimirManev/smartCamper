@@ -94,7 +94,7 @@ function App() {
         />
 
         {/* Gray Water Tank */}
-        <GrayWaterTank level={grayWaterLevel} />
+        <GrayWaterTank level={grayWaterLevel} disabled={!isModule1Online} />
 
         {/* LED Strips */}
         <LEDCard

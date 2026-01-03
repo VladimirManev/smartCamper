@@ -35,6 +35,31 @@
 #define TEMP_THRESHOLD 0.1     // 0.1°C change threshold for temperature
 #define HUMIDITY_THRESHOLD 1.0 // 1% change threshold for humidity
 
+// Water Level Sensor Configuration (Module 1 specific)
+// GPIO pins for water level detection (from bottom to top)
+#define WATER_LEVEL_PIN_1 4   // GPIO 4 - 15% level
+#define WATER_LEVEL_PIN_2 5   // GPIO 5 - 30% level
+#define WATER_LEVEL_PIN_3 18  // GPIO 18 - 45% level
+#define WATER_LEVEL_PIN_4 19  // GPIO 19 - 60% level
+#define WATER_LEVEL_PIN_5 21  // GPIO 21 - 75% level
+#define WATER_LEVEL_PIN_6 22  // GPIO 22 - 90% level
+#define WATER_LEVEL_PIN_7 23  // GPIO 23 - 100% level
+#define NUM_LEVEL_PINS 7      // Number of level detection pins
+
+// Level percentages (from bottom to top)
+#define LEVEL_PERCENT_1 15
+#define LEVEL_PERCENT_2 30
+#define LEVEL_PERCENT_3 45
+#define LEVEL_PERCENT_4 60
+#define LEVEL_PERCENT_5 75
+#define LEVEL_PERCENT_6 90
+#define LEVEL_PERCENT_7 100
+
+// Water level sensor timing
+#define WATER_LEVEL_READ_INTERVAL 1000   // 1 second - measurement interval
+#define WATER_LEVEL_AVERAGE_INTERVAL 5000 // 5 seconds - average calculation interval
+#define WATER_LEVEL_THRESHOLD 1.0         // 1% change threshold for publishing
+
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output
 #define DEBUG_MQTT true     // Enable MQTT debug output

@@ -61,12 +61,13 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
       if (!module1Online) {
         setTemperature(null);
         setHumidity(null);
-        // Note: grayWaterLevel might come from different module, so we don't clear it here
+        setGrayWaterLevel(null);  // Clear gray water level when module-1 goes offline
       }
     } else {
       // If isModuleOnline is not available, clear data
       setTemperature(null);
       setHumidity(null);
+      setGrayWaterLevel(null);
     }
   }, [isModuleOnline, moduleStatuses]);
 

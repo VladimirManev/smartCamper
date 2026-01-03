@@ -2,7 +2,7 @@
 
 ## Overview
 
-Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It provides temperature and humidity monitoring using a DHT22/AM2301 sensor, with an extensible architecture that allows adding additional sensors.
+Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It provides temperature and humidity monitoring using a DHT22/AM2301 sensor, and gray water level monitoring using conductivity-based electrodes, with an extensible architecture that allows adding additional sensors.
 
 ## Architecture
 
@@ -24,6 +24,13 @@ Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It
    - Detects changes and publishes data
    - Handles sensor-specific logic
 
+4. **WaterLevelSensor** - Gray water level sensor implementation
+   - Reads water level using conductivity-based electrodes
+   - Uses sequential measurement (one pin at a time) to prevent electrical interference
+   - Calculates mode (most frequent value) from 5 measurements for stability
+   - Detects changes and publishes data (≥1% threshold, no heartbeat)
+   - Handles sensor-specific logic
+
 ### Design Principles
 
 - **Separation of Concerns**: Infrastructure (ModuleManager) is separate from sensor logic
@@ -38,6 +45,16 @@ Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It
 - **Type**: DHT22 (configurable in `Config.h`)
 - **Power**: 3.3V
 - **Data**: Digital pin 25
+
+### Gray Water Level Sensor
+- **Type**: Conductivity-based level detection using stainless steel bolts
+- **Electrodes**: 8 stainless steel bolts (1 GND + 7 level detection)
+- **Level Pins**: GPIO 4, 5, 18, 19, 21, 22, 23 (configurable in `Config.h`)
+- **Levels**: 15%, 30%, 45%, 60%, 75%, 90%, 100%
+- **Measurement Method**: Sequential pin reading (one pin at a time with PULLUP)
+  - Measures from top to bottom (Pin 7 → Pin 1)
+  - Only one pin is PULLUP at a time to prevent water becoming more positive
+  - LOW = covered by water (connected to GND), HIGH = not covered
 
 ## Software Configuration
 
@@ -55,6 +72,7 @@ smartcamper/heartbeat/module-1
 ```
 smartcamper/sensors/temperature
 smartcamper/sensors/humidity
+smartcamper/sensors/gray-water/level
 ```
 
 **Commands:**
@@ -68,6 +86,10 @@ smartcamper/commands/module-1/force_update
 - **Heartbeat Interval**: 10 seconds
 - **Temperature Threshold**: 0.1°C (change detection)
 - **Humidity Threshold**: 1% (change detection)
+- **Water Level Read Interval**: 1 second
+- **Water Level Average Interval**: 5 seconds (calculates mode of last 5 measurements)
+- **Water Level Threshold**: 1% (change detection, no heartbeat)
+- **Data Processing**: Mode (most frequent value) of last 5 measurements
 
 ## Adding New Sensors
 
@@ -127,7 +149,8 @@ module-1/
 │   ├── HeartbeatManager.h        # Heartbeat functionality
 │   ├── ModuleManager.h           # Infrastructure manager
 │   ├── SensorManager.h           # Sensor coordinator
-│   └── TemperatureHumiditySensor.h # DHT sensor logic
+│   ├── TemperatureHumiditySensor.h # DHT sensor logic
+│   └── WaterLevelSensor.h        # Water level sensor logic
 ├── src/
 │   ├── CommandHandler.cpp
 │   ├── Config.h                  # Configuration constants
@@ -137,7 +160,8 @@ module-1/
 │   ├── MQTTManager.cpp/h         # MQTT communication
 │   ├── NetworkManager.cpp/h       # WiFi management
 │   ├── SensorManager.cpp
-│   └── TemperatureHumiditySensor.cpp
+│   ├── TemperatureHumiditySensor.cpp
+│   └── WaterLevelSensor.cpp
 ├── platformio.ini                # PlatformIO configuration
 ├── README.md                     # This file (English)
 ├── README_BG.md                  # This file (Bulgarian)
@@ -160,8 +184,12 @@ The module includes the following production-ready improvements:
 
 - Module ID is defined in `Config.h` as `MODULE_ID`
 - DHT sensor pin and type are configurable in `Config.h`
+- Water level sensor pins and thresholds are configurable in `Config.h`
 - All sensor-specific thresholds are in `Config.h`
 - ModuleManager is reusable across all modules
 - Sensor classes are independent and can be added/removed easily
+- Water level sensor uses mode calculation (most frequent value from 5 measurements) to reduce noise
+- Water level sensor measures one pin at a time (sequential measurement) to prevent electrical interference
+- Water level sensor publishes only on change (≥1% threshold), no heartbeat
 - All documentation is available in both English and Bulgarian
 

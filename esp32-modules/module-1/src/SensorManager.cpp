@@ -9,6 +9,7 @@ SensorManager* SensorManager::currentInstance = nullptr;
 SensorManager::SensorManager(ModuleManager* moduleMgr) 
   : moduleManager(moduleMgr),
     temperatureHumiditySensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, DHT_PIN, DHT_TYPE),
+    waterLevelSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
     commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID) {
   
   // Validate input parameter
@@ -31,6 +32,9 @@ void SensorManager::begin() {
   // Initialize temperature/humidity sensor
   temperatureHumiditySensor.begin();
   
+  // Initialize water level sensor
+  waterLevelSensor.begin();
+  
   // Command handler will be initialized by ModuleManager
   // (ModuleManager.begin() is called with commandHandler reference)
   
@@ -48,11 +52,13 @@ void SensorManager::loop() {
   // Update all sensors
   // Note: ModuleManager.loop() is called separately in main loop
   temperatureHumiditySensor.loop();
+  waterLevelSensor.loop();
 }
 
 void SensorManager::handleForceUpdate() {
   // Force update all sensors
   temperatureHumiditySensor.forceUpdate();
+  waterLevelSensor.forceUpdate();
 }
 
 // Static MQTT callback method
@@ -66,4 +72,5 @@ void SensorManager::printStatus() const {
   Serial.println("📊 Sensor Manager Status:");
   Serial.println("  Module Manager: " + String(moduleManager != nullptr ? "OK" : "NULL"));
   temperatureHumiditySensor.printStatus();
+  waterLevelSensor.printStatus();
 }

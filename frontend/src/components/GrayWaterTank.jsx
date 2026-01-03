@@ -7,38 +7,42 @@
  * GrayWaterTank component
  * @param {Object} props - Component props
  * @param {number|null} props.level - Water level percentage (0-100)
+ * @param {boolean} props.disabled - Whether the sensor is disabled/offline
  */
-export const GrayWaterTank = ({ level }) => {
+export const GrayWaterTank = ({ level, disabled = false }) => {
+  // When disabled, don't show water (empty tank)
+  const displayLevel = disabled ? null : level;
+
   return (
-    <div className="sensor-card water-tank-card">
+    <div className={`sensor-card water-tank-card ${disabled ? "disabled" : ""}`}>
       <p className="water-tank-label">Gray Water</p>
       <div className="water-tank-container">
         <svg
           className="water-tank"
-          viewBox="0 0 100 100"
+          viewBox="0 0 200 200"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Tank outline */}
           <rect
-            x="25"
-            y="10"
-            width="50"
-            height="80"
+            x="50"
+            y="20"
+            width="100"
+            height="160"
             fill="none"
-            stroke="#b3e5b3"
-            strokeWidth="2"
-            rx="3"
+            stroke="#3b82f6"
+            strokeWidth="4"
+            rx="6"
           />
 
           {/* Water fill - fills from bottom up */}
-          {level !== null && level !== undefined && (
+          {displayLevel !== null && displayLevel !== undefined && (
             <rect
-              x="27"
-              y={90 - (level / 100) * 80}
-              width="46"
-              height={(level / 100) * 80}
+              x="54"
+              y={180 - (displayLevel / 100) * 160}
+              width="92"
+              height={(displayLevel / 100) * 160}
               fill="url(#grayWaterGradient)"
-              rx="2"
+              rx="4"
               style={{
                 transition: "y 0.5s ease, height 0.5s ease",
               }}
@@ -54,38 +58,38 @@ export const GrayWaterTank = ({ level }) => {
               x2="0%"
               y2="100%"
             >
-              <stop offset="0%" stopColor="#95a5a6" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#7f8c8d" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#5d6d7e" stopOpacity="1" />
+              <stop offset="0%" stopColor="#64748b" stopOpacity="0.8" />
+              <stop offset="50%" stopColor="#475569" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#334155" stopOpacity="1" />
             </linearGradient>
           </defs>
 
           {/* Water level indicator lines */}
           <line
-            x1="22"
-            y1="30"
-            x2="25"
-            y2="30"
-            stroke="#b3e5b3"
-            strokeWidth="1"
+            x1="44"
+            y1="60"
+            x2="50"
+            y2="60"
+            stroke="#3b82f6"
+            strokeWidth="2"
             opacity="0.5"
           />
           <line
-            x1="22"
-            y1="50"
-            x2="25"
-            y2="50"
-            stroke="#b3e5b3"
-            strokeWidth="1"
+            x1="44"
+            y1="100"
+            x2="50"
+            y2="100"
+            stroke="#3b82f6"
+            strokeWidth="2"
             opacity="0.5"
           />
           <line
-            x1="22"
-            y1="70"
-            x2="25"
-            y2="70"
-            stroke="#b3e5b3"
-            strokeWidth="1"
+            x1="44"
+            y1="140"
+            x2="50"
+            y2="140"
+            stroke="#3b82f6"
+            strokeWidth="2"
             opacity="0.5"
           />
         </svg>
