@@ -18,18 +18,13 @@ export const StatusIcons = ({ socket, backendConnected }) => {
   const moduleIcons = [
     {
       id: "module-1",
-      icon: "fa-thermometer-half",
-      label: "Module 1 (Temperature/Humidity)",
+      number: "1",
+      label: "Module 1 (Temperature/Humidity/Water Level)",
     },
     {
       id: "led-controller",
-      icon: "fa-lightbulb",
+      number: "2",
       label: "LED Controller",
-    },
-    {
-      id: "gray-water-sensor",
-      icon: "fa-water",
-      label: "Gray Water Sensor",
     },
   ];
 
@@ -44,14 +39,12 @@ export const StatusIcons = ({ socket, backendConnected }) => {
       {moduleIcons.map((module) => (
         <span
           key={module.id}
-          className="status-item"
+          className={`status-item status-number ${
+            isModuleOnline(module.id) ? "online" : "offline"
+          }`}
           title={module.label}
         >
-          <i
-            className={`fas ${module.icon} ${
-              isModuleOnline(module.id) ? "online" : "offline"
-            }`}
-          ></i>
+          {module.number}
         </span>
       ))}
     </div>
