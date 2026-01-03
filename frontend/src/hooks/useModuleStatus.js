@@ -16,21 +16,13 @@ export const useModuleStatus = (socket) => {
 
   useEffect(() => {
     if (!socket) {
-      console.log("⚠️ useModuleStatus: No socket available");
       return;
     }
 
-    console.log("👂 useModuleStatus: Setting up listener for moduleStatusUpdate");
-
     // Listen for module status updates from backend
     const handleModuleStatusUpdate = (data) => {
-      console.log("📊 Module Status Update received:", data);
-      
       if (data.modules) {
-        console.log("📊 Updating module statuses:", Object.keys(data.modules));
         setModuleStatuses(data.modules);
-      } else {
-        console.warn("⚠️ Module Status Update missing 'modules' property:", data);
       }
     };
 
@@ -38,7 +30,6 @@ export const useModuleStatus = (socket) => {
 
     // Cleanup
     return () => {
-      console.log("🧹 useModuleStatus: Cleaning up listener");
       socket.off("moduleStatusUpdate", handleModuleStatusUpdate);
     };
   }, [socket]);

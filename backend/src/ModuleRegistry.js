@@ -60,7 +60,6 @@ class ModuleRegistry {
     
     // Only notify if status changed from offline to online
     if (!wasOnline) {
-      console.log(`✅ Module ${moduleId} came online`);
       this.notifyStatusChange();
     }
   }
@@ -148,10 +147,6 @@ class ModuleRegistry {
       if (wasOnline !== isOnline) {
         module.status = isOnline ? "online" : "offline";
         statusChanged = true;
-        
-        if (!isOnline) {
-          console.log(`⚠️ Module ${moduleId} went offline (last heartbeat: ${Math.round(timeSinceLastHeartbeat / 1000)}s ago)`);
-        }
       }
     }
     

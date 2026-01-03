@@ -23,21 +23,17 @@ export const useSocket = () => {
       ? "http://192.168.4.1:3000" // Raspberry Pi IP for development
       : window.location.origin; // Production - same host
 
-    console.log("🔌 Creating socket connection to:", socketUrl);
-
     // Create socket connection
     const socketInstance = io(socketUrl);
     setSocket(socketInstance);
 
     // Connection event handlers
     socketInstance.on("connect", () => {
-      console.log("✅ Connected to backend");
       setConnected(true);
       setError(null);
     });
 
     socketInstance.on("disconnect", () => {
-      console.log("❌ Disconnected from backend");
       setConnected(false);
     });
 
@@ -47,16 +43,8 @@ export const useSocket = () => {
       setConnected(false);
     });
 
-    // Debug: Log all events for troubleshooting
-    socketInstance.onAny((eventName, ...args) => {
-      if (eventName !== "sensorData") { // Skip frequent sensor data events
-        console.log(`📡 Socket event: ${eventName}`, args);
-      }
-    });
-
     // Cleanup on unmount
     return () => {
-      console.log("🔌 Disconnecting socket...");
       socketInstance.disconnect();
       setSocket(null);
     };
