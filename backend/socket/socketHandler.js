@@ -64,9 +64,12 @@ const setupSocketIO = (io, aedes) => {
     });
 
     // Request fresh data from all online modules when frontend connects
-    sendForceUpdateToAllOnline(aedes, moduleRegistry).catch((err) => {
-      console.log(`❌ Error requesting fresh data: ${err.message}`);
-    });
+    // Add small delay to ensure module registry is up to date
+    setTimeout(() => {
+      sendForceUpdateToAllOnline(aedes, moduleRegistry).catch((err) => {
+        console.log(`❌ Error requesting fresh data: ${err.message}`);
+      });
+    }, 500); // 500ms delay to ensure modules are registered
 
     // Handle LED commands from frontend
     socket.on("ledCommand", (data) => {
