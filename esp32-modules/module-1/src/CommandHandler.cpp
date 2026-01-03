@@ -40,9 +40,7 @@ CommandHandler::CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String 
 void CommandHandler::begin() {
   // Validate mqttManager pointer
   if (mqttManager == nullptr) {
-    if (DEBUG_SERIAL) {
-      Serial.println("❌ ERROR: Cannot initialize CommandHandler - mqttManager is nullptr");
-    }
+    Serial.println("❌ ERROR: Cannot initialize CommandHandler - mqttManager is nullptr");
     return;
   }
   
@@ -50,10 +48,9 @@ void CommandHandler::begin() {
   String commandTopic = MQTT_TOPIC_COMMANDS + moduleId + "/#";
   bool subscribed = mqttManager->subscribeToCommands(moduleId);
   
-  if (DEBUG_SERIAL) {
-    Serial.println("📨 Command Handler initialized for: " + moduleId);
-    Serial.println("📥 Subscribed to: " + commandTopic + (subscribed ? " (OK)" : " (FAILED)"));
-  }
+  Serial.println("📨 Command Handler initialized for: " + moduleId);
+  Serial.println("📥 Subscribed to: " + commandTopic + (subscribed ? " (OK)" : " (FAILED)"));
+  Serial.println("📥 Will listen for: " + String(MQTT_TOPIC_COMMANDS) + moduleId + "/force_update");
 }
 
 void CommandHandler::loop() {
@@ -68,38 +65,35 @@ void CommandHandler::handleMQTTMessage(char* topic, byte* payload, unsigned int 
   
   String topicStr = String(topic);
   
-  if (DEBUG_SERIAL) {
-    Serial.println("📨 Received command:");
-    Serial.println("  Topic: " + topicStr);
-    Serial.println("  Message: " + message);
-  }
+  // Always log received commands for debugging
+  Serial.println("📨 Received MQTT command:");
+  Serial.println("  Topic: " + topicStr);
+  Serial.println("  Message: " + message);
+  Serial.println("  Expected module: " + moduleId);
   
   // Check if it's a force_update command
   if (topicStr.endsWith("/force_update")) {
-    if (DEBUG_SERIAL) {
-      Serial.println("🔄 Force update requested!");
-    }
+    Serial.println("🔄 Force update command detected!");
     
     // Call force update function
-    // This will be called from SensorManager
     forceUpdate();
+  } else {
+    Serial.println("⚠️ Unknown command topic: " + topicStr);
   }
 }
 
 void CommandHandler::forceUpdate() {
   lastForceUpdate = millis();
   
-  if (DEBUG_SERIAL) {
-    Serial.println("🚀 Force update executed!");
-  }
+  Serial.println("🚀 Force update executed in CommandHandler!");
   
   // Call force update in SensorManager (validate pointer first)
   if (sensorManager != nullptr) {
+    Serial.println("📞 Calling SensorManager->handleForceUpdate()...");
     sensorManager->handleForceUpdate();
+    Serial.println("✅ SensorManager->handleForceUpdate() called");
   } else {
-    if (DEBUG_SERIAL) {
-      Serial.println("❌ ERROR: Cannot force update - sensorManager is nullptr");
-    }
+    Serial.println("❌ ERROR: Cannot force update - sensorManager is nullptr");
   }
 }
 

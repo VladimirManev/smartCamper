@@ -164,10 +164,9 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
 }
 
 void TemperatureHumiditySensor::forceUpdate() {
+  Serial.println("🚀 TemperatureHumiditySensor->forceUpdate() called");
   forceUpdateRequested = true;
-  if (DEBUG_SERIAL) {
-    Serial.println("🚀 Force update requested for temperature/humidity sensor");
-  }
+  Serial.println("✅ forceUpdateRequested set to true");
 }
 
 void TemperatureHumiditySensor::printStatus() const {
