@@ -9,11 +9,12 @@ class ModuleRegistry {
     // Map of moduleId -> { status, lastHeartbeat, metadata }
     this.modules = new Map();
     
-    // Heartbeat timeout threshold (25 seconds = 2.5x heartbeat interval)
-    this.HEARTBEAT_TIMEOUT_MS = 25000;
+    // Heartbeat timeout threshold (20 seconds = 2x heartbeat interval)
+    // This allows for 2 missed heartbeats before marking as offline
+    this.HEARTBEAT_TIMEOUT_MS = 20000;
     
-    // Check interval (5 seconds)
-    this.CHECK_INTERVAL_MS = 5000;
+    // Check interval (2 seconds) - faster detection of offline modules
+    this.CHECK_INTERVAL_MS = 2000;
     
     // Interval timer for periodic checks
     this.checkInterval = null;
@@ -44,8 +45,6 @@ class ModuleRegistry {
     const now = Date.now();
     const wasOnline = this.isModuleOnline(moduleId);
     
-    console.log(`📊 Processing heartbeat for ${moduleId}, wasOnline: ${wasOnline}`);
-    
     // Update or create module entry
     const moduleInfo = {
       status: "online",
@@ -59,13 +58,10 @@ class ModuleRegistry {
     
     this.modules.set(moduleId, moduleInfo);
     
-    // Always notify on heartbeat (for debugging, can optimize later)
-    console.log(`📤 Notifying status change for ${moduleId}`);
-    this.notifyStatusChange();
-    
-    // If status changed from offline to online, log it
+    // Only notify if status changed from offline to online
     if (!wasOnline) {
       console.log(`✅ Module ${moduleId} came online`);
+      this.notifyStatusChange();
     }
   }
 
@@ -170,10 +166,7 @@ class ModuleRegistry {
   notifyStatusChange() {
     if (this.onStatusChange) {
       const allStatuses = this.getAllModuleStatuses();
-      console.log(`📡 Emitting moduleStatusUpdate with:`, JSON.stringify(allStatuses, null, 2));
       this.onStatusChange(allStatuses);
-    } else {
-      console.log(`⚠️ No onStatusChange callback set!`);
     }
   }
 
