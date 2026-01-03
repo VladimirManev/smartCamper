@@ -19,10 +19,17 @@ function App() {
   const { socket, connected } = useSocket();
 
   // Module status tracking (from heartbeat system)
-  const { isModuleOnline } = useModuleStatus(socket);
+  const { isModuleOnline, moduleStatuses } = useModuleStatus(socket);
 
-  // Sensor data
-  const { temperature, humidity, grayWaterLevel } = useSensorData(socket);
+  // Sensor data (clears when module goes offline)
+  const { temperature, humidity, grayWaterLevel } = useSensorData(
+    socket,
+    isModuleOnline,
+    moduleStatuses
+  );
+  
+  // Check if module-1 is online (provides temperature and humidity)
+  const isModule1Online = isModuleOnline("module-1");
 
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
@@ -74,10 +81,17 @@ function App() {
           value={temperature}
           unit="°C"
           decimals={1}
+          disabled={!isModule1Online}
         />
 
         {/* Humidity Sensor */}
-        <SensorCard icon="fas fa-tint" value={humidity} unit="%" decimals={0} />
+        <SensorCard
+          icon="fas fa-tint"
+          value={humidity}
+          unit="%"
+          decimals={0}
+          disabled={!isModule1Online}
+        />
 
         {/* Gray Water Tank */}
         <GrayWaterTank level={grayWaterLevel} />

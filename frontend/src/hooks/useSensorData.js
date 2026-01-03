@@ -1,6 +1,7 @@
 /**
  * useSensorData Hook
  * Manages sensor data (temperature, humidity, gray water level)
+ * Clears data when source module goes offline
  */
 
 import { useState, useEffect } from "react";
@@ -8,9 +9,11 @@ import { useState, useEffect } from "react";
 /**
  * Custom hook for sensor data
  * @param {Object} socket - Socket.io instance
+ * @param {Function} isModuleOnline - Function to check if module is online
+ * @param {Object} moduleStatuses - Object with module statuses (for dependency tracking)
  * @returns {Object} { temperature, humidity, grayWaterLevel }
  */
-export const useSensorData = (socket) => {
+export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
   const [temperature, setTemperature] = useState(null);
   const [humidity, setHumidity] = useState(null);
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
@@ -22,7 +25,10 @@ export const useSensorData = (socket) => {
 
     // Listen for sensor updates
     const handleSensorUpdate = (data) => {
-      console.log("📊 Sensor Data Update:", data);
+      // Only update if module is online
+      if (!isModuleOnline || !isModuleOnline("module-1")) {
+        return;
+      }
 
       // Update temperature if present
       if (data.temperature !== undefined && data.temperature !== null) {
@@ -46,7 +52,23 @@ export const useSensorData = (socket) => {
     return () => {
       socket.off("sensorUpdate", handleSensorUpdate);
     };
-  }, [socket]);
+  }, [socket, isModuleOnline]);
+
+  // Clear sensor data when module goes offline
+  useEffect(() => {
+    if (isModuleOnline) {
+      const module1Online = isModuleOnline("module-1");
+      if (!module1Online) {
+        setTemperature(null);
+        setHumidity(null);
+        // Note: grayWaterLevel might come from different module, so we don't clear it here
+      }
+    } else {
+      // If isModuleOnline is not available, clear data
+      setTemperature(null);
+      setHumidity(null);
+    }
+  }, [isModuleOnline, moduleStatuses]);
 
   return {
     temperature,
