@@ -124,10 +124,6 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
     mqttManager->publishSensorData("temperature", temperature);
     mqttManager->publishSensorData("humidity", humidity);
     
-    if (DEBUG_SERIAL) {
-      Serial.println("🔄 Force update: Published temperature = " + String(temperature, 1) + "°C, humidity = " + String((int)humidity) + "%");
-    }
-    
     // Save for comparison
     lastTemperature = temperature;
     lastHumidity = humidity;
@@ -164,9 +160,7 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
 }
 
 void TemperatureHumiditySensor::forceUpdate() {
-  Serial.println("🚀 TemperatureHumiditySensor->forceUpdate() called");
   forceUpdateRequested = true;
-  Serial.println("✅ forceUpdateRequested set to true");
 }
 
 void TemperatureHumiditySensor::printStatus() const {

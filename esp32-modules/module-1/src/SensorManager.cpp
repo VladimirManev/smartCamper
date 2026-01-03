@@ -51,12 +51,8 @@ void SensorManager::loop() {
 }
 
 void SensorManager::handleForceUpdate() {
-  Serial.println("🚀 SensorManager->handleForceUpdate() called");
-  
   // Force update all sensors
   temperatureHumiditySensor.forceUpdate();
-  
-  Serial.println("✅ TemperatureHumiditySensor->forceUpdate() called");
 }
 
 // Static MQTT callback method

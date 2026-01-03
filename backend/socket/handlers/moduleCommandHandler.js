@@ -15,8 +15,6 @@ const sendForceUpdate = (aedes, moduleId) => {
     const topic = `smartcamper/commands/${moduleId}/force_update`;
     const payload = Buffer.from("{}");
 
-    console.log(`📤 Sending force_update command to ${moduleId} on topic: ${topic}`);
-
     aedes.publish(
       {
         topic: topic,
@@ -28,7 +26,9 @@ const sendForceUpdate = (aedes, moduleId) => {
           console.log(`❌ Failed to send force_update to ${moduleId}: ${err.message}`);
           resolve(false);
         } else {
-          console.log(`✅ Successfully sent force_update command to ${moduleId}`);
+          if (process.env.DEBUG_MQTT) {
+            console.log(`📤 Sent force_update to ${moduleId}`);
+          }
           resolve(true);
         }
       }
@@ -44,20 +44,13 @@ const sendForceUpdate = (aedes, moduleId) => {
  */
 const sendForceUpdateToAllOnline = async (aedes, moduleRegistry) => {
   const allStatuses = moduleRegistry.getAllModuleStatuses();
-  console.log(`📊 Current module statuses:`, Object.keys(allStatuses));
-  
   const onlineModules = Object.keys(allStatuses).filter(
     (moduleId) => allStatuses[moduleId]?.status === "online"
   );
 
-  console.log(`📊 Online modules:`, onlineModules);
-
   if (onlineModules.length === 0) {
-    console.log("⚠️ No online modules to send force_update to");
     return 0;
   }
-
-  console.log(`🔄 Requesting fresh data from ${onlineModules.length} online module(s)...`);
 
   // Send commands to all online modules
   const results = await Promise.all(
@@ -65,7 +58,10 @@ const sendForceUpdateToAllOnline = async (aedes, moduleRegistry) => {
   );
 
   const successCount = results.filter((success) => success).length;
-  console.log(`✅ Sent force_update to ${successCount}/${onlineModules.length} module(s)`);
+  
+  if (process.env.DEBUG_MQTT) {
+    console.log(`📤 Requested fresh data from ${successCount}/${onlineModules.length} module(s)`);
+  }
 
   return successCount;
 };
