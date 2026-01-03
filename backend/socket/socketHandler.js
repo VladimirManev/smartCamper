@@ -30,8 +30,8 @@ const setupSocketIO = (io, aedes) => {
     const topic = packet.topic;
     const message = packet.payload.toString();
 
-    // Log MQTT message (only if DEBUG_MQTT is set)
-    if (process.env.DEBUG_MQTT) {
+    // Log MQTT message (always log heartbeat topics for debugging)
+    if (topic.includes("heartbeat") || process.env.DEBUG_MQTT) {
       console.log(`📨 MQTT: ${topic} = ${message}`);
     }
 

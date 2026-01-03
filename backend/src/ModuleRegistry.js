@@ -44,6 +44,8 @@ class ModuleRegistry {
     const now = Date.now();
     const wasOnline = this.isModuleOnline(moduleId);
     
+    console.log(`📊 Processing heartbeat for ${moduleId}, wasOnline: ${wasOnline}`);
+    
     // Update or create module entry
     const moduleInfo = {
       status: "online",
@@ -57,10 +59,13 @@ class ModuleRegistry {
     
     this.modules.set(moduleId, moduleInfo);
     
-    // If status changed from offline to online, notify
+    // Always notify on heartbeat (for debugging, can optimize later)
+    console.log(`📤 Notifying status change for ${moduleId}`);
+    this.notifyStatusChange();
+    
+    // If status changed from offline to online, log it
     if (!wasOnline) {
       console.log(`✅ Module ${moduleId} came online`);
-      this.notifyStatusChange();
     }
   }
 
@@ -165,7 +170,10 @@ class ModuleRegistry {
   notifyStatusChange() {
     if (this.onStatusChange) {
       const allStatuses = this.getAllModuleStatuses();
+      console.log(`📡 Emitting moduleStatusUpdate with:`, JSON.stringify(allStatuses, null, 2));
       this.onStatusChange(allStatuses);
+    } else {
+      console.log(`⚠️ No onStatusChange callback set!`);
     }
   }
 
