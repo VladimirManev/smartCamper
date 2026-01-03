@@ -58,7 +58,10 @@ void ModuleManager::loop() {
   // Update Heartbeat Manager (must be after MQTT loop)
   heartbeatManager.loop();
   
-  // Command Handler loop is handled internally if needed
+  // Update Command Handler (handles subscription when MQTT connects)
+  if (commandHandler) {
+    commandHandler->loop();
+  }
 }
 
 bool ModuleManager::isConnected() {

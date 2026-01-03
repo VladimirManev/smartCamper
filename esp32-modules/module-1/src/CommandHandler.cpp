@@ -32,6 +32,7 @@ CommandHandler::CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String 
   this->sensorManager = sensor;
   this->moduleId = moduleId;
   this->lastForceUpdate = 0;
+  this->isSubscribed = false;  // Track subscription status
   
   // Set current instance for static methods
   currentInstance = this;
@@ -44,17 +45,33 @@ void CommandHandler::begin() {
     return;
   }
   
-  // Subscribe to commands
-  String commandTopic = MQTT_TOPIC_COMMANDS + moduleId + "/#";
-  bool subscribed = mqttManager->subscribeToCommands(moduleId);
-  
   Serial.println("📨 Command Handler initialized for: " + moduleId);
-  Serial.println("📥 Subscribed to: " + commandTopic + (subscribed ? " (OK)" : " (FAILED)"));
   Serial.println("📥 Will listen for: " + String(MQTT_TOPIC_COMMANDS) + moduleId + "/force_update");
+  Serial.println("⏳ Waiting for MQTT connection to subscribe...");
+  
+  // Don't subscribe here - will subscribe in loop() when MQTT is connected
+  isSubscribed = false;
 }
 
 void CommandHandler::loop() {
-  // Nothing special for loop
+  // Try to subscribe if MQTT is connected but we haven't subscribed yet
+  if (mqttManager != nullptr && mqttManager->isMQTTConnected() && !isSubscribed) {
+    String commandTopic = MQTT_TOPIC_COMMANDS + moduleId + "/#";
+    bool subscribed = mqttManager->subscribeToCommands(moduleId);
+    
+    if (subscribed) {
+      isSubscribed = true;
+      Serial.println("✅ Successfully subscribed to: " + commandTopic);
+    } else {
+      Serial.println("⚠️ Failed to subscribe to: " + commandTopic + " (will retry)");
+    }
+  }
+  
+  // If MQTT disconnects, mark as not subscribed so we resubscribe when reconnected
+  if (mqttManager != nullptr && !mqttManager->isMQTTConnected() && isSubscribed) {
+    isSubscribed = false;
+    Serial.println("⚠️ MQTT disconnected - will resubscribe when reconnected");
+  }
 }
 
 void CommandHandler::handleMQTTMessage(char* topic, byte* payload, unsigned int length) {

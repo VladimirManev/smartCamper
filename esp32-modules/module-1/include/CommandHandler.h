@@ -16,6 +16,7 @@ private:
   SensorManager* sensorManager;
   String moduleId;
   unsigned long lastForceUpdate;
+  bool isSubscribed;  // Track if we're subscribed to command topics
   
   // Static pointer for MQTT callback
   static CommandHandler* currentInstance;
