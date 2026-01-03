@@ -163,7 +163,7 @@ void NetworkManager::disconnect() {
   }
 }
 
-bool NetworkManager::isWiFiConnected() {
+bool NetworkManager::isWiFiConnected() const {
   return isConnected && (WiFi.status() == WL_CONNECTED);
 }
 
@@ -193,6 +193,6 @@ bool NetworkManager::checkWiFiConnection() {
   return true;
 }
 
-String NetworkManager::getLocalIP() {
+String NetworkManager::getLocalIP() const {
   return WiFi.localIP().toString();
 }

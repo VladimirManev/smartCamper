@@ -26,16 +26,19 @@ public:
   
   void begin();
   void loop();
-  void loop(bool wifiConnected);  // Overload с WiFi статус
+  void loop(bool wifiConnected);  // Overload with WiFi status
   bool connect();
   void disconnect();
-  bool isMQTTConnected();
-  int getFailedAttempts();
+  bool isMQTTConnected();  // Cannot be const - PubSubClient methods are not const
+  int getFailedAttempts() const;
   
   // Publish data
   bool publishSensorData(String sensorType, String value);
   bool publishSensorData(String sensorType, float value);
   bool publishSensorData(String sensorType, int value);
+  
+  // Publish raw topic (for heartbeat, etc.)
+  bool publishRaw(String topic, String payload);
   
   // Subscribe to commands
   bool subscribeToCommands(String moduleType);
@@ -43,7 +46,7 @@ public:
   // Callback for received messages
   void setCallback(void (*callback)(char* topic, byte* payload, unsigned int length));
   
-  void printStatus();
+  void printStatus();  // Cannot be const - PubSubClient methods are not const
 };
 
 #endif

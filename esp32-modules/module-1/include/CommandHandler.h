@@ -14,11 +14,14 @@ class CommandHandler {
 private:
   MQTTManager* mqttManager;
   SensorManager* sensorManager;
-  String moduleType;
+  String moduleId;
   unsigned long lastForceUpdate;
+  
+  // Static pointer for MQTT callback
+  static CommandHandler* currentInstance;
 
 public:
-  CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String moduleType);
+  CommandHandler(MQTTManager* mqtt, SensorManager* sensor, String moduleId);
   
   void begin();
   void loop();
@@ -26,10 +29,13 @@ public:
   // MQTT callback for commands
   void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
   
+  // Static callback for MQTTManager
+  static void handleMQTTMessageStatic(char* topic, byte* payload, unsigned int length);
+  
   // Force update function
   void forceUpdate();
   
-  void printStatus();
+  void printStatus() const;
 };
 
 #endif

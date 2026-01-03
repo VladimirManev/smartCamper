@@ -1,0 +1,206 @@
+/**
+ * Module Registry
+ * Tracks heartbeat status for all ESP32 modules
+ * Provides centralized module status management
+ */
+
+class ModuleRegistry {
+  constructor() {
+    // Map of moduleId -> { status, lastHeartbeat, metadata }
+    this.modules = new Map();
+    
+    // Heartbeat timeout threshold (25 seconds = 2.5x heartbeat interval)
+    this.HEARTBEAT_TIMEOUT_MS = 25000;
+    
+    // Check interval (5 seconds)
+    this.CHECK_INTERVAL_MS = 5000;
+    
+    // Interval timer for periodic checks
+    this.checkInterval = null;
+    
+    // Callback for status changes
+    this.onStatusChange = null;
+  }
+
+  /**
+   * Initialize the registry
+   * @param {Function} onStatusChange - Callback when module status changes
+   */
+  initialize(onStatusChange) {
+    this.onStatusChange = onStatusChange;
+    
+    // Start periodic check for missing heartbeats
+    this.startPeriodicCheck();
+    
+    console.log("📊 Module Registry initialized");
+  }
+
+  /**
+   * Process heartbeat message from module
+   * @param {string} moduleId - Module identifier
+   * @param {Object} heartbeatData - Heartbeat payload data
+   */
+  processHeartbeat(moduleId, heartbeatData) {
+    const now = Date.now();
+    const wasOnline = this.isModuleOnline(moduleId);
+    
+    // Update or create module entry
+    const moduleInfo = {
+      status: "online",
+      lastHeartbeat: now,
+      moduleId: moduleId,
+      timestamp: heartbeatData.timestamp || null,
+      uptime: heartbeatData.uptime || null,
+      wifiRSSI: heartbeatData.wifiRSSI || null,
+      metadata: heartbeatData,
+    };
+    
+    this.modules.set(moduleId, moduleInfo);
+    
+    // If status changed from offline to online, notify
+    if (!wasOnline) {
+      console.log(`✅ Module ${moduleId} came online`);
+      this.notifyStatusChange();
+    }
+  }
+
+  /**
+   * Check if module is online
+   * @param {string} moduleId - Module identifier
+   * @returns {boolean} True if module is online
+   */
+  isModuleOnline(moduleId) {
+    const module = this.modules.get(moduleId);
+    if (!module) {
+      return false;
+    }
+    
+    const now = Date.now();
+    const timeSinceLastHeartbeat = now - module.lastHeartbeat;
+    
+    return timeSinceLastHeartbeat < this.HEARTBEAT_TIMEOUT_MS;
+  }
+
+  /**
+   * Get module status
+   * @param {string} moduleId - Module identifier
+   * @returns {Object|null} Module status object or null if not found
+   */
+  getModuleStatus(moduleId) {
+    const module = this.modules.get(moduleId);
+    if (!module) {
+      return null;
+    }
+    
+    const isOnline = this.isModuleOnline(moduleId);
+    
+    return {
+      moduleId: moduleId,
+      status: isOnline ? "online" : "offline",
+      lastSeen: new Date(module.lastHeartbeat).toISOString(),
+      lastHeartbeat: module.lastHeartbeat,
+      uptime: module.uptime,
+      wifiRSSI: module.wifiRSSI,
+      metadata: module.metadata,
+    };
+  }
+
+  /**
+   * Get all module statuses
+   * @returns {Object} Map of moduleId -> status
+   */
+  getAllModuleStatuses() {
+    const statuses = {};
+    
+    for (const [moduleId, module] of this.modules.entries()) {
+      statuses[moduleId] = this.getModuleStatus(moduleId);
+    }
+    
+    return statuses;
+  }
+
+  /**
+   * Start periodic check for missing heartbeats
+   */
+  startPeriodicCheck() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+    }
+    
+    this.checkInterval = setInterval(() => {
+      this.checkHeartbeats();
+    }, this.CHECK_INTERVAL_MS);
+  }
+
+  /**
+   * Check all modules for missing heartbeats
+   */
+  checkHeartbeats() {
+    const now = Date.now();
+    let statusChanged = false;
+    
+    for (const [moduleId, module] of this.modules.entries()) {
+      const wasOnline = module.status === "online";
+      const timeSinceLastHeartbeat = now - module.lastHeartbeat;
+      const isOnline = timeSinceLastHeartbeat < this.HEARTBEAT_TIMEOUT_MS;
+      
+      if (wasOnline !== isOnline) {
+        module.status = isOnline ? "online" : "offline";
+        statusChanged = true;
+        
+        if (!isOnline) {
+          console.log(`⚠️ Module ${moduleId} went offline (last heartbeat: ${Math.round(timeSinceLastHeartbeat / 1000)}s ago)`);
+        }
+      }
+    }
+    
+    if (statusChanged) {
+      this.notifyStatusChange();
+    }
+  }
+
+  /**
+   * Notify about status changes
+   */
+  notifyStatusChange() {
+    if (this.onStatusChange) {
+      const allStatuses = this.getAllModuleStatuses();
+      this.onStatusChange(allStatuses);
+    }
+  }
+
+  /**
+   * Stop periodic check
+   */
+  stop() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+  }
+
+  /**
+   * Get registry statistics
+   * @returns {Object} Statistics about modules
+   */
+  getStatistics() {
+    const stats = {
+      totalModules: this.modules.size,
+      onlineModules: 0,
+      offlineModules: 0,
+    };
+    
+    for (const [moduleId] of this.modules.entries()) {
+      if (this.isModuleOnline(moduleId)) {
+        stats.onlineModules++;
+      } else {
+        stats.offlineModules++;
+      }
+    }
+    
+    return stats;
+  }
+}
+
+module.exports = ModuleRegistry;
+

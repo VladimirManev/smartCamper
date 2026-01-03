@@ -153,6 +153,27 @@ bool MQTTManager::publishSensorData(String sensorType, int value) {
   return publishSensorData(sensorType, String(value));
 }
 
+bool MQTTManager::publishRaw(String topic, String payload) {
+  if (!isMQTTConnected()) {
+    if (DEBUG_SERIAL) {
+      Serial.println("❌ Cannot publish - MQTT not connected");
+    }
+    return false;
+  }
+  
+  bool result = mqttClient.publish(topic.c_str(), payload.c_str());
+  
+  if (DEBUG_MQTT) {
+    if (result) {
+      Serial.println("📤 Published: " + topic + " = " + payload);
+    } else {
+      Serial.println("❌ Failed to publish: " + topic + " = " + payload);
+    }
+  }
+  
+  return result;
+}
+
 bool MQTTManager::subscribeToCommands(String moduleType) {
   if (!isMQTTConnected()) {
     if (DEBUG_SERIAL) {
@@ -179,7 +200,7 @@ void MQTTManager::setCallback(void (*callback)(char* topic, byte* payload, unsig
   mqttClient.setCallback(callback);
 }
 
-int MQTTManager::getFailedAttempts() {
+int MQTTManager::getFailedAttempts() const {
   return failedAttempts;
 }
 
