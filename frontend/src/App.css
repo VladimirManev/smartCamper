@@ -82,6 +82,25 @@ body {
   margin: 0 auto;
 }
 
+/* Tablet and larger screens - more columns */
+@media (min-width: 768px) {
+  .main-content {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .main-content {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .main-content {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
 /* Sensor cards container - no longer used, but kept for backward compatibility */
 .sensor-cards {
   display: contents; /* All children become direct children of main-content */
@@ -113,6 +132,9 @@ body {
   overflow: visible;
   width: 100%;
   height: 100%;
+  max-width: 150px;
+  max-height: 150px;
+  margin: 0 auto;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
@@ -353,7 +375,7 @@ body {
 /* Tablet and smaller screens */
 @media (max-width: 1024px) {
   .main-content {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.9rem;
     width: 100%;
   }
@@ -361,6 +383,12 @@ body {
   .app {
     padding: 1rem;
     padding-top: 4rem;
+  }
+
+  .sensor-card,
+  .led-card {
+    max-width: 140px;
+    max-height: 140px;
   }
 }
 
