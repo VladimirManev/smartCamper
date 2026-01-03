@@ -8,6 +8,7 @@ const ModuleRegistry = require("../src/ModuleRegistry");
 const heartbeatHandler = require("./handlers/heartbeatHandler");
 const sensorDataHandler = require("./handlers/sensorDataHandler");
 const ledCommandHandler = require("./handlers/ledCommandHandler");
+const { sendForceUpdateToAllOnline } = require("./handlers/moduleCommandHandler");
 
 const setupSocketIO = (io, aedes) => {
   // Initialize Module Registry for heartbeat tracking
@@ -30,8 +31,8 @@ const setupSocketIO = (io, aedes) => {
     const topic = packet.topic;
     const message = packet.payload.toString();
 
-    // Log MQTT message (always log heartbeat topics for debugging)
-    if (topic.includes("heartbeat") || process.env.DEBUG_MQTT) {
+    // Log MQTT message (only if DEBUG_MQTT is set)
+    if (process.env.DEBUG_MQTT) {
       console.log(`📨 MQTT: ${topic} = ${message}`);
     }
 
@@ -60,6 +61,11 @@ const setupSocketIO = (io, aedes) => {
     socket.emit("moduleStatusUpdate", {
       modules: allStatuses,
       timestamp: new Date().toISOString(),
+    });
+
+    // Request fresh data from all online modules when frontend connects
+    sendForceUpdateToAllOnline(aedes, moduleRegistry).catch((err) => {
+      console.log(`❌ Error requesting fresh data: ${err.message}`);
     });
 
     // Handle LED commands from frontend

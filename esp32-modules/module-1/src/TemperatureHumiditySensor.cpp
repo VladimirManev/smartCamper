@@ -121,19 +121,18 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
   // Check for changes
   bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
   bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
-  bool dataHeartbeatNeeded = (currentTime - lastDataSent > HEARTBEAT_INTERVAL);
   
-  // Publish if there's a change OR data heartbeat needed OR first read
-  if (tempChanged || humidityChanged || dataHeartbeatNeeded || lastTemperature == 0.0) {
-    // Publish only changed data OR on data heartbeat
-    if (tempChanged || dataHeartbeatNeeded || lastTemperature == 0.0) {
+  // Publish if there's a change OR first read (no data heartbeat - heartbeat system handles that)
+  if (tempChanged || humidityChanged || lastTemperature == 0.0) {
+    // Publish only changed data OR on first read
+    if (tempChanged || lastTemperature == 0.0) {
       mqttManager->publishSensorData("temperature", temperature);
       if (DEBUG_SERIAL) {
         Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
       }
     }
     
-    if (humidityChanged || dataHeartbeatNeeded || lastHumidity == 0.0) {
+    if (humidityChanged || lastHumidity == 0.0) {
       mqttManager->publishSensorData("humidity", humidity);
       if (DEBUG_SERIAL) {
         Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));
