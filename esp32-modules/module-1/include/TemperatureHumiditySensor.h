@@ -19,6 +19,7 @@ private:
   float lastTemperature;
   float lastHumidity;
   bool forceUpdateRequested;
+  bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
   
   // Sensor reading functions
   float readTemperature();

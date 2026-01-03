@@ -20,6 +20,7 @@ TemperatureHumiditySensor::TemperatureHumiditySensor(MQTTManager* mqtt, uint8_t 
   this->lastTemperature = 0.0;
   this->lastHumidity = 0.0;
   this->forceUpdateRequested = false;
+  this->lastMQTTState = false;  // Initialize as disconnected
 }
 
 void TemperatureHumiditySensor::begin() {
@@ -35,8 +36,23 @@ void TemperatureHumiditySensor::loop() {
     return;  // Cannot proceed without MQTT manager
   }
   
+  bool mqttConnected = mqttManager->isMQTTConnected();
+  
+  // Detect MQTT reconnection (transition from disconnected to connected)
+  if (mqttConnected && !lastMQTTState) {
+    // MQTT just connected/reconnected - send sensor data immediately
+    if (DEBUG_SERIAL) {
+      Serial.println("🔄 MQTT reconnected - will send sensor data immediately");
+    }
+    // Force a sensor read and publish on next iteration
+    forceUpdateRequested = true;
+  }
+  
+  // Update last known MQTT state
+  lastMQTTState = mqttConnected;
+  
   // Check if MQTT is connected
-  if (!mqttManager->isMQTTConnected()) {
+  if (!mqttConnected) {
     return;
   }
   
