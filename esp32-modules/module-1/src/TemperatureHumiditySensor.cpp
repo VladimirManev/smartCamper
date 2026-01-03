@@ -42,7 +42,8 @@ void TemperatureHumiditySensor::loop() {
   
   // Read sensors at intervals OR on force update
   unsigned long currentTime = millis();
-  if (currentTime - lastSensorRead > SENSOR_READ_INTERVAL || forceUpdateRequested) {
+  bool isForceUpdate = forceUpdateRequested;
+  if (currentTime - lastSensorRead > SENSOR_READ_INTERVAL || isForceUpdate) {
     lastSensorRead = currentTime;
     
     // Read data from sensor
@@ -51,7 +52,7 @@ void TemperatureHumiditySensor::loop() {
     
     // Publish if valid and needed
     if (!isnan(temperature) && !isnan(humidity)) {
-      publishIfNeeded(temperature, humidity, currentTime);
+      publishIfNeeded(temperature, humidity, currentTime, isForceUpdate);
       forceUpdateRequested = false;
     } else {
       if (DEBUG_SERIAL) {
@@ -88,7 +89,7 @@ float TemperatureHumiditySensor::readHumidity() {
   return humidity;
 }
 
-void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidity, unsigned long currentTime) {
+void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidity, unsigned long currentTime, bool forcePublish) {
   // Validate mqttManager pointer
   if (mqttManager == nullptr) {
     if (DEBUG_SERIAL) {
@@ -122,17 +123,17 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
   bool tempChanged = (abs(temperature - lastTemperature) >= TEMP_THRESHOLD);
   bool humidityChanged = (abs(humidity - lastHumidity) >= HUMIDITY_THRESHOLD);
   
-  // Publish if there's a change OR first read (no data heartbeat - heartbeat system handles that)
-  if (tempChanged || humidityChanged || lastTemperature == 0.0) {
-    // Publish only changed data OR on first read
-    if (tempChanged || lastTemperature == 0.0) {
+  // Publish if there's a change OR first read OR force update requested
+  if (tempChanged || humidityChanged || lastTemperature == 0.0 || forcePublish) {
+    // Publish if changed, first read, or forced
+    if (tempChanged || lastTemperature == 0.0 || forcePublish) {
       mqttManager->publishSensorData("temperature", temperature);
       if (DEBUG_SERIAL) {
         Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
       }
     }
     
-    if (humidityChanged || lastHumidity == 0.0) {
+    if (humidityChanged || lastHumidity == 0.0 || forcePublish) {
       mqttManager->publishSensorData("humidity", humidity);
       if (DEBUG_SERIAL) {
         Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));

@@ -25,7 +25,7 @@ private:
   float readHumidity();
   
   // Publishing logic
-  void publishIfNeeded(float temperature, float humidity, unsigned long currentTime);
+  void publishIfNeeded(float temperature, float humidity, unsigned long currentTime, bool forcePublish = false);
 
 public:
   TemperatureHumiditySensor(MQTTManager* mqtt, uint8_t pin, uint8_t type);
