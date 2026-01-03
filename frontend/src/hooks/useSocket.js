@@ -4,7 +4,7 @@
  * Provides socket instance and connection status
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import io from "socket.io-client";
 
 /**
@@ -12,9 +12,9 @@ import io from "socket.io-client";
  * @returns {Object} { socket, connected, error }
  */
 export const useSocket = () => {
+  const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
-  const socketRef = useRef(null);
 
   useEffect(() => {
     // Determine socket URL based on environment
@@ -23,37 +23,47 @@ export const useSocket = () => {
       ? "http://192.168.4.1:3000" // Raspberry Pi IP for development
       : window.location.origin; // Production - same host
 
+    console.log("🔌 Creating socket connection to:", socketUrl);
+
     // Create socket connection
-    const socket = io(socketUrl);
-    socketRef.current = socket;
+    const socketInstance = io(socketUrl);
+    setSocket(socketInstance);
 
     // Connection event handlers
-    socket.on("connect", () => {
+    socketInstance.on("connect", () => {
       console.log("✅ Connected to backend");
       setConnected(true);
       setError(null);
     });
 
-    socket.on("disconnect", () => {
+    socketInstance.on("disconnect", () => {
       console.log("❌ Disconnected from backend");
       setConnected(false);
     });
 
-    socket.on("connect_error", (err) => {
+    socketInstance.on("connect_error", (err) => {
       console.error("❌ Connection error:", err);
       setError(err.message);
       setConnected(false);
     });
 
+    // Debug: Log all events for troubleshooting
+    socketInstance.onAny((eventName, ...args) => {
+      if (eventName !== "sensorData") { // Skip frequent sensor data events
+        console.log(`📡 Socket event: ${eventName}`, args);
+      }
+    });
+
     // Cleanup on unmount
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      console.log("🔌 Disconnecting socket...");
+      socketInstance.disconnect();
+      setSocket(null);
     };
   }, []);
 
   return {
-    socket: socketRef.current,
+    socket,
     connected,
     error,
   };
