@@ -18,7 +18,8 @@ LEDManager::LEDManager(ModuleManager* moduleMgr)
     relayController(),
     buttonHandler(&ledStripController, &relayController),
     pirSensorHandler(&ledStripController),
-    commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, nullptr, MODULE_ID) {
+    commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, nullptr, MODULE_ID),
+    pendingStatusUpdate(false) {
   
   // Validate input parameter
   if (moduleMgr == nullptr) {
@@ -44,6 +45,7 @@ void LEDManager::begin() {
   relayController.begin();
   
   // Initialize button handler
+  buttonHandler.setLEDManager(this);  // Set LEDManager reference for status publishing
   buttonHandler.begin();
   
   // Initialize PIR sensor handler
@@ -71,11 +73,19 @@ void LEDManager::loop() {
   
   // Update PIR sensor handler
   pirSensorHandler.loop();
+  
+  // Process pending status update (deferred from MQTT callback)
+  // This prevents blocking PubSubClient which can cause publish failures
+  if (pendingStatusUpdate) {
+    pendingStatusUpdate = false;
+    publishFullStatus();
+  }
 }
 
 void LEDManager::handleForceUpdate() {
-  // Force publish full status
-  publishFullStatus();
+  // Set flag to publish status in main loop (don't publish during MQTT callback)
+  // This prevents blocking PubSubClient which can cause publish failures
+  pendingStatusUpdate = true;
 }
 
 // Static MQTT callback method (wrapper for MQTTManager)

@@ -83,9 +83,7 @@ body {
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
 }
 
-.status-item:hover {
-  transform: scale(1.2);
-}
+/* Status item hover moved to @media (hover: hover) below */
 
 /* Main container for sensors and LED controls - iPhone menu style */
 .main-content {
@@ -305,11 +303,28 @@ body {
   touch-action: manipulation;
 }
 
-.sensor-card:hover,
-.led-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+/* Hover effects only for devices with hover capability (mouse/trackpad) */
+/* Touch devices will not trigger hover, preventing strange behavior */
+@media (hover: hover) and (pointer: fine) {
+  .sensor-card:hover,
+  .led-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  }
+
+  .status-item:hover {
+    transform: scale(1.2);
+  }
+
+  .sensor-card:hover .value {
+    transform: scale(1.05);
+  }
 }
 
 /* Active state for mobile devices */
@@ -340,10 +355,7 @@ body {
   pointer-events: none;
 }
 
-.led-card.disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
+/* Disabled cards already have pointer-events: none, so hover won't trigger anyway */
 
 .sensor-card i {
   color: #3b82f6;
@@ -363,9 +375,7 @@ body {
   line-height: 1.2;
 }
 
-.sensor-card:hover .value {
-  transform: scale(1.05);
-}
+/* Sensor card value hover moved to @media (hover: hover) above */
 
 /* Water tank visualization */
 .water-tank-container {
@@ -430,20 +440,24 @@ body {
   border-radius: 50%;
   transition: all 0.3s ease;
   flex-shrink: 0;
+  /* Permanent blue glow effect around all buttons - inspired by hover effect */
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
 }
 
 /* OFF state - recessed */
 .neumorphic-button.off {
   background: #1e293b;
   box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
-    inset -6px -6px 12px rgba(255, 255, 255, 0.03);
+    inset -6px -6px 12px rgba(255, 255, 255, 0.03),
+    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
 }
 
 /* ON state - raised with gradient ring */
 .neumorphic-button.on {
   background: #1e293b;
   box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent;
+    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
+    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
 }
 
 .neumorphic-button.on::before {
@@ -504,7 +518,8 @@ body {
 .neumorphic-button.auto {
   background: #1e293b;
   box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent;
+    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
+    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
 }
 
 .neumorphic-button.auto::before {
@@ -538,10 +553,7 @@ body {
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
-.toggle-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-}
+/* Toggle button hover moved to @media (hover: hover) above */
 
 .toggle-btn:active {
   transform: translateY(0);

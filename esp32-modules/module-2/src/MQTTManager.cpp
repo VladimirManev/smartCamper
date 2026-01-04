@@ -29,11 +29,15 @@ MQTTManager::MQTTManager(String clientId, String brokerIP, int brokerPort) {
 
 void MQTTManager::begin() {
   mqttClient.setServer(brokerIP.c_str(), brokerPort);
+  // Increase MQTT buffer size to publish larger messages
+  // By default PubSubClient has a limit of 256 bytes, we increase it to 1024
+  mqttClient.setBufferSize(1024);
   
   if (DEBUG_SERIAL) {
     Serial.println("🔌 MQTT Manager initialized");
     Serial.println("Client ID: " + clientId);
     Serial.println("Broker: " + brokerIP + ":" + String(brokerPort));
+    Serial.println("MQTT Buffer Size: 1024 bytes");
   }
 }
 
@@ -161,13 +165,35 @@ bool MQTTManager::publishRaw(String topic, String payload) {
     return false;
   }
   
+  // Check payload size
+  unsigned int payloadLen = payload.length();
+  if (payloadLen > 1024) {
+    if (DEBUG_SERIAL) {
+      Serial.println("❌ Payload too large: " + String(payloadLen) + " bytes (max 1024)");
+    }
+    return false;
+  }
+  
+  // PubSubClient::publish returns false if:
+  // 1. Not connected
+  // 2. Payload is too large for buffer
+  // 3. Client is busy with previous publish
+  
   bool result = mqttClient.publish(topic.c_str(), payload.c_str());
   
-  if (DEBUG_MQTT) {
+  if (DEBUG_MQTT || !result) {
     if (result) {
       Serial.println("📤 Published: " + topic + " = " + payload);
     } else {
-      Serial.println("❌ Failed to publish: " + topic + " = " + payload);
+      Serial.println("❌ Failed to publish: " + topic);
+      Serial.println("   Payload length: " + String(payloadLen) + " bytes");
+      Serial.println("   MQTT state: " + String(mqttClient.state()));
+      Serial.println("   MQTT connected: " + String(mqttClient.connected() ? "yes" : "no"));
+      
+      // Try to get more info about why it failed
+      if (!mqttClient.connected()) {
+        Serial.println("   ⚠️  MQTT client reports not connected");
+      }
     }
   }
   

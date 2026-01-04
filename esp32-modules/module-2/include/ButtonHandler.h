@@ -10,6 +10,7 @@
 // Forward declarations
 class LEDStripController;
 class RelayController;
+class LEDManager;
 
 // Button states
 enum ButtonState {
@@ -28,6 +29,7 @@ class ButtonHandler {
 private:
   LEDStripController* ledController;
   RelayController* relayController;
+  LEDManager* ledManager;  // For publishing status updates
   
   struct ButtonStateMachine {
     ButtonState state;
@@ -55,6 +57,9 @@ private:
   
 public:
   ButtonHandler(LEDStripController* ledCtrl, RelayController* relayCtrl);
+  
+  // Set LEDManager reference (for status publishing)
+  void setLEDManager(LEDManager* ledMgr);
   
   // Initialization
   void begin();

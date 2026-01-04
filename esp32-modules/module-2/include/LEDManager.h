@@ -25,6 +25,9 @@ private:
   
   // Static pointer for MQTT callback
   static LEDManager* currentInstance;
+  
+  // Flag to defer status publishing (to avoid publishing during MQTT callback)
+  bool pendingStatusUpdate;
 
 public:
   LEDManager(ModuleManager* moduleMgr);

@@ -65,12 +65,9 @@ void loop() {
   // This must be called first to ensure connectivity
   moduleManager.loop();
   
-  // Only update LED components if infrastructure is connected
-  if (moduleManager.isConnected()) {
-    // Update LED components (strips, buttons, PIR sensor)
-    ledManager.loop();
-  }
-  // If not connected, LED components will wait until connection is restored
+  // ALWAYS update LED components (strips, buttons, PIR sensor) - physical functions must work offline
+  // Status publishing will only happen if connected (handled inside LEDManager)
+  ledManager.loop();
   
   delay(10);  // Small delay to prevent overwhelming the system
 }

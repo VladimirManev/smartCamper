@@ -3,10 +3,11 @@
 #include "ButtonHandler.h"
 #include "LEDStripController.h"
 #include "RelayController.h"
+#include "LEDManager.h"
 #include "Config.h"
 
 ButtonHandler::ButtonHandler(LEDStripController* ledCtrl, RelayController* relayCtrl) 
-  : ledController(ledCtrl), relayController(relayCtrl) {
+  : ledController(ledCtrl), relayController(relayCtrl), ledManager(nullptr) {
   // Initialize button state machines
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttons[i].state = BUTTON_IDLE;
@@ -17,6 +18,10 @@ ButtonHandler::ButtonHandler(LEDStripController* ledCtrl, RelayController* relay
     buttons[i].lastDebounceTime = 0;
     buttons[i].debouncedState = false;
   }
+}
+
+void ButtonHandler::setLEDManager(LEDManager* ledMgr) {
+  ledManager = ledMgr;
 }
 
 void ButtonHandler::begin() {
@@ -90,6 +95,10 @@ void ButtonHandler::processButton(uint8_t btnIndex, unsigned long currentTime) {
           Serial.flush();
           if (relayController) {
             relayController->toggleRelay(0);
+            // Publish relay status update
+            if (ledManager) {
+              ledManager->publishRelayStatus();
+            }
           }
         } else {
           // Toggle strip
@@ -97,6 +106,10 @@ void ButtonHandler::processButton(uint8_t btnIndex, unsigned long currentTime) {
           Serial.flush();
           if (ledController) {
             ledController->toggleStrip(stripIndex);
+            // Publish strip status update
+            if (ledManager) {
+              ledManager->publishStripStatus(stripIndex);
+            }
           }
         }
       }
@@ -107,6 +120,10 @@ void ButtonHandler::processButton(uint8_t btnIndex, unsigned long currentTime) {
         btn.state = BUTTON_IDLE;
         if (!isRelayButton && ledController) {
           ledController->stopDimming(stripIndex);
+          // Publish strip status update after dimming stops
+          if (ledManager) {
+            ledManager->publishStripStatus(stripIndex);
+          }
         }
       }
       break;

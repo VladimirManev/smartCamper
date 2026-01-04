@@ -760,6 +760,8 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
     // Still transitioning
     state.brightness = newBrightness;
     updateStrip(stripIndex);
+    // Kitchen: synchronize extension strip during dimming
+    syncKitchenExtension(stripIndex);
   }
 }
 
@@ -935,6 +937,13 @@ void LEDStripController::startDimming(uint8_t stripIndex) {
   
   StripState& state = stripStates[stripIndex];
   if (!state.on || state.dimmingActive) return;
+  
+  // Stop any active transition when dimming starts (button has priority)
+  if (state.transition.active) {
+    state.transition.active = false;
+    // Update strip to current state before starting dimming
+    updateStrip(stripIndex);
+  }
   
   state.dimmingActive = true;
   state.isSmoothTransition = false;  // Button dimming, not smooth transition
