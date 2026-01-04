@@ -100,33 +100,155 @@ body {
 
 /* Main container for sensors and LED controls - iPhone menu style */
 .main-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.5rem;
   width: 100%;
   max-width: 100%;
-  justify-items: stretch;
-  align-items: stretch;
   padding: 0;
   margin: 0 auto;
 }
 
-/* Tablet and larger screens - more columns */
+/* Tablet and larger screens - larger cards */
 @media (min-width: 768px) {
-  .main-content {
-    grid-template-columns: repeat(4, 1fr);
+  .sensor-card,
+  .led-card {
+    width: 90px;
+    height: 90px;
+    min-width: 90px;
+    min-height: 90px;
+    max-width: 90px;
+    max-height: 90px;
+    border-radius: 18px;
+    padding: 0.75rem;
+  }
+
+  .card-label {
+    font-size: 0.6rem;
+    max-width: 90px;
+  }
+
+  .sensor-card i {
+    font-size: 1.8rem;
+  }
+
+  .value {
+    font-size: 1.5rem;
+  }
+
+  .neumorphic-button {
+    width: 65px;
+    height: 65px;
+    min-width: 65px;
+    min-height: 65px;
+  }
+
+  .button-text {
+    font-size: 0.8rem;
+  }
+
+  .water-tank {
+    max-width: 90px;
+    max-height: 90px;
+  }
+
+  .water-tank-temperature {
+    font-size: 20px;
   }
 }
 
 @media (min-width: 1024px) {
-  .main-content {
-    grid-template-columns: repeat(6, 1fr);
+  .sensor-card,
+  .led-card {
+    width: 110px;
+    height: 110px;
+    min-width: 110px;
+    min-height: 110px;
+    max-width: 110px;
+    max-height: 110px;
+    border-radius: 20px;
+    padding: 1rem;
+  }
+
+  .card-label {
+    font-size: 0.65rem;
+    max-width: 110px;
+  }
+
+  .sensor-card i {
+    font-size: 2rem;
+  }
+
+  .value {
+    font-size: 1.8rem;
+  }
+
+  .neumorphic-button {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+  }
+
+  .button-text {
+    font-size: 0.9rem;
+  }
+
+  .water-tank {
+    max-width: 110px;
+    max-height: 110px;
+  }
+
+  .water-tank-temperature {
+    font-size: 22px;
   }
 }
 
 @media (min-width: 1440px) {
-  .main-content {
-    grid-template-columns: repeat(8, 1fr);
+  .sensor-card,
+  .led-card {
+    width: 130px;
+    height: 130px;
+    min-width: 130px;
+    min-height: 130px;
+    max-width: 130px;
+    max-height: 130px;
+    padding: 1.25rem;
+  }
+
+  .card-label {
+    font-size: 0.7rem;
+    max-width: 130px;
+  }
+
+  .sensor-card i {
+    font-size: 2.2rem;
+  }
+
+  .value {
+    font-size: 2rem;
+  }
+
+  .neumorphic-button {
+    width: 95px;
+    height: 95px;
+    min-width: 95px;
+    min-height: 95px;
+  }
+
+  .button-text {
+    font-size: 1rem;
+  }
+
+  .water-tank {
+    max-width: 130px;
+    max-height: 130px;
+  }
+
+  .water-tank-temperature {
+    font-size: 24px;
   }
 }
 
@@ -140,30 +262,56 @@ body {
   display: contents; /* All children become direct children of main-content */
 }
 
+/* Card wrapper - contains card and label below */
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* Card label below the card */
+.card-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #f5f5f5;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  text-align: center;
+  margin: 0;
+  line-height: 1.3;
+  max-width: 70px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
 /* Sensor cards - unified with LED cards */
 .sensor-card,
 .led-card {
   background: #1e293b;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 20px;
+  border-radius: 16px;
   transition: all 0.3s ease;
-  padding: 1.5rem;
+  padding: 0.5rem;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2),
+  gap: 0;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
   position: relative;
-  overflow: visible;
-  width: 100%;
-  height: 100%;
-  max-width: 150px;
-  max-height: 150px;
-  margin: 0 auto;
+  overflow: hidden;
+  width: 70px;
+  height: 70px;
+  min-width: 70px;
+  min-height: 70px;
+  max-width: 70px;
+  max-height: 70px;
+  margin: 0;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
@@ -196,12 +344,12 @@ body {
 
 .sensor-card i {
   color: #3b82f6;
-  font-size: 2.1rem;
+  font-size: 1.5rem;
   margin: 0;
 }
 
 .value {
-  font-size: 2.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #3b82f6;
   margin: 0;
@@ -219,7 +367,7 @@ body {
 /* Water tank visualization */
 .water-tank-container {
   width: 100%;
-  height: 105px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,28 +377,21 @@ body {
 
 .water-tank {
   width: 100%;
-  max-width: 105px;
   height: 100%;
+  max-width: 70px;
+  max-height: 70px;
 }
 
 .water-tank-card {
   position: relative;
   overflow: hidden;
   justify-content: center;
-  padding: 1rem;
-  gap: 0.5rem;
+  padding: 0.25rem;
+  gap: 0;
 }
 
 .water-tank-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #94a3b8;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1.2;
-  flex-shrink: 0;
-  text-align: center;
+  display: none; /* Hide label inside card, will be shown below via card-label */
 }
 
 .water-tank-temperature {
@@ -260,6 +401,7 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   user-select: none;
+  font-size: 16px;
 }
 
 .led-card {
@@ -268,22 +410,16 @@ body {
 }
 
 .led-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #94a3b8;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1.2;
+  display: none; /* Hide label inside card, will be shown below via card-label */
 }
 
 /* Neumorphic button container */
 .neumorphic-button {
   position: relative;
-  width: 105px;
-  height: 105px;
-  min-width: 105px;
-  min-height: 105px;
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  min-height: 50px;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -345,10 +481,10 @@ body {
 .button-text {
   position: relative;
   z-index: 2;
-  font-size: 1rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
   transition: color 0.3s ease;
 }
 
@@ -408,42 +544,8 @@ body {
   transform: translateY(0);
 }
 
-/* Responsive design */
-
-/* Tablet and smaller screens */
-@media (max-width: 1024px) {
-  .main-content {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.9rem;
-    width: 100%;
-  }
-
-  .app {
-    padding: 1rem;
-    padding-top: 4rem;
-  }
-
-  .sensor-card,
-  .led-card {
-    max-width: 140px;
-    max-height: 140px;
-  }
-}
-
-/* Mobile devices - medium size */
+/* Responsive design - Status icons */
 @media (max-width: 768px) {
-  .app {
-    padding: 0.75rem;
-    padding-top: 3.5rem;
-    gap: 0.75rem;
-  }
-
-  .main-content {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    width: 100%;
-  }
-
   .status-icons {
     top: 0.5rem;
     left: 0.5rem;
@@ -460,153 +562,14 @@ body {
     font-size: 0.85rem;
   }
 
-  .sensor-card,
-  .led-card {
-    padding: 1rem;
-    border-radius: 15px;
-  }
-
-  .sensor-card i {
-    font-size: 1.6rem;
-  }
-
-  .value {
-    font-size: 1.5rem;
-  }
-
-  .led-name {
-    font-size: 0.8rem;
-  }
-
-  .water-tank-label {
-    font-size: 0.65rem;
-  }
-
-  .water-tank-container {
-    height: 70px;
-  }
-
-  .water-tank {
-    max-width: 70px;
-  }
-
-  .water-tank-temperature {
-    font-size: 18px;
-  }
-
-  .water-tank-card {
-    padding: 0.8rem;
-    gap: 0.3rem;
-  }
-
-  .neumorphic-button {
-    width: 70px;
-    height: 70px;
-    min-width: 70px;
-    min-height: 70px;
-  }
-
-  .button-text {
-    font-size: 0.85rem;
-    letter-spacing: 0.3px;
-  }
-}
-
-/* Specific for iPhone SE and similar (375px) */
-@media (max-width: 375px) {
   .app {
-    padding: 0.5rem;
-    padding-top: 3rem;
-    gap: 0.5rem;
-  }
-
-  .main-content {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.6rem;
-    width: 100%;
-  }
-
-  .status-icons {
-    top: 0.4rem;
-    left: 0.4rem;
-    gap: 0.4rem;
-  }
-
-  .status-item {
-    font-size: 1rem;
-  }
-
-  .status-number {
-    width: 1.6rem;
-    height: 1.6rem;
-    font-size: 0.8rem;
-  }
-
-  .sensor-card,
-  .led-card {
-    padding: 0.7rem;
-    border-radius: 12px;
-  }
-
-  .sensor-card i {
-    font-size: 1.2rem;
-  }
-
-  .value {
-    font-size: 1.2rem;
-  }
-
-  .led-name {
-    font-size: 0.65rem;
-  }
-
-  .water-tank-label {
-    font-size: 0.55rem;
-  }
-
-  .water-tank-container {
-    height: 55px;
-  }
-
-  .water-tank {
-    max-width: 55px;
-  }
-
-  .water-tank-temperature {
-    font-size: 14px;
-  }
-
-  .water-tank-card {
-    padding: 0.6rem;
-    gap: 0.2rem;
-  }
-
-  .neumorphic-button {
-    width: 55px;
-    height: 55px;
-    min-width: 55px;
-    min-height: 55px;
-  }
-
-  .button-text {
-    font-size: 0.65rem;
+    padding: 0.75rem;
+    padding-top: 3.5rem;
+    gap: 0.75rem;
   }
 }
 
-/* Small mobile devices */
 @media (max-width: 480px) {
-  .app {
-    padding: 0.5rem;
-    padding-top: 3rem;
-    gap: 0.5rem;
-  }
-
-  .main-content {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.6rem;
-    width: 100%;
-  }
-
   .status-icons {
     top: 0.5rem;
     left: 0.5rem;
@@ -623,71 +586,38 @@ body {
     font-size: 0.82rem;
   }
 
-  .sensor-card,
-  .led-card {
-    padding: 0.9rem;
-    border-radius: 12px;
-  }
-
-  .sensor-card i {
-    font-size: 1.4rem;
-  }
-
-  .value {
-    font-size: 1.4rem;
-  }
-
-  .led-name {
-    font-size: 0.75rem;
-  }
-
-  .water-tank-label {
-    font-size: 0.6rem;
-  }
-
-  .water-tank-container {
-    height: 65px;
-  }
-
-  .water-tank {
-    max-width: 65px;
-  }
-
-  .water-tank-temperature {
-    font-size: 20px;
-  }
-
-  .water-tank-card {
-    padding: 0.7rem;
-    gap: 0.25rem;
-  }
-
-  .neumorphic-button {
-    width: 65px;
-    height: 65px;
-    min-width: 65px;
-    min-height: 65px;
-  }
-
-  .button-text {
-    font-size: 0.75rem;
+  .app {
+    padding: 0.5rem;
+    padding-top: 3rem;
+    gap: 0.5rem;
   }
 }
 
-/* Very small screens */
-@media (max-width: 360px) {
-  .app {
-    padding: 0.4rem;
-    padding-top: 2.5rem;
+@media (max-width: 375px) {
+  .status-icons {
+    top: 0.4rem;
+    left: 0.4rem;
     gap: 0.4rem;
   }
 
-  .main-content {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-    width: 100%;
+  .status-item {
+    font-size: 1rem;
   }
 
+  .status-number {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.8rem;
+  }
+
+  .app {
+    padding: 0.5rem;
+    padding-top: 3rem;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 360px) {
   .status-icons {
     top: 0.25rem;
     left: 0.25rem;
@@ -704,54 +634,10 @@ body {
     font-size: 0.75rem;
   }
 
-  .sensor-card,
-  .led-card {
-    padding: 0.8rem;
-    border-radius: 10px;
-  }
-
-  .sensor-card i {
-    font-size: 1.3rem;
-  }
-
-  .value {
-    font-size: 1.3rem;
-  }
-
-  .led-name {
-    font-size: 0.7rem;
-  }
-
-  .water-tank-label {
-    font-size: 0.55rem;
-  }
-
-  .water-tank-container {
-    height: 60px;
-  }
-
-  .water-tank {
-    max-width: 60px;
-  }
-
-  .water-tank-temperature {
-    font-size: 16px;
-  }
-
-  .water-tank-card {
-    padding: 0.6rem;
-    gap: 0.2rem;
-  }
-
-  .neumorphic-button {
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
-    min-height: 60px;
-  }
-
-  .button-text {
-    font-size: 0.7rem;
+  .app {
+    padding: 0.4rem;
+    padding-top: 2.5rem;
+    gap: 0.4rem;
   }
 }
 
@@ -760,22 +646,5 @@ body {
   .app {
     padding-top: 3rem;
     gap: 0.5rem;
-  }
-
-  .main-content {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
-
-  .sensor-card,
-  .led-card {
-    padding: 0.5rem;
-  }
-
-  .neumorphic-button {
-    width: 45px;
-    height: 45px;
-    min-width: 45px;
-    min-height: 45px;
   }
 }

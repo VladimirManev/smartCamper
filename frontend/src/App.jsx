@@ -73,66 +73,90 @@ function App() {
 
       <div className="main-content">
         {/* Temperature Sensor */}
-        <SensorCard
-          icon="fas fa-thermometer-half"
-          value={temperature}
-          unit="°C"
-          decimals={1}
-          disabled={!isModule1Online}
-        />
+        <div className="card-wrapper">
+          <SensorCard
+            icon="fas fa-thermometer-half"
+            value={temperature}
+            unit="°C"
+            decimals={1}
+            disabled={!isModule1Online}
+          />
+          <p className="card-label">Temp</p>
+        </div>
 
         {/* Humidity Sensor */}
-        <SensorCard
-          icon="fas fa-tint"
-          value={humidity}
-          unit="%"
-          decimals={0}
-          disabled={!isModule1Online}
-        />
+        <div className="card-wrapper">
+          <SensorCard
+            icon="fas fa-tint"
+            value={humidity}
+            unit="%"
+            decimals={0}
+            disabled={!isModule1Online}
+          />
+          <p className="card-label">Humidity</p>
+        </div>
 
         {/* Gray Water Tank */}
-        <GrayWaterTank
-          level={grayWaterLevel}
-          temperature={grayWaterTemperature}
-          disabled={!isModule1Online}
-        />
+        <div className="card-wrapper">
+          <GrayWaterTank
+            level={grayWaterLevel}
+            temperature={grayWaterTemperature}
+            disabled={!isModule1Online}
+          />
+          <p className="card-label">Gray Water</p>
+        </div>
 
         {/* LED Strips */}
-        <LEDCard
-          name="Kitchen"
-          strip={ledStrips[0]}
-          onClick={() => handleStripToggle(0)}
-          type="strip"
-        />
+        <div className="card-wrapper">
+          <LEDCard
+            name="Kitchen"
+            strip={ledStrips[0]}
+            onClick={() => handleStripToggle(0)}
+            type="strip"
+          />
+          <p className="card-label">Kitchen</p>
+        </div>
 
-        <LEDCard
-          name="Lighting"
-          strip={ledStrips[1]}
-          onClick={() => handleStripToggle(1)}
-          type="strip"
-        />
+        <div className="card-wrapper">
+          <LEDCard
+            name="Lighting"
+            strip={ledStrips[1]}
+            onClick={() => handleStripToggle(1)}
+            type="strip"
+          />
+          <p className="card-label">Lighting</p>
+        </div>
 
-        <LEDCard
-          name="Bedroom"
-          strip={ledStrips[4]}
-          onClick={() => handleStripToggle(4)}
-          type="strip"
-        />
+        <div className="card-wrapper">
+          <LEDCard
+            name="Bedroom"
+            strip={ledStrips[4]}
+            onClick={() => handleStripToggle(4)}
+            type="strip"
+          />
+          <p className="card-label">Bedroom</p>
+        </div>
 
-        <LEDCard
-          name="Bathroom"
-          strip={ledStrips[3]}
-          onClick={handleBathroomModeCycle}
-          type="strip"
-        />
+        <div className="card-wrapper">
+          <LEDCard
+            name="Bathroom"
+            strip={ledStrips[3]}
+            onClick={handleBathroomModeCycle}
+            type="strip"
+          />
+          <p className="card-label">Bathroom</p>
+        </div>
 
         {/* Relay */}
-        <LEDCard
-          name="Floor"
-          strip={relays[0]}
-          onClick={handleRelayToggle}
-          type="relay"
-        />
+        <div className="card-wrapper">
+          <LEDCard
+            name="Floor"
+            strip={relays[0]}
+            onClick={handleRelayToggle}
+            type="relay"
+          />
+          <p className="card-label">Floor</p>
+        </div>
       </div>
     </div>
   );

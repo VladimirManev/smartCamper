@@ -2,7 +2,7 @@
 
 ## Overview
 
-Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It provides temperature and humidity monitoring using a DHT22/AM2301 sensor, and gray water level monitoring using conductivity-based electrodes, with an extensible architecture that allows adding additional sensors.
+Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It provides temperature and humidity monitoring using a DHT22/AM2301 sensor, gray water level monitoring using conductivity-based electrodes, and gray water temperature monitoring using a DS18B20 sensor, with an extensible architecture that allows adding additional sensors.
 
 ## Architecture
 
@@ -31,6 +31,13 @@ Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It
    - Detects changes and publishes data (≥1% threshold, no heartbeat)
    - Handles sensor-specific logic
 
+5. **WaterTemperatureSensor** - DS18B20 water temperature sensor implementation
+   - Reads water temperature using DS18B20 (OneWire protocol)
+   - Measures every 1 second and buffers readings
+   - Calculates average from 5 measurements every 5 seconds
+   - Detects changes and publishes data (≥0.1°C threshold, no heartbeat)
+   - Handles sensor-specific logic
+
 ### Design Principles
 
 - **Separation of Concerns**: Infrastructure (ModuleManager) is separate from sensor logic
@@ -56,6 +63,17 @@ Module 1 is an ESP32-based sensor module designed for the SmartCamper system. It
   - Only one pin is PULLUP at a time to prevent water becoming more positive
   - LOW = covered by water (connected to GND), HIGH = not covered
 
+### DS18B20 Water Temperature Sensor
+- **Pin**: GPIO 26 (configurable in `Config.h`)
+- **Type**: DS18B20 (OneWire protocol)
+- **Power**: 3.3V (from ESP32)
+- **Data**: Digital pin 26 with 4.7kΩ-5.1kΩ pull-up resistor to 3.3V
+- **Resolution**: 12-bit (0.0625°C precision, rounded to 0.1°C)
+- **Wiring**:
+  - DS18B20 Pin 1 (GND) → ESP32 GND
+  - DS18B20 Pin 2 (Data) → ESP32 GPIO 26 → 4.7kΩ-5.1kΩ resistor → ESP32 3.3V
+  - DS18B20 Pin 3 (VDD) → ESP32 3.3V
+
 ## Software Configuration
 
 ### Module Identification
@@ -73,6 +91,7 @@ smartcamper/heartbeat/module-1
 smartcamper/sensors/temperature
 smartcamper/sensors/humidity
 smartcamper/sensors/gray-water/level
+smartcamper/sensors/gray-water-temperature
 ```
 
 **Commands:**
@@ -89,7 +108,13 @@ smartcamper/commands/module-1/force_update
 - **Water Level Read Interval**: 1 second
 - **Water Level Average Interval**: 5 seconds (calculates mode of last 5 measurements)
 - **Water Level Threshold**: 1% (change detection, no heartbeat)
-- **Data Processing**: Mode (most frequent value) of last 5 measurements
+- **Water Level Data Processing**: Mode (most frequent value) of last 5 measurements
+- **Water Temperature Read Interval**: 1 second
+- **Water Temperature Average Interval**: 5 seconds (calculates average of last 5 measurements)
+- **Water Temperature Threshold**: 0.1°C (change detection, no heartbeat)
+- **Water Temperature Data Processing**: Average of last 5 measurements
+- **Temperature Sensor Read Interval**: 1 second
+- **Temperature Average Interval**: 5 seconds (calculates average of last 5 measurements)
 
 ## Adding New Sensors
 
@@ -139,6 +164,8 @@ pio device monitor
 - `adafruit/DHT sensor library@^1.4.4` - DHT sensor library
 - `adafruit/Adafruit Unified Sensor@^1.1.14` - Unified sensor library
 - `bblanchon/ArduinoJson@^6.21.3` - JSON parsing
+- `paulstoffregen/OneWire@^2.3.7` - OneWire protocol library
+- `milesburton/DallasTemperature` - Dallas Temperature library (DS18B20 support)
 
 ## File Structure
 
@@ -150,7 +177,8 @@ module-1/
 │   ├── ModuleManager.h           # Infrastructure manager
 │   ├── SensorManager.h           # Sensor coordinator
 │   ├── TemperatureHumiditySensor.h # DHT sensor logic
-│   └── WaterLevelSensor.h        # Water level sensor logic
+│   ├── WaterLevelSensor.h        # Water level sensor logic
+│   └── WaterTemperatureSensor.h  # DS18B20 water temperature sensor logic
 ├── src/
 │   ├── CommandHandler.cpp
 │   ├── Config.h                  # Configuration constants
@@ -161,7 +189,8 @@ module-1/
 │   ├── NetworkManager.cpp/h       # WiFi management
 │   ├── SensorManager.cpp
 │   ├── TemperatureHumiditySensor.cpp
-│   └── WaterLevelSensor.cpp
+│   ├── WaterLevelSensor.cpp
+│   └── WaterTemperatureSensor.cpp
 ├── platformio.ini                # PlatformIO configuration
 ├── README.md                     # This file (English)
 ├── README_BG.md                  # This file (Bulgarian)
@@ -191,5 +220,8 @@ The module includes the following production-ready improvements:
 - Water level sensor uses mode calculation (most frequent value from 5 measurements) to reduce noise
 - Water level sensor measures one pin at a time (sequential measurement) to prevent electrical interference
 - Water level sensor publishes only on change (≥1% threshold), no heartbeat
+- Water temperature sensor uses averaging (average of 5 measurements) for stability
+- Water temperature sensor publishes only on change (≥0.1°C threshold), no heartbeat
+- Temperature sensor (DHT22) uses averaging (average of 5 measurements) for stability
 - All documentation is available in both English and Bulgarian
 

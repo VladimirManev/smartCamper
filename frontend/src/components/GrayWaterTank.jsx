@@ -103,7 +103,6 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
               dominantBaseline="middle"
               className="water-tank-temperature"
               fill="#f5f5f5"
-              fontSize="24"
               fontWeight="600"
             >
               {temperature.toFixed(1)}°C
