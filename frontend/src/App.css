@@ -44,40 +44,29 @@ body {
 }
 
 .status-item {
-  font-size: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 }
 
-.status-item i {
-  color: #ef4444 !important; /* Default offline color */
-}
-
-.status-item .online {
-  color: #3b82f6 !important;
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.8) !important;
-}
-
-.status-item .offline {
-  color: #ef4444 !important;
-  text-shadow: 0 0 20px rgba(239, 68, 68, 0.8) !important;
-}
-
 /* Status number circles */
 .status-number {
-  width: 2rem;
-  height: 2rem;
+  width: 1rem;
+  height: 1rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.5rem;
   border: 2px solid;
   background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(10px);
+}
+
+.status-number i {
+  font-size: 0.4rem;
 }
 
 .status-number.online {
@@ -552,14 +541,14 @@ body {
     gap: 0.75rem;
   }
 
-  .status-item {
-    font-size: 1.3rem;
+  .status-number {
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.5rem;
   }
 
-  .status-number {
-    width: 1.7rem;
-    height: 1.7rem;
-    font-size: 0.85rem;
+  .status-number i {
+    font-size: 0.4rem;
   }
 
   .app {
@@ -576,14 +565,14 @@ body {
     gap: 0.5rem;
   }
 
-  .status-item {
-    font-size: 1.1rem;
+  .status-number {
+    width: 1.45rem;
+    height: 1.45rem;
+    font-size: 0.72rem;
   }
 
-  .status-number {
-    width: 1.65rem;
-    height: 1.65rem;
-    font-size: 0.82rem;
+  .status-number i {
+    font-size: 0.52rem;
   }
 
   .app {
@@ -600,14 +589,14 @@ body {
     gap: 0.4rem;
   }
 
-  .status-item {
-    font-size: 1rem;
+  .status-number {
+    width: 1.4rem;
+    height: 1.4rem;
+    font-size: 0.7rem;
   }
 
-  .status-number {
-    width: 1.6rem;
-    height: 1.6rem;
-    font-size: 0.8rem;
+  .status-number i {
+    font-size: 0.5rem;
   }
 
   .app {
@@ -624,14 +613,14 @@ body {
     gap: 0.4rem;
   }
 
-  .status-item {
-    font-size: 0.9rem;
+  .status-number {
+    width: 1.35rem;
+    height: 1.35rem;
+    font-size: 0.68rem;
   }
 
-  .status-number {
-    width: 1.5rem;
-    height: 1.5rem;
-    font-size: 0.75rem;
+  .status-number i {
+    font-size: 0.48rem;
   }
 
   .app {

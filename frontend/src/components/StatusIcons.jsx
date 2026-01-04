@@ -31,8 +31,13 @@ export const StatusIcons = ({ socket, backendConnected }) => {
   return (
     <div className="status-icons">
       {/* Backend connection status */}
-      <span className="status-item" title="Backend Connection">
-        <i className={`fas fa-circle ${backendConnected ? "online" : "offline"}`}></i>
+      <span
+        className={`status-item status-number ${
+          backendConnected ? "online" : "offline"
+        }`}
+        title="Backend Connection"
+      >
+        <i className="fas fa-circle"></i>
       </span>
 
       {/* Module status icons */}
