@@ -12,8 +12,9 @@ import { getArcProgress } from "../utils/arcProgress";
  * @param {Object} props.strip - Strip state object { state, brightness, mode? }
  * @param {Function} props.onClick - Click handler function
  * @param {string} props.type - Type: "strip" or "relay" (default: "strip")
+ * @param {boolean} props.disabled - Whether the LED control is disabled/offline
  */
-export const LEDCard = ({ name, strip, onClick, type = "strip" }) => {
+export const LEDCard = ({ name, strip, onClick, type = "strip", disabled = false }) => {
   const isOn = strip?.state === "ON";
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
@@ -42,8 +43,15 @@ export const LEDCard = ({ name, strip, onClick, type = "strip" }) => {
   // Use a simple hash to ensure uniqueness
   const gradientId = `gradient-${name.toLowerCase().replace(/\s+/g, "-")}-${type}`;
 
+  // Handle click - don't do anything if disabled
+  const handleClick = () => {
+    if (!disabled && onClick) {
+      onClick();
+    }
+  };
+
   return (
-    <div className="led-card" onClick={onClick}>
+    <div className={`led-card ${disabled ? "disabled" : ""}`} onClick={handleClick}>
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
         {type === "strip" ? (

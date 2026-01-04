@@ -12,6 +12,9 @@ const ledCommandHandler = (socket, aedes, data) => {
     return;
   }
 
+  // Use module-2 as the module ID (led-controller was renamed to module-2)
+  const moduleId = "module-2";
+
   let mqttTopic;
   let mqttPayload = "{}";
 
@@ -22,7 +25,7 @@ const ledCommandHandler = (socket, aedes, data) => {
     data.action
   ) {
     // Strip command: strip/{index}/{action}
-    mqttTopic = `smartcamper/commands/led-controller/strip/${data.index}/${data.action}`;
+    mqttTopic = `smartcamper/commands/${moduleId}/strip/${data.index}/${data.action}`;
 
     // If brightness value exists, add it to payload
     if (data.action === "brightness" && typeof data.value === "number") {
@@ -34,7 +37,7 @@ const ledCommandHandler = (socket, aedes, data) => {
     }
   } else if (data.type === "relay" && data.action === "toggle") {
     // Relay command: relay/toggle
-    mqttTopic = `smartcamper/commands/led-controller/relay/toggle`;
+    mqttTopic = `smartcamper/commands/${moduleId}/relay/toggle`;
   } else {
     console.log("❌ Invalid LED command:", data);
     return;

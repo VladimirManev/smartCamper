@@ -9,7 +9,6 @@ NetworkManager::NetworkManager() {
   this->lastReconnectAttempt = 0;
   this->lastWiFiCheck = 0;
   this->isConnected = false;
-  this->disconnectPending = false;
 }
 
 NetworkManager::NetworkManager(String ssid, String password) {
@@ -18,16 +17,15 @@ NetworkManager::NetworkManager(String ssid, String password) {
   this->lastReconnectAttempt = 0;
   this->lastWiFiCheck = 0;
   this->isConnected = false;
-  this->disconnectPending = false;
 }
 
 void NetworkManager::begin() {
   // Don't save SSID to flash (each boot is "clean")
   WiFi.persistent(false);
   
-  // Clear all old WiFi entries (non-blocking - only once)
+  // Clear all old WiFi entries
   WiFi.disconnect(true, true);  // true,true = clear flash
-  // Do NOT use delay() here - non-blocking
+  delay(500);
   
   // Set mode and settings
   WiFi.mode(WIFI_STA);
@@ -40,15 +38,39 @@ void NetworkManager::begin() {
     Serial.println("🔌 Connecting to WiFi: " + ssid);
   }
   
-  // Start connection (non-blocking)
+  // Start connection
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  // Do NOT wait here - we'll check status in loop()
-  isConnected = false;
-  lastReconnectAttempt = millis();
-  
+  // Make first connection attempt (wait up to 10 seconds)
   if (DEBUG_SERIAL) {
-    Serial.println("⏳ WiFi connection started, will check status in loop()");
+    Serial.println("⏳ Waiting for initial connection...");
+  }
+  
+  int initialAttempts = 0;
+  while (WiFi.status() != WL_CONNECTED && initialAttempts < 20) {
+    delay(500);
+    initialAttempts++;
+    if (DEBUG_SERIAL && initialAttempts % 5 == 0) {
+      Serial.print(".");
+    }
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    isConnected = true;
+    if (DEBUG_SERIAL) {
+      Serial.println();
+      Serial.println("✅ Initial WiFi connection successful!");
+      Serial.println("IP: " + getLocalIP());
+    }
+  } else {
+    isConnected = false;
+    if (DEBUG_SERIAL) {
+      Serial.println();
+      Serial.println("⚠️ Initial WiFi connection failed, will retry in loop()");
+      Serial.println("WiFi Status: " + String(WiFi.status()));
+    }
+    // Set lastReconnectAttempt so loop() can retry after WIFI_RECONNECT_DELAY
+    lastReconnectAttempt = millis();
   }
 }
 
@@ -68,7 +90,6 @@ void NetworkManager::loop() {
         }
         isConnected = false;
         WiFi.disconnect();
-        disconnectPending = true;  // Mark that we need disconnect before next attempt
         lastReconnectAttempt = currentTime - WIFI_RECONNECT_DELAY; // Force reconnection attempt
       } else {
         isConnected = true;
@@ -79,50 +100,8 @@ void NetworkManager::loop() {
   if (!isWiFiConnected()) {
     if (currentTime - lastReconnectAttempt > WIFI_RECONNECT_DELAY) {
       lastReconnectAttempt = currentTime;
-      
-      // Check if WiFi connected between attempts (from auto-reconnect)
-      if (WiFi.status() == WL_CONNECTED) {
-        isConnected = true;
-        disconnectPending = false;  // Successful connection, no need to disconnect
-        if (DEBUG_SERIAL) {
-          Serial.println("✅ WiFi connected (auto-reconnect)!");
-          Serial.println("IP: " + getLocalIP());
-        }
-      } else {
-        // Still not connected, make new attempt
-        disconnectPending = true;  // Mark that we need disconnect before next attempt
-        connect();  // Start attempt (non-blocking)
-        
-        // Check status immediately (without delay) - rarely will be connected immediately
-        if (WiFi.status() == WL_CONNECTED) {
-          isConnected = true;
-          disconnectPending = false;
-          if (DEBUG_SERIAL) {
-            Serial.println("✅ WiFi connected!");
-            Serial.println("IP: " + getLocalIP());
-          }
-        } else {
-          isConnected = false;
-          if (DEBUG_SERIAL) {
-            Serial.println("❌ WiFi connection attempt started, checking status in next loop...");
-            Serial.println("WiFi Status: " + String(WiFi.status()));
-          }
-        }
-      }
-    } else {
-      // Still waiting between attempts, but check if we accidentally connected
-      if (WiFi.status() == WL_CONNECTED) {
-        isConnected = true;
-        disconnectPending = false;
-        if (DEBUG_SERIAL) {
-          Serial.println("✅ WiFi connected!");
-          Serial.println("IP: " + getLocalIP());
-        }
-      }
+      connect();
     }
-  } else {
-    // Already connected, no need to disconnect
-    disconnectPending = false;
   }
 }
 
@@ -130,12 +109,9 @@ bool NetworkManager::connect() {
   // Don't save SSID to flash
   WiFi.persistent(false);
   
-  // Clear old entries only if needed (before new attempt after failed)
-  if (disconnectPending) {
-    WiFi.disconnect(true, true);
-    disconnectPending = false;
-    // Do NOT use delay() - non-blocking
-  }
+  // Clear old entries before each attempt
+  WiFi.disconnect(true, true);
+  delay(500);
   
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
@@ -145,13 +121,38 @@ bool NetworkManager::connect() {
     Serial.println("🔄 Attempting WiFi connection...");
   }
   
-  // Start connection (non-blocking)
+  // Start connection
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  // Do NOT block here - just start attempt and check status in next loop()
-  // Status will be checked in loop() on next iteration
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {  // Increase to 30 attempts (15 seconds)
+    delay(500);
+    attempts++;
+    if (DEBUG_SERIAL) {
+      Serial.print(".");
+    }
+  }
   
-  return false;  // Still not connected, will check in loop()
+  if (WiFi.status() == WL_CONNECTED) {
+    isConnected = true;
+    if (DEBUG_SERIAL) {
+      Serial.println();
+      Serial.println("✅ WiFi connected!");
+      Serial.println("IP: " + getLocalIP());
+      Serial.println("Gateway: " + WiFi.gatewayIP().toString());
+      Serial.println("DNS: " + WiFi.dnsIP().toString());
+    }
+    return true;
+  } else {
+    isConnected = false;
+    if (DEBUG_SERIAL) {
+      Serial.println();
+      Serial.println("❌ WiFi connection failed");
+      Serial.println("WiFi Status: " + String(WiFi.status()));
+      Serial.println("Local IP: " + WiFi.localIP().toString());
+    }
+    return false;
+  }
 }
 
 void NetworkManager::disconnect() {
@@ -162,7 +163,7 @@ void NetworkManager::disconnect() {
   }
 }
 
-bool NetworkManager::isWiFiConnected() {
+bool NetworkManager::isWiFiConnected() const {
   return isConnected && (WiFi.status() == WL_CONNECTED);
 }
 
@@ -192,7 +193,6 @@ bool NetworkManager::checkWiFiConnection() {
   return true;
 }
 
-String NetworkManager::getLocalIP() {
+String NetworkManager::getLocalIP() const {
   return WiFi.localIP().toString();
 }
-

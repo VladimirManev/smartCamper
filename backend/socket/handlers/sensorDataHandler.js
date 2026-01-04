@@ -29,6 +29,10 @@ const sensorDataHandler = (io, topic, message) => {
     case "led-controller":
       return handleLEDController(io, topicParts, message);
     
+    case "module-2":
+      // Module-2 is the LED controller module (renamed from led-controller)
+      return handleLEDController(io, topicParts, message);
+    
     default:
       return false; // Unknown sensor type
   }
@@ -117,9 +121,11 @@ function handleGrayWaterTemperature(io, message) {
 
 /**
  * Handle LED controller status data
+ * Supports both: smartcamper/sensors/led-controller/status and smartcamper/sensors/module-2/status
  */
 function handleLEDController(io, topicParts, message) {
-  // Format: smartcamper/sensors/led-controller/status (JSON)
+  // Format: smartcamper/sensors/{module-id}/status (JSON)
+  // Supports both "led-controller" and "module-2"
   if (topicParts.length >= 4 && topicParts[3] === "status") {
     try {
       const statusData = JSON.parse(message);

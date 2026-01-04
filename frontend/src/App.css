@@ -331,6 +331,20 @@ body {
   /* display: none; */
 }
 
+/* Disabled LED card (module offline) */
+.led-card.disabled {
+  opacity: 0.4;
+  filter: grayscale(100%);
+  border-color: rgba(239, 68, 68, 0.3);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.led-card.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .sensor-card i {
   color: #3b82f6;
   font-size: 1.5rem;

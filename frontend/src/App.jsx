@@ -28,11 +28,19 @@ function App() {
   // Check if module-1 is online (provides temperature and humidity)
   const isModule1Online = isModuleOnline("module-1");
 
+  // Check if module-2 is online (provides LED controls)
+  const isModule2Online = isModuleOnline("module-2");
+
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
 
   // LED command handlers
   const handleStripToggle = (index) => {
+    // Don't send command if module is offline
+    if (!isModule2Online) {
+      return;
+    }
+    
     sendLEDCommand({
       type: "strip",
       index: index,
@@ -41,6 +49,11 @@ function App() {
   };
 
   const handleBathroomModeCycle = () => {
+    // Don't send command if module is offline
+    if (!isModule2Online) {
+      return;
+    }
+    
     const currentMode = ledStrips[3]?.mode || "OFF";
     let nextMode;
     // Cycle: OFF -> AUTO -> ON -> OFF
@@ -61,6 +74,11 @@ function App() {
   };
 
   const handleRelayToggle = () => {
+    // Don't send command if module is offline
+    if (!isModule2Online) {
+      return;
+    }
+    
     sendLEDCommand({
       type: "relay",
       action: "toggle",
@@ -113,6 +131,7 @@ function App() {
             strip={ledStrips[0]}
             onClick={() => handleStripToggle(0)}
             type="strip"
+            disabled={!isModule2Online}
           />
           <p className="card-label">Kitchen</p>
         </div>
@@ -123,6 +142,7 @@ function App() {
             strip={ledStrips[1]}
             onClick={() => handleStripToggle(1)}
             type="strip"
+            disabled={!isModule2Online}
           />
           <p className="card-label">Lighting</p>
         </div>
@@ -133,6 +153,7 @@ function App() {
             strip={ledStrips[4]}
             onClick={() => handleStripToggle(4)}
             type="strip"
+            disabled={!isModule2Online}
           />
           <p className="card-label">Bedroom</p>
         </div>
@@ -143,6 +164,7 @@ function App() {
             strip={ledStrips[3]}
             onClick={handleBathroomModeCycle}
             type="strip"
+            disabled={!isModule2Online}
           />
           <p className="card-label">Bathroom</p>
         </div>
@@ -154,6 +176,7 @@ function App() {
             strip={relays[0]}
             onClick={handleRelayToggle}
             type="relay"
+            disabled={!isModule2Online}
           />
           <p className="card-label">Floor</p>
         </div>

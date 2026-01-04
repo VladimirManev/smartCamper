@@ -22,9 +22,9 @@ export const StatusIcons = ({ socket, backendConnected }) => {
       label: "Module 1 (Temperature/Humidity/Water Level)",
     },
     {
-      id: "led-controller",
+      id: "module-2",
       number: "2",
-      label: "LED Controller",
+      label: "Module 2 (LED Controller)",
     },
   ];
 

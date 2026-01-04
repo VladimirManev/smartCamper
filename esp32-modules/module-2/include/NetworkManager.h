@@ -27,8 +27,8 @@ public:
   void loop();
   bool connect();
   void disconnect();
-  bool isWiFiConnected();
-  String getLocalIP();
+  bool isWiFiConnected() const;
+  String getLocalIP() const;
 };
 
 #endif
