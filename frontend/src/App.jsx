@@ -22,12 +22,9 @@ function App() {
   const { isModuleOnline, moduleStatuses } = useModuleStatus(socket);
 
   // Sensor data (clears when module goes offline)
-  const { temperature, humidity, grayWaterLevel } = useSensorData(
-    socket,
-    isModuleOnline,
-    moduleStatuses
-  );
-  
+  const { temperature, humidity, grayWaterLevel, grayWaterTemperature } =
+    useSensorData(socket, isModuleOnline, moduleStatuses);
+
   // Check if module-1 is online (provides temperature and humidity)
   const isModule1Online = isModuleOnline("module-1");
 
@@ -94,7 +91,11 @@ function App() {
         />
 
         {/* Gray Water Tank */}
-        <GrayWaterTank level={grayWaterLevel} disabled={!isModule1Online} />
+        <GrayWaterTank
+          level={grayWaterLevel}
+          temperature={grayWaterTemperature}
+          disabled={!isModule1Online}
+        />
 
         {/* LED Strips */}
         <LEDCard

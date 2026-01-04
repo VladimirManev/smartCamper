@@ -1,44 +1,44 @@
-// Temperature and Humidity Sensor
-// Specific sensor logic for DHT22/AM2301 sensor
-// Handles: Reading, change detection, publishing
+// Water Temperature Sensor
+// Specific sensor logic for DS18B20 sensor (OneWire)
+// Handles: Reading, averaging, change detection, publishing
 
-#ifndef TEMPERATURE_HUMIDITY_SENSOR_H
-#define TEMPERATURE_HUMIDITY_SENSOR_H
+#ifndef WATER_TEMPERATURE_SENSOR_H
+#define WATER_TEMPERATURE_SENSOR_H
 
 #include "Config.h"
 #include "MQTTManager.h"
-#include "DHT.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-class TemperatureHumiditySensor {
+class WaterTemperatureSensor {
 private:
   MQTTManager* mqttManager;  // Reference to MQTT manager (not owned)
-  DHT dht;
+  OneWire oneWire;
+  DallasTemperature sensors;
   
   unsigned long lastSensorRead;
   unsigned long lastDataSent;
   float lastTemperature;
-  float lastHumidity;
   bool forceUpdateRequested;
   bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
   
   // Temperature averaging
-  float temperatureReadings[TEMP_AVERAGE_COUNT];
+  float temperatureReadings[WATER_TEMP_AVERAGE_COUNT];
   int temperatureIndex;
   int temperatureCount;
   unsigned long lastAverageTime;
   
   // Sensor reading functions
   float readTemperature();
-  float readHumidity();
   
   // Averaging functions
   float calculateAverageTemperature();
   
   // Publishing logic
-  void publishIfNeeded(float temperature, float humidity, unsigned long currentTime, bool forcePublish = false);
+  void publishIfNeeded(float temperature, unsigned long currentTime, bool forcePublish = false);
 
 public:
-  TemperatureHumiditySensor(MQTTManager* mqtt, uint8_t pin, uint8_t type);
+  WaterTemperatureSensor(MQTTManager* mqtt);
   
   // Initialization
   void begin();
@@ -51,7 +51,6 @@ public:
   
   // Status (const methods)
   float getLastTemperature() const { return lastTemperature; }
-  float getLastHumidity() const { return lastHumidity; }
   unsigned long getLastDataSent() const { return lastDataSent; }
   bool isForceUpdateRequested() const { return forceUpdateRequested; }
   void printStatus() const;

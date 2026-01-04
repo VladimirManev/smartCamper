@@ -7,9 +7,10 @@
  * GrayWaterTank component
  * @param {Object} props - Component props
  * @param {number|null} props.level - Water level percentage (0-100)
+ * @param {number|null} props.temperature - Water temperature in Celsius
  * @param {boolean} props.disabled - Whether the sensor is disabled/offline
  */
-export const GrayWaterTank = ({ level, disabled = false }) => {
+export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
   // When disabled, don't show water (empty tank)
   const displayLevel = disabled ? null : level;
 
@@ -92,6 +93,22 @@ export const GrayWaterTank = ({ level, disabled = false }) => {
             strokeWidth="2"
             opacity="0.5"
           />
+
+          {/* Temperature display - centered in tank */}
+          {temperature !== null && temperature !== undefined && !disabled && (
+            <text
+              x="100"
+              y="100"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="water-tank-temperature"
+              fill="#f5f5f5"
+              fontSize="24"
+              fontWeight="600"
+            >
+              {temperature.toFixed(1)}°C
+            </text>
+          )}
         </svg>
       </div>
     </div>

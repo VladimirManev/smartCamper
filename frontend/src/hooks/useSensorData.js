@@ -17,6 +17,7 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
   const [temperature, setTemperature] = useState(null);
   const [humidity, setHumidity] = useState(null);
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
+  const [grayWaterTemperature, setGrayWaterTemperature] = useState(null);
 
   useEffect(() => {
     if (!socket) {
@@ -44,6 +45,11 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
       if (data.grayWaterLevel !== undefined && data.grayWaterLevel !== null) {
         setGrayWaterLevel(data.grayWaterLevel);
       }
+
+      // Update gray water temperature if present
+      if (data.grayWaterTemperature !== undefined && data.grayWaterTemperature !== null) {
+        setGrayWaterTemperature(data.grayWaterTemperature);
+      }
     };
 
     socket.on("sensorUpdate", handleSensorUpdate);
@@ -62,12 +68,14 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
         setTemperature(null);
         setHumidity(null);
         setGrayWaterLevel(null);  // Clear gray water level when module-1 goes offline
+        setGrayWaterTemperature(null);  // Clear gray water temperature when module-1 goes offline
       }
     } else {
       // If isModuleOnline is not available, clear data
       setTemperature(null);
       setHumidity(null);
       setGrayWaterLevel(null);
+      setGrayWaterTemperature(null);
     }
   }, [isModuleOnline, moduleStatuses]);
 
@@ -75,6 +83,7 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
     temperature,
     humidity,
     grayWaterLevel,
+    grayWaterTemperature,
   };
 };
 

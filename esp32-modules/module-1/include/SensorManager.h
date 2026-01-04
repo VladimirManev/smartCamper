@@ -9,6 +9,7 @@
 #include "ModuleManager.h"
 #include "TemperatureHumiditySensor.h"
 #include "WaterLevelSensor.h"
+#include "WaterTemperatureSensor.h"
 #include "CommandHandler.h"
 
 class SensorManager {
@@ -16,6 +17,7 @@ private:
   ModuleManager* moduleManager;  // Reference to module manager (not owned)
   TemperatureHumiditySensor temperatureHumiditySensor;
   WaterLevelSensor waterLevelSensor;
+  WaterTemperatureSensor waterTemperatureSensor;
   CommandHandler commandHandler;
   
   // Static pointer for MQTT callback

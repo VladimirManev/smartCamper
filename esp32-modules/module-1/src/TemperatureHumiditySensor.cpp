@@ -21,6 +21,14 @@ TemperatureHumiditySensor::TemperatureHumiditySensor(MQTTManager* mqtt, uint8_t 
   this->lastHumidity = 0.0;
   this->forceUpdateRequested = false;
   this->lastMQTTState = false;  // Initialize as disconnected
+  
+  // Initialize temperature averaging
+  this->temperatureIndex = 0;
+  this->temperatureCount = 0;
+  this->lastAverageTime = 0;
+  for (int i = 0; i < TEMP_AVERAGE_COUNT; i++) {
+    this->temperatureReadings[i] = 0.0;
+  }
 }
 
 void TemperatureHumiditySensor::begin() {
@@ -68,8 +76,25 @@ void TemperatureHumiditySensor::loop() {
     
     // Publish if valid and needed
     if (!isnan(temperature) && !isnan(humidity)) {
-      publishIfNeeded(temperature, humidity, currentTime, isForceUpdate);
-      forceUpdateRequested = false;
+      // Store temperature reading for averaging
+      temperatureReadings[temperatureIndex] = temperature;
+      temperatureIndex = (temperatureIndex + 1) % TEMP_AVERAGE_COUNT;
+      if (temperatureCount < TEMP_AVERAGE_COUNT) {
+        temperatureCount++;
+      }
+      
+      // Calculate average temperature every 5 seconds OR on force update
+      if (temperatureCount >= TEMP_AVERAGE_COUNT && 
+          (currentTime - lastAverageTime >= TEMP_AVERAGE_INTERVAL || isForceUpdate)) {
+        float averageTemperature = calculateAverageTemperature();
+        publishIfNeeded(averageTemperature, humidity, currentTime, isForceUpdate);
+        lastAverageTime = currentTime;
+        forceUpdateRequested = false;
+      } else if (isForceUpdate) {
+        // If we don't have enough measurements yet, just publish current value
+        publishIfNeeded(temperature, humidity, currentTime, true);
+        forceUpdateRequested = false;
+      }
     } else {
       if (DEBUG_SERIAL) {
         Serial.println("❌ Invalid sensor readings!");
@@ -103,6 +128,14 @@ float TemperatureHumiditySensor::readHumidity() {
   }
   
   return humidity;
+}
+
+float TemperatureHumiditySensor::calculateAverageTemperature() {
+  float sum = 0.0;
+  for (int i = 0; i < TEMP_AVERAGE_COUNT; i++) {
+    sum += temperatureReadings[i];
+  }
+  return sum / TEMP_AVERAGE_COUNT;
 }
 
 void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidity, unsigned long currentTime, bool forcePublish) {

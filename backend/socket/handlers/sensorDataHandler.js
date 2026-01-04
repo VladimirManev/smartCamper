@@ -23,6 +23,9 @@ const sensorDataHandler = (io, topic, message) => {
     case "gray-water":
       return handleGrayWater(io, topicParts, message);
     
+    case "gray-water-temperature":
+      return handleGrayWaterTemperature(io, message);
+    
     case "led-controller":
       return handleLEDController(io, topicParts, message);
     
@@ -91,6 +94,25 @@ function handleGrayWater(io, topicParts, message) {
   }
   
   return false;
+}
+
+/**
+ * Handle gray water temperature sensor data (DS18B20)
+ */
+function handleGrayWaterTemperature(io, message) {
+  const value = parseFloat(message);
+  
+  if (isNaN(value)) {
+    return false;
+  }
+  
+  // Emit sensor update
+  io.emit("sensorUpdate", {
+    grayWaterTemperature: value,
+    timestamp: new Date().toISOString(),
+  });
+  
+  return true;
 }
 
 /**
