@@ -77,7 +77,7 @@ function App() {
           <SensorCard
             icon="fas fa-thermometer-half"
             value={temperature}
-            unit="°C"
+            unit="°"
             decimals={1}
             disabled={!isModule1Online}
           />

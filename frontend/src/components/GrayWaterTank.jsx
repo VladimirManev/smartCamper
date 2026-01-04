@@ -105,7 +105,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
               fill="#f5f5f5"
               fontWeight="600"
             >
-              {temperature.toFixed(1)}°C
+              {temperature.toFixed(1)}°
             </text>
           )}
         </svg>

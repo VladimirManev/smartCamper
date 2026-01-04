@@ -144,7 +144,7 @@ body {
   }
 
   .water-tank-temperature {
-    font-size: 20px;
+    font-size: 32px;
   }
 }
 
@@ -191,7 +191,7 @@ body {
   }
 
   .water-tank-temperature {
-    font-size: 22px;
+    font-size: 32px;
   }
 }
 
@@ -237,7 +237,7 @@ body {
   }
 
   .water-tank-temperature {
-    font-size: 24px;
+    font-size: 32px;
   }
 }
 
@@ -262,7 +262,7 @@ body {
 
 /* Card label below the card */
 .card-label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 500;
   color: #f5f5f5;
   text-transform: none;
@@ -390,7 +390,7 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   user-select: none;
-  font-size: 16px;
+  font-size: 32px;
 }
 
 .led-card {
@@ -590,13 +590,21 @@ body {
   }
 
   .status-number {
-    width: 1.4rem;
-    height: 1.4rem;
-    font-size: 0.7rem;
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.5rem;
   }
 
   .status-number i {
     font-size: 0.5rem;
+  }
+
+  .sensor-card i {
+    font-size: 1.2rem;
+  }
+
+  .value {
+    font-size: 1rem;
   }
 
   .app {
