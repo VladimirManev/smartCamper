@@ -8,10 +8,12 @@ import { useSocket } from "./hooks/useSocket";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
 import { useLEDController } from "./hooks/useLEDController";
+import { useFloorHeating } from "./hooks/useFloorHeating";
 import { StatusIcons } from "./components/StatusIcons";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
 import { LEDCard } from "./components/LEDCard";
+import { FloorHeatingCard } from "./components/FloorHeatingCard";
 import "./App.css";
 
 function App() {
@@ -31,8 +33,14 @@ function App() {
   // Check if module-2 is online (provides LED controls)
   const isModule2Online = isModuleOnline("module-2");
 
+  // Check if module-3 is online (provides floor heating controls)
+  const isModule3Online = isModuleOnline("module-3");
+
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
+
+  // Floor heating controller
+  const { circles, sendFloorHeatingCommand } = useFloorHeating(socket);
 
   // LED command handlers
   const handleStripToggle = (index) => {
@@ -82,6 +90,24 @@ function App() {
     sendLEDCommand({
       type: "relay",
       action: "toggle",
+    });
+  };
+
+  // Floor heating command handlers
+  const handleCircleToggle = (index) => {
+    // Don't send command if module is offline
+    if (!isModule3Online) {
+      return;
+    }
+    
+    // Toggle between OFF and TEMP_CONTROL
+    const currentMode = circles[index]?.mode || "OFF";
+    const newMode = currentMode === "OFF" ? "on" : "off";
+    
+    sendFloorHeatingCommand({
+      type: "circle",
+      index: index,
+      action: newMode,
     });
   };
 
@@ -191,6 +217,47 @@ function App() {
             disabled={!isModule2Online}
           />
           <p className="card-label">Ambient</p>
+        </div>
+
+        {/* Floor Heating Circles */}
+        <div className="card-wrapper">
+          <FloorHeatingCard
+            name="Central 1"
+            circle={circles[0]}
+            onClick={() => handleCircleToggle(0)}
+            disabled={!isModule3Online}
+          />
+          <p className="card-label">Central 1</p>
+        </div>
+
+        <div className="card-wrapper">
+          <FloorHeatingCard
+            name="Central 2"
+            circle={circles[1]}
+            onClick={() => handleCircleToggle(1)}
+            disabled={!isModule3Online}
+          />
+          <p className="card-label">Central 2</p>
+        </div>
+
+        <div className="card-wrapper">
+          <FloorHeatingCard
+            name="Bathroom"
+            circle={circles[2]}
+            onClick={() => handleCircleToggle(2)}
+            disabled={!isModule3Online}
+          />
+          <p className="card-label">Bathroom</p>
+        </div>
+
+        <div className="card-wrapper">
+          <FloorHeatingCard
+            name="Podium"
+            circle={circles[3]}
+            onClick={() => handleCircleToggle(3)}
+            disabled={!isModule3Online}
+          />
+          <p className="card-label">Podium</p>
         </div>
       </div>
     </div>

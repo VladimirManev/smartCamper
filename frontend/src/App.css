@@ -89,7 +89,7 @@ body {
 .main-content {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: 0.5rem;
   width: 100%;
@@ -539,6 +539,76 @@ body {
 .neumorphic-button.auto .button-text {
   color: #f59e0b;
   text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+/* Floor heating specific styles */
+.heating-icon {
+  font-size: 1.2rem;
+  display: inline-block;
+}
+
+.status-indicator {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+}
+
+/* Error state - red glow */
+.neumorphic-button.error {
+  background: #1e293b;
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
+    0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.4);
+}
+
+.neumorphic-button.error::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  z-index: -1;
+  opacity: 1;
+  filter: blur(3px);
+}
+
+.neumorphic-button.error .button-text {
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.error-icon {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+
+/* TEMP_CONTROL mode with relay OFF - blue temperature */
+.neumorphic-button.temp-control-off {
+  background: #1e293b;
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
+    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
+}
+
+.neumorphic-button.temp-control-off .button-text {
+  color: #3b82f6;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+/* TEMP_CONTROL mode with relay ON - red temperature */
+.neumorphic-button.on .button-text {
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
 .toggle-btn {

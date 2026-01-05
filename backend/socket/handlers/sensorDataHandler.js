@@ -36,6 +36,21 @@ const sensorDataHandler = (io, topic, message) => {
       // Module-2 is the LED controller module (renamed from led-controller)
       return handleLEDController(io, topicParts, message);
     
+    case "module-3":
+      // Module-3 is the floor heating module
+      return handleFloorHeating(io, topicParts, message);
+    
+    case "errors":
+      // Error topics: smartcamper/errors/{module-id}/{component-type}/{component-id}
+      return handleErrorTopic(io, topicParts, message);
+    
+    case "floor-heating-circle-0-temp":
+    case "floor-heating-circle-1-temp":
+    case "floor-heating-circle-2-temp":
+    case "floor-heating-circle-3-temp":
+      // Individual temperature sensors for each circle
+      return handleFloorHeatingTemperature(io, sensorType, message);
+    
     default:
       return false; // Unknown sensor type
   }
@@ -198,6 +213,101 @@ function handleLEDController(io, topicParts, message) {
       });
       
       return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Handle floor heating status data
+ * Format: smartcamper/sensors/module-3/status (JSON)
+ */
+function handleFloorHeating(io, topicParts, message) {
+  // Format: smartcamper/sensors/module-3/status (JSON)
+  if (topicParts.length >= 4 && topicParts[3] === "status") {
+    try {
+      const statusData = JSON.parse(message);
+      
+      // Send full status to frontend
+      io.emit("floorHeatingStatusUpdate", {
+        type: statusData.type || "full",
+        index: statusData.index,
+        data: statusData.data || statusData,
+        state: statusData.state,
+        temperature: statusData.temperature,
+        manual: statusData.manual,
+        timestamp: new Date().toISOString(),
+      });
+      
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse floor heating status JSON: ${error.message}`);
+      return true; // Handled, but error
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Handle individual floor heating circle temperature
+ * Format: smartcamper/sensors/floor-heating-circle-{index}-temp
+ */
+function handleFloorHeatingTemperature(io, sensorType, message) {
+  // Extract circle index from sensor type: "floor-heating-circle-0-temp"
+  const match = sensorType.match(/floor-heating-circle-(\d+)-temp/);
+  if (!match) {
+    return false;
+  }
+  
+  const circleIndex = parseInt(match[1]);
+  const value = parseFloat(message);
+  
+  if (isNaN(value) || isNaN(circleIndex)) {
+    return false;
+  }
+  
+  // Emit temperature update for specific circle
+  io.emit("floorHeatingStatusUpdate", {
+    type: "circle",
+    index: circleIndex,
+    temperature: value,
+    timestamp: new Date().toISOString(),
+  });
+  
+  return true;
+}
+
+/**
+ * Handle error topics
+ * Format: smartcamper/errors/{module-id}/{component-type}/{component-id}
+ */
+function handleErrorTopic(io, topicParts, message) {
+  // Format: smartcamper/errors/module-3/circle/0
+  if (topicParts.length >= 5) {
+    try {
+      const errorData = JSON.parse(message);
+      
+      // Extract module ID and component info
+      const moduleId = topicParts[2];  // module-3
+      const componentType = topicParts[3];  // circle
+      const componentId = topicParts[4];  // 0, 1, 2, 3
+      
+      // For module-3, emit error as floor heating status update
+      if (moduleId === "module-3" && componentType === "circle") {
+        io.emit("floorHeatingStatusUpdate", {
+          type: "error",
+          index: parseInt(componentId),
+          error: errorData,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse error JSON: ${error.message}`);
+      return true; // Handled, but error
     }
   }
   

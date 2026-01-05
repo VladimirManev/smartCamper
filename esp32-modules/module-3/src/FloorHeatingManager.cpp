@@ -1,0 +1,296 @@
+// Floor Heating Manager Implementation
+// Coordinator for all floor heating functionality
+
+#include "FloorHeatingManager.h"
+#include "FloorHeatingButtonHandler.h"  // Include here to avoid circular dependency
+#include "Config.h"
+#include <ArduinoJson.h>
+
+// Static pointer to current instance
+FloorHeatingManager* FloorHeatingManager::currentInstance = nullptr;
+
+// Temperature sensor pins
+const uint8_t tempPins[NUM_HEATING_CIRCLES] = {
+  HEATING_TEMP_PIN_0,
+  HEATING_TEMP_PIN_1,
+  HEATING_TEMP_PIN_2,
+  HEATING_TEMP_PIN_3
+};
+
+FloorHeatingManager::FloorHeatingManager(ModuleManager* moduleMgr) 
+  : moduleManager(moduleMgr),
+    controller(),
+    sensors{
+      FloorHeatingSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, 0, tempPins[0]),
+      FloorHeatingSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, 1, tempPins[1]),
+      FloorHeatingSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, 2, tempPins[2]),
+      FloorHeatingSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, 3, tempPins[3])
+    },
+    buttonHandler(&controller),
+    commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID),
+    pendingStatusUpdate(false) {
+  
+  // Validate input parameter
+  if (moduleMgr == nullptr) {
+    if (DEBUG_SERIAL) {
+      Serial.println("❌ ERROR: FloorHeatingManager: moduleManager cannot be nullptr!");
+    }
+  }
+  
+  // Set current instance for static methods
+  currentInstance = this;
+  
+  // Link sensors to controller
+  for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+    controller.setSensor(i, &sensors[i]);
+    // Link controller to sensors (for checking circle mode)
+    sensors[i].setController(&controller);
+  }
+  
+  // Link manager to controller (for status publishing callbacks)
+  controller.setManager(this);
+}
+
+void FloorHeatingManager::begin() {
+  if (DEBUG_SERIAL) {
+    Serial.println("🔥 Floor Heating Manager Starting...");
+  }
+  
+  // Initialize controller
+  controller.begin();
+  
+  // Initialize sensors
+  for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+    sensors[i].begin();
+  }
+  
+  // Initialize button handler
+  buttonHandler.setController(&controller);
+  buttonHandler.setManager(this);
+  buttonHandler.begin();
+  
+  // Set MQTT callback to FloorHeatingManager::handleMQTTMessage (handles both force_update and heating commands)
+  if (moduleManager) {
+    moduleManager->getMQTTManager().setCallback(FloorHeatingManager::handleMQTTMessageStatic);
+  }
+  
+  // Command handler will be initialized by ModuleManager
+  // (ModuleManager.begin() is called with commandHandler reference)
+  
+  if (DEBUG_SERIAL) {
+    Serial.println("✅ Floor Heating Manager Ready!");
+  }
+}
+
+void FloorHeatingManager::loop() {
+  // Update sensors (read temperature - works offline, only if circle is in TEMP_CONTROL mode)
+  for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+    sensors[i].loop();
+    
+    // Check for sensor errors and disable circle if needed
+    if (sensors[i].hasSensorError()) {
+      // Sensor has error - disable circle (set to OFF mode)
+      if (controller.getCircleMode(i) != CIRCLE_MODE_OFF) {
+        if (DEBUG_SERIAL) {
+          Serial.println("❌ Disabling circle " + String(i) + " due to sensor error");
+        }
+        controller.setCircleMode(i, CIRCLE_MODE_OFF);
+        publishCircleStatus(i);
+      }
+    } else {
+      // Sensor recovered - publish status so frontend knows sensor is OK
+      // Circle remains OFF - user must manually enable it
+      if (controller.getCircleMode(i) == CIRCLE_MODE_OFF) {
+        publishCircleStatus(i);
+      }
+    }
+  }
+  
+  // Update controller (automatic temperature control - works offline)
+  controller.loop();
+  
+  // Update button handler (toggle mode - works offline)
+  buttonHandler.loop();
+  
+  // Process pending status update (deferred from MQTT callback)
+  // This prevents blocking PubSubClient which can cause publish failures
+  if (pendingStatusUpdate) {
+    pendingStatusUpdate = false;
+    publishFullStatus();
+  }
+}
+
+void FloorHeatingManager::handleForceUpdate() {
+  // Set flag to publish status in main loop (don't publish during MQTT callback)
+  // This prevents blocking PubSubClient which can cause publish failures
+  pendingStatusUpdate = true;
+  
+  // Also force sensor updates
+  for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+    sensors[i].forceUpdate();
+  }
+}
+
+// Static MQTT callback method (wrapper for MQTTManager)
+void FloorHeatingManager::handleMQTTMessageStatic(char* topic, byte* payload, unsigned int length) {
+  if (currentInstance) {
+    currentInstance->processMQTTMessage(topic, payload, length);
+  }
+}
+
+// Process MQTT message (instance method)
+void FloorHeatingManager::processMQTTMessage(char* topic, byte* payload, unsigned int length) {
+  // First try force_update command (handled by CommandHandler)
+  String topicStr = String(topic);
+  if (topicStr.endsWith("/force_update")) {
+    commandHandler.handleMQTTMessage(topic, payload, length);
+    return;
+  }
+  
+  // Handle floor heating-specific commands
+  String message = "";
+  for (int i = 0; i < length; i++) {
+    message += (char)payload[i];
+  }
+  
+  // Parse topic: smartcamper/commands/module-3/{command}
+  String commandPrefix = String(MQTT_TOPIC_COMMANDS) + MODULE_ID + "/";
+  
+  if (!topicStr.startsWith(commandPrefix)) {
+    return;  // Not our command
+  }
+  
+  String commandPath = topicStr.substring(commandPrefix.length());
+  
+  // Handle circle commands: circle/{index}/{action}
+  if (commandPath.startsWith("circle/")) {
+    String circleCommand = commandPath.substring(7);  // Remove "circle/"
+    
+    // Extract circle index (first number)
+    int slashIndex = circleCommand.indexOf('/');
+    if (slashIndex == -1) {
+      if (DEBUG_SERIAL) {
+        Serial.println("❌ Invalid circle command format");
+      }
+      return;
+    }
+    
+    String circleIndexStr = circleCommand.substring(0, slashIndex);
+    uint8_t circleIndex = circleIndexStr.toInt();
+    
+    // Validate circle index
+    if (circleIndex >= NUM_HEATING_CIRCLES) {
+      if (DEBUG_SERIAL) {
+        Serial.println("❌ Invalid circle index: " + String(circleIndex));
+      }
+      return;
+    }
+    
+    String action = circleCommand.substring(slashIndex + 1);
+    handleCircleCommand(circleIndex, action, message);
+  }
+}
+
+void FloorHeatingManager::handleCircleCommand(uint8_t circleIndex, String action, String payload) {
+  if (action == "on") {
+    // Enable TEMP_CONTROL mode
+    controller.setCircleMode(circleIndex, CIRCLE_MODE_TEMP_CONTROL);
+    publishCircleStatus(circleIndex);
+  } else if (action == "off") {
+    // Disable circle (OFF mode)
+    controller.setCircleMode(circleIndex, CIRCLE_MODE_OFF);
+    publishCircleStatus(circleIndex);
+  } else {
+    if (DEBUG_SERIAL) {
+      Serial.println("❌ Unknown action: " + action);
+    }
+  }
+}
+
+void FloorHeatingManager::publishFullStatus() {
+  if (!moduleManager || !moduleManager->getMQTTManager().isMQTTConnected()) {
+    return;  // Don't publish if not connected
+  }
+  
+  // Create JSON payload with all circles status
+  StaticJsonDocument<1024> doc;
+  doc["type"] = "full";
+  
+  JsonObject data = doc.createNestedObject("data");
+  JsonObject circles = data.createNestedObject("circles");
+  
+  for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+    JsonObject circle = circles.createNestedObject(String(i));
+    CircleMode mode = controller.getCircleMode(i);
+    bool relayState = controller.getCircleState(i);
+    bool hasError = sensors[i].hasSensorError();
+    
+    circle["mode"] = (mode == CIRCLE_MODE_OFF) ? "OFF" : "TEMP_CONTROL";
+    circle["relay"] = relayState ? "ON" : "OFF";
+    if (hasError) {
+      circle["temperature"] = nullptr;  // JSON null
+    } else {
+      circle["temperature"] = round(sensors[i].getLastTemperature());
+    }
+    circle["error"] = hasError;
+  }
+  
+  String payload;
+  serializeJson(doc, payload);
+  
+  String topic = "smartcamper/sensors/" + String(MODULE_ID) + "/status";
+  moduleManager->getMQTTManager().publishRaw(topic, payload);
+  
+  if (DEBUG_MQTT) {
+    Serial.println("📤 Published full floor heating status: " + topic);
+  }
+}
+
+void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex) {
+  if (!moduleManager || !moduleManager->getMQTTManager().isMQTTConnected()) {
+    return;  // Don't publish if not connected
+  }
+  
+  if (circleIndex >= NUM_HEATING_CIRCLES) {
+    return;
+  }
+  
+  // Create JSON payload for single circle
+  StaticJsonDocument<256> doc;
+  CircleMode mode = controller.getCircleMode(circleIndex);
+  bool relayState = controller.getCircleState(circleIndex);
+  bool hasError = sensors[circleIndex].hasSensorError();
+  
+  doc["type"] = "circle";
+  doc["index"] = circleIndex;
+  doc["mode"] = (mode == CIRCLE_MODE_OFF) ? "OFF" : "TEMP_CONTROL";
+  doc["relay"] = relayState ? "ON" : "OFF";
+  if (hasError) {
+    doc["temperature"] = nullptr;  // JSON null
+  } else {
+    doc["temperature"] = round(sensors[circleIndex].getLastTemperature());
+  }
+  doc["error"] = hasError;
+  
+  String payload;
+  serializeJson(doc, payload);
+  
+  String topic = "smartcamper/sensors/" + String(MODULE_ID) + "/status";
+  moduleManager->getMQTTManager().publishRaw(topic, payload);
+  
+  if (DEBUG_MQTT) {
+    Serial.println("📤 Published circle " + String(circleIndex) + " status: " + topic);
+  }
+}
+
+void FloorHeatingManager::printStatus() const {
+  if (DEBUG_SERIAL) {
+    Serial.println("📊 Floor Heating Manager Status:");
+    controller.printStatus();
+    for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+      sensors[i].printStatus();
+    }
+    buttonHandler.printStatus();
+  }
+}
+
