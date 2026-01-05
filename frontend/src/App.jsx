@@ -139,13 +139,13 @@ function App() {
         {/* LED Strips */}
         <div className="card-wrapper">
           <LEDCard
-            name="Lighting"
+            name="Main"
             strip={ledStrips[1]}
             onClick={() => handleStripToggle(1)}
             type="strip"
             disabled={!isModule2Online}
           />
-          <p className="card-label">Lighting</p>
+          <p className="card-label">Main</p>
         </div>
 
         <div className="card-wrapper">
@@ -184,13 +184,13 @@ function App() {
         {/* Relay */}
         <div className="card-wrapper">
           <LEDCard
-            name="Floor"
+            name="Ambient"
             strip={relays[0]}
             onClick={handleRelayToggle}
             type="relay"
             disabled={!isModule2Online}
           />
-          <p className="card-label">Floor</p>
+          <p className="card-label">Ambient</p>
         </div>
       </div>
     </div>
