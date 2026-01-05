@@ -102,6 +102,18 @@ function App() {
           <p className="card-label">Indoor Temp</p>
         </div>
 
+        {/* Outdoor Temperature Sensor */}
+        <div className="card-wrapper">
+          <SensorCard
+            icon="fas fa-thermometer-half"
+            value={outdoorTemperature}
+            unit="°"
+            decimals={1}
+            disabled={!isModule1Online}
+          />
+          <p className="card-label">Outdoor Temp</p>
+        </div>
+
         {/* Indoor Humidity Sensor */}
         <div className="card-wrapper">
           <SensorCard
@@ -112,18 +124,6 @@ function App() {
             disabled={!isModule1Online}
           />
           <p className="card-label">Humidity</p>
-        </div>
-
-        {/* Outdoor Temperature Sensor */}
-        <div className="card-wrapper">
-          <SensorCard
-            icon="fas fa-sun"
-            value={outdoorTemperature}
-            unit="°"
-            decimals={1}
-            disabled={!isModule1Online}
-          />
-          <p className="card-label">Outdoor Temp</p>
         </div>
 
         {/* Gray Water Tank */}
@@ -139,17 +139,6 @@ function App() {
         {/* LED Strips */}
         <div className="card-wrapper">
           <LEDCard
-            name="Kitchen"
-            strip={ledStrips[0]}
-            onClick={() => handleStripToggle(0)}
-            type="strip"
-            disabled={!isModule2Online}
-          />
-          <p className="card-label">Kitchen</p>
-        </div>
-
-        <div className="card-wrapper">
-          <LEDCard
             name="Lighting"
             strip={ledStrips[1]}
             onClick={() => handleStripToggle(1)}
@@ -157,6 +146,17 @@ function App() {
             disabled={!isModule2Online}
           />
           <p className="card-label">Lighting</p>
+        </div>
+
+        <div className="card-wrapper">
+          <LEDCard
+            name="Kitchen"
+            strip={ledStrips[0]}
+            onClick={() => handleStripToggle(0)}
+            type="strip"
+            disabled={!isModule2Online}
+          />
+          <p className="card-label">Kitchen</p>
         </div>
 
         <div className="card-wrapper">
