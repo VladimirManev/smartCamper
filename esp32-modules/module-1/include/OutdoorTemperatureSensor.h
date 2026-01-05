@@ -1,0 +1,60 @@
+// Outdoor Temperature Sensor
+// Specific sensor logic for DS18B20 sensor (OneWire)
+// Handles: Reading, averaging, change detection, publishing
+
+#ifndef OUTDOOR_TEMPERATURE_SENSOR_H
+#define OUTDOOR_TEMPERATURE_SENSOR_H
+
+#include "Config.h"
+#include "MQTTManager.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+class OutdoorTemperatureSensor {
+private:
+  MQTTManager* mqttManager;  // Reference to MQTT manager (not owned)
+  OneWire oneWire;
+  DallasTemperature sensors;
+  
+  unsigned long lastSensorRead;
+  unsigned long lastDataSent;
+  float lastTemperature;
+  bool forceUpdateRequested;
+  bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
+  
+  // Temperature averaging
+  float temperatureReadings[OUTDOOR_TEMP_AVERAGE_COUNT];
+  int temperatureIndex;
+  int temperatureCount;
+  unsigned long lastAverageTime;
+  
+  // Sensor reading functions
+  float readTemperature();
+  
+  // Averaging functions
+  float calculateAverageTemperature();
+  
+  // Publishing logic
+  void publishIfNeeded(float temperature, unsigned long currentTime, bool forcePublish = false);
+
+public:
+  OutdoorTemperatureSensor(MQTTManager* mqtt);
+  
+  // Initialization
+  void begin();
+  
+  // Main loop - call this in your main loop()
+  void loop();
+  
+  // Force update
+  void forceUpdate();
+  
+  // Status (const methods)
+  float getLastTemperature() const { return lastTemperature; }
+  unsigned long getLastDataSent() const { return lastDataSent; }
+  bool isForceUpdateRequested() const { return forceUpdateRequested; }
+  void printStatus() const;
+};
+
+#endif
+

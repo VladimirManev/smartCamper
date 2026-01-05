@@ -22,7 +22,7 @@ function App() {
   const { isModuleOnline, moduleStatuses } = useModuleStatus(socket);
 
   // Sensor data (clears when module goes offline)
-  const { temperature, humidity, grayWaterLevel, grayWaterTemperature } =
+  const { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature } =
     useSensorData(socket, isModuleOnline, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
@@ -90,28 +90,40 @@ function App() {
       <StatusIcons socket={socket} backendConnected={connected} />
 
       <div className="main-content">
-        {/* Temperature Sensor */}
+        {/* Indoor Temperature Sensor */}
         <div className="card-wrapper">
           <SensorCard
             icon="fas fa-thermometer-half"
-            value={temperature}
+            value={indoorTemperature}
             unit="°"
             decimals={1}
             disabled={!isModule1Online}
           />
-          <p className="card-label">Temp</p>
+          <p className="card-label">Indoor Temp</p>
         </div>
 
-        {/* Humidity Sensor */}
+        {/* Indoor Humidity Sensor */}
         <div className="card-wrapper">
           <SensorCard
             icon="fas fa-tint"
-            value={humidity}
+            value={indoorHumidity}
             unit="%"
             decimals={0}
             disabled={!isModule1Online}
           />
           <p className="card-label">Humidity</p>
+        </div>
+
+        {/* Outdoor Temperature Sensor */}
+        <div className="card-wrapper">
+          <SensorCard
+            icon="fas fa-sun"
+            value={outdoorTemperature}
+            unit="°"
+            decimals={1}
+            disabled={!isModule1Online}
+          />
+          <p className="card-label">Outdoor Temp</p>
         </div>
 
         {/* Gray Water Tank */}

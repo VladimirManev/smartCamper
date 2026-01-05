@@ -11,6 +11,7 @@ SensorManager::SensorManager(ModuleManager* moduleMgr)
     temperatureHumiditySensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, DHT_PIN, DHT_TYPE),
     waterLevelSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
     waterTemperatureSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
+    outdoorTemperatureSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
     commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID) {
   
   // Validate input parameter
@@ -39,6 +40,9 @@ void SensorManager::begin() {
   // Initialize water temperature sensor
   waterTemperatureSensor.begin();
   
+  // Initialize outdoor temperature sensor
+  outdoorTemperatureSensor.begin();
+  
   // Command handler will be initialized by ModuleManager
   // (ModuleManager.begin() is called with commandHandler reference)
   
@@ -58,6 +62,7 @@ void SensorManager::loop() {
   temperatureHumiditySensor.loop();
   waterLevelSensor.loop();
   waterTemperatureSensor.loop();
+  outdoorTemperatureSensor.loop();
 }
 
 void SensorManager::handleForceUpdate() {
@@ -65,6 +70,7 @@ void SensorManager::handleForceUpdate() {
   temperatureHumiditySensor.forceUpdate();
   waterLevelSensor.forceUpdate();
   waterTemperatureSensor.forceUpdate();
+  outdoorTemperatureSensor.forceUpdate();
 }
 
 // Static MQTT callback method
@@ -80,4 +86,5 @@ void SensorManager::printStatus() const {
   temperatureHumiditySensor.printStatus();
   waterLevelSensor.printStatus();
   waterTemperatureSensor.printStatus();
+  outdoorTemperatureSensor.printStatus();
 }

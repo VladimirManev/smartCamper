@@ -69,6 +69,13 @@
 #define WATER_TEMP_THRESHOLD 0.1        // 0.1°C change threshold for publishing
 #define WATER_TEMP_AVERAGE_COUNT 5      // Number of measurements to average
 
+// Outdoor Temperature Sensor Configuration (DS18B20 - Module 1 specific)
+#define OUTDOOR_TEMP_PIN 27            // GPIO pin for DS18B20 sensor (OneWire)
+#define OUTDOOR_TEMP_READ_INTERVAL 1000   // 1 second - measurement interval
+#define OUTDOOR_TEMP_AVERAGE_INTERVAL 5000 // 5 seconds - average calculation interval
+#define OUTDOOR_TEMP_THRESHOLD 0.1        // 0.1°C change threshold for publishing
+#define OUTDOOR_TEMP_AVERAGE_COUNT 5      // Number of measurements to average
+
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output
 #define DEBUG_MQTT true     // Enable MQTT debug output

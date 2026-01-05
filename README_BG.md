@@ -43,8 +43,8 @@ smartCamper/
 │   │   └── App.css      # Стилове
 │   └── package.json
 ├── esp32-modules/        # ESP32 модули (PlatformIO)
-│   ├── temperature-sensor/  # Температурен сензор
-│   └── led-controller/      # LED контролер
+│   ├── module-1/           # Module-1 (Температурен сензор, Water level)
+│   └── module-2/            # Module-2 (LED контролер)
 └── update-from-git.sh   # Скрипт за обновяване на Raspberry Pi
 ```
 
@@ -84,10 +84,10 @@ Frontend стартира на порт **5174** (Vite dev server):
 Използва се **PlatformIO** за компилация и качване:
 
 ```bash
-cd esp32-modules/temperature-sensor
+cd esp32-modules/module-1
 pio run --target upload
 
-cd esp32-modules/led-controller
+cd esp32-modules/module-2
 pio run --target upload
 ```
 
@@ -103,13 +103,13 @@ pio run --target upload
 
 - `smartcamper/sensors/temperature` - температура
 - `smartcamper/sensors/humidity` - влажност
-- `smartcamper/sensors/led-controller/status` - LED контролер статус
+- `smartcamper/sensors/module-2/status` - Module-2 (LED контролер) статус
 
 **Команди:**
 
-- `smartcamper/commands/led-controller/strip/{index}/on` - включване на лента
-- `smartcamper/commands/led-controller/strip/{index}/off` - изключване на лента
-- `smartcamper/commands/led-controller/strip/{index}/brightness` - яркост
+- `smartcamper/commands/module-2/strip/{index}/on` - включване на лента
+- `smartcamper/commands/module-2/strip/{index}/off` - изключване на лента
+- `smartcamper/commands/module-2/strip/{index}/brightness` - яркост
 
 ## 🔧 Технологии
 

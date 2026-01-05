@@ -111,7 +111,6 @@ bool NetworkManager::connect() {
   
   // Clear old entries before each attempt
   WiFi.disconnect(true, true);
-  delay(500);
   
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
@@ -121,38 +120,13 @@ bool NetworkManager::connect() {
     Serial.println("🔄 Attempting WiFi connection...");
   }
   
-  // Start connection
+  // Start connection (non-blocking - WiFi will connect in background)
   WiFi.begin(ssid.c_str(), password.length() > 0 ? password.c_str() : NULL);
   
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {  // Increase to 30 attempts (15 seconds)
-    delay(500);
-    attempts++;
-    if (DEBUG_SERIAL) {
-      Serial.print(".");
-    }
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    isConnected = true;
-    if (DEBUG_SERIAL) {
-      Serial.println();
-      Serial.println("✅ WiFi connected!");
-      Serial.println("IP: " + getLocalIP());
-      Serial.println("Gateway: " + WiFi.gatewayIP().toString());
-      Serial.println("DNS: " + WiFi.dnsIP().toString());
-    }
-    return true;
-  } else {
-    isConnected = false;
-    if (DEBUG_SERIAL) {
-      Serial.println();
-      Serial.println("❌ WiFi connection failed");
-      Serial.println("WiFi Status: " + String(WiFi.status()));
-      Serial.println("Local IP: " + WiFi.localIP().toString());
-    }
-    return false;
-  }
+  // Check status immediately (WiFi.begin() is non-blocking, so we check in next loop())
+  // Return false now - connection status will be checked in loop()
+  isConnected = false;
+  return false;  // Connection attempt started, will be checked in next loop()
 }
 
 void NetworkManager::disconnect() {

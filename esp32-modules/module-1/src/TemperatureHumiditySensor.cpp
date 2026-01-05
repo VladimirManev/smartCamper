@@ -170,8 +170,8 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
   
   // If force publish is requested, always publish both values
   if (forcePublish) {
-    mqttManager->publishSensorData("temperature", temperature);
-    mqttManager->publishSensorData("humidity", humidity);
+    mqttManager->publishSensorData("indoor-temperature", temperature);
+    mqttManager->publishSensorData("indoor-humidity", humidity);
     
     // Save for comparison
     lastTemperature = temperature;
@@ -188,16 +188,16 @@ void TemperatureHumiditySensor::publishIfNeeded(float temperature, float humidit
   if (tempChanged || humidityChanged || lastTemperature == 0.0) {
     // Publish only changed data OR on first read
     if (tempChanged || lastTemperature == 0.0) {
-      mqttManager->publishSensorData("temperature", temperature);
+      mqttManager->publishSensorData("indoor-temperature", temperature);
       if (DEBUG_SERIAL) {
-        Serial.println("Published: smartcamper/sensors/temperature = " + String(temperature, 1));
+        Serial.println("Published: smartcamper/sensors/indoor-temperature = " + String(temperature, 1));
       }
     }
     
     if (humidityChanged || lastHumidity == 0.0) {
-      mqttManager->publishSensorData("humidity", humidity);
+      mqttManager->publishSensorData("indoor-humidity", humidity);
       if (DEBUG_SERIAL) {
-        Serial.println("Published: smartcamper/sensors/humidity = " + String((int)humidity));
+        Serial.println("Published: smartcamper/sensors/indoor-humidity = " + String((int)humidity));
       }
     }
     

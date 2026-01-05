@@ -14,11 +14,14 @@ const sensorDataHandler = (io, topic, message) => {
   
   // Handle different sensor types
   switch (sensorType) {
-    case "temperature":
-      return handleTemperature(io, message);
+    case "indoor-temperature":
+      return handleIndoorTemperature(io, message);
     
-    case "humidity":
-      return handleHumidity(io, message);
+    case "indoor-humidity":
+      return handleIndoorHumidity(io, message);
+    
+    case "outdoor-temperature":
+      return handleOutdoorTemperature(io, message);
     
     case "gray-water":
       return handleGrayWater(io, topicParts, message);
@@ -39,9 +42,9 @@ const sensorDataHandler = (io, topic, message) => {
 };
 
 /**
- * Handle temperature sensor data
+ * Handle indoor temperature sensor data (DHT22)
  */
-function handleTemperature(io, message) {
+function handleIndoorTemperature(io, message) {
   const value = parseFloat(message);
   
   if (isNaN(value)) {
@@ -50,7 +53,7 @@ function handleTemperature(io, message) {
   
   // Emit sensor update
   io.emit("sensorUpdate", {
-    temperature: value,
+    indoorTemperature: value,
     timestamp: new Date().toISOString(),
   });
   
@@ -58,9 +61,9 @@ function handleTemperature(io, message) {
 }
 
 /**
- * Handle humidity sensor data
+ * Handle indoor humidity sensor data (DHT22)
  */
-function handleHumidity(io, message) {
+function handleIndoorHumidity(io, message) {
   const value = parseInt(message);
   
   if (isNaN(value)) {
@@ -69,7 +72,26 @@ function handleHumidity(io, message) {
   
   // Emit sensor update
   io.emit("sensorUpdate", {
-    humidity: value,
+    indoorHumidity: value,
+    timestamp: new Date().toISOString(),
+  });
+  
+  return true;
+}
+
+/**
+ * Handle outdoor temperature sensor data (DS18B20)
+ */
+function handleOutdoorTemperature(io, message) {
+  const value = parseFloat(message);
+  
+  if (isNaN(value)) {
+    return false;
+  }
+  
+  // Emit sensor update
+  io.emit("sensorUpdate", {
+    outdoorTemperature: value,
     timestamp: new Date().toISOString(),
   });
   

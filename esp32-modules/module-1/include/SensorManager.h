@@ -10,6 +10,7 @@
 #include "TemperatureHumiditySensor.h"
 #include "WaterLevelSensor.h"
 #include "WaterTemperatureSensor.h"
+#include "OutdoorTemperatureSensor.h"
 #include "CommandHandler.h"
 
 class SensorManager {
@@ -18,6 +19,7 @@ private:
   TemperatureHumiditySensor temperatureHumiditySensor;
   WaterLevelSensor waterLevelSensor;
   WaterTemperatureSensor waterTemperatureSensor;
+  OutdoorTemperatureSensor outdoorTemperatureSensor;
   CommandHandler commandHandler;
   
   // Static pointer for MQTT callback

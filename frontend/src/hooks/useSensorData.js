@@ -1,6 +1,6 @@
 /**
  * useSensorData Hook
- * Manages sensor data (temperature, humidity, gray water level)
+ * Manages sensor data (indoor temperature, indoor humidity, outdoor temperature, gray water level)
  * Clears data when source module goes offline
  */
 
@@ -11,11 +11,12 @@ import { useState, useEffect } from "react";
  * @param {Object} socket - Socket.io instance
  * @param {Function} isModuleOnline - Function to check if module is online
  * @param {Object} moduleStatuses - Object with module statuses (for dependency tracking)
- * @returns {Object} { temperature, humidity, grayWaterLevel }
+ * @returns {Object} { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature }
  */
 export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
-  const [temperature, setTemperature] = useState(null);
-  const [humidity, setHumidity] = useState(null);
+  const [indoorTemperature, setIndoorTemperature] = useState(null);
+  const [indoorHumidity, setIndoorHumidity] = useState(null);
+  const [outdoorTemperature, setOutdoorTemperature] = useState(null);
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
   const [grayWaterTemperature, setGrayWaterTemperature] = useState(null);
 
@@ -31,14 +32,19 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
         return;
       }
 
-      // Update temperature if present
-      if (data.temperature !== undefined && data.temperature !== null) {
-        setTemperature(data.temperature);
+      // Update indoor temperature if present
+      if (data.indoorTemperature !== undefined && data.indoorTemperature !== null) {
+        setIndoorTemperature(data.indoorTemperature);
       }
 
-      // Update humidity if present
-      if (data.humidity !== undefined && data.humidity !== null) {
-        setHumidity(data.humidity);
+      // Update indoor humidity if present
+      if (data.indoorHumidity !== undefined && data.indoorHumidity !== null) {
+        setIndoorHumidity(data.indoorHumidity);
+      }
+
+      // Update outdoor temperature if present
+      if (data.outdoorTemperature !== undefined && data.outdoorTemperature !== null) {
+        setOutdoorTemperature(data.outdoorTemperature);
       }
 
       // Update gray water level if present
@@ -65,23 +71,26 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
     if (isModuleOnline) {
       const module1Online = isModuleOnline("module-1");
       if (!module1Online) {
-        setTemperature(null);
-        setHumidity(null);
+        setIndoorTemperature(null);
+        setIndoorHumidity(null);
+        setOutdoorTemperature(null);
         setGrayWaterLevel(null);  // Clear gray water level when module-1 goes offline
         setGrayWaterTemperature(null);  // Clear gray water temperature when module-1 goes offline
       }
     } else {
       // If isModuleOnline is not available, clear data
-      setTemperature(null);
-      setHumidity(null);
+      setIndoorTemperature(null);
+      setIndoorHumidity(null);
+      setOutdoorTemperature(null);
       setGrayWaterLevel(null);
       setGrayWaterTemperature(null);
     }
   }, [isModuleOnline, moduleStatuses]);
 
   return {
-    temperature,
-    humidity,
+    indoorTemperature,
+    indoorHumidity,
+    outdoorTemperature,
     grayWaterLevel,
     grayWaterTemperature,
   };
