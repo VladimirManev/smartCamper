@@ -29,9 +29,11 @@ MQTTManager::MQTTManager(String clientId, String brokerIP, int brokerPort) {
 
 void MQTTManager::begin() {
   mqttClient.setServer(brokerIP.c_str(), brokerPort);
+  // Increase buffer size for larger payloads (full status can be ~400-500 bytes)
+  mqttClient.setBufferSize(1024);
   
   if (DEBUG_SERIAL) {
-    Serial.println("🔌 MQTT Manager initialized");
+    Serial.println("🔌 MQTT Manager initialized (buffer size: 1024 bytes)");
     Serial.println("Client ID: " + clientId);
     Serial.println("Broker: " + brokerIP + ":" + String(brokerPort));
   }

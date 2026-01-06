@@ -236,8 +236,8 @@ void FloorHeatingManager::publishFullStatus() {
   }
   
   // Create JSON payload with all circles status
-  // Increased size to handle full status with all circles
-  StaticJsonDocument<1536> doc;
+  // Increased size to handle full status with all circles (with margin for null values)
+  StaticJsonDocument<2048> doc;
   doc["type"] = "full";
   
   JsonObject data = doc.createNestedObject("data");
