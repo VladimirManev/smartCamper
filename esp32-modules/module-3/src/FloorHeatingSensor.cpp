@@ -232,30 +232,13 @@ void FloorHeatingSensor::publishIfNeeded(float temperature, unsigned long curren
   // Round to 1 decimal place (0.1°C precision)
   temperature = round(temperature * 10) / 10;
   
-  // If force publish is requested, always publish
+  // Note: We no longer publish temperature-only updates here
+  // Temperature is included in the full status published by FloorHeatingManager
+  // This keeps the system simpler and ensures mode/relay state is always included
+  
+  // Save for comparison and local control
+  lastTemperature = temperature;
   if (forcePublish) {
-    String sensorType = "floor-heating-circle-" + String(circleIndex) + "-temp";
-    mqttManager->publishSensorData(sensorType, temperature);
-    
-    // Save for comparison
-    lastTemperature = temperature;
-    lastDataSent = currentTime;
-    return;
-  }
-  
-  // Normal publishing logic - only publish on change or first read
-  bool tempChanged = (abs(temperature - lastTemperature) >= HEATING_TEMP_THRESHOLD);
-  
-  // Publish if there's a change OR first read
-  if (tempChanged || lastTemperature == 0.0) {
-    String sensorType = "floor-heating-circle-" + String(circleIndex) + "-temp";
-    mqttManager->publishSensorData(sensorType, temperature);
-    if (DEBUG_SERIAL) {
-      Serial.println("Published: smartcamper/sensors/" + sensorType + " = " + String(temperature, 1));
-    }
-    
-    // Save for comparison
-    lastTemperature = temperature;
     lastDataSent = currentTime;
   }
 }

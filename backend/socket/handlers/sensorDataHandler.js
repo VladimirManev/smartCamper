@@ -44,12 +44,8 @@ const sensorDataHandler = (io, topic, message) => {
       // Error topics: smartcamper/errors/{module-id}/{component-type}/{component-id}
       return handleErrorTopic(io, topicParts, message);
     
-    case "floor-heating-circle-0-temp":
-    case "floor-heating-circle-1-temp":
-    case "floor-heating-circle-2-temp":
-    case "floor-heating-circle-3-temp":
-      // Individual temperature sensors for each circle
-      return handleFloorHeatingTemperature(io, sensorType, message);
+    // Legacy temperature-only topics removed - temperature is now included in full status
+    // case "floor-heating-circle-0-temp": etc. - no longer used
     
     default:
       return false; // Unknown sensor type
@@ -247,34 +243,8 @@ function handleFloorHeating(io, topicParts, message) {
   return false;
 }
 
-/**
- * Handle individual floor heating circle temperature
- * Format: smartcamper/sensors/floor-heating-circle-{index}-temp
- */
-function handleFloorHeatingTemperature(io, sensorType, message) {
-  // Extract circle index from sensor type: "floor-heating-circle-0-temp"
-  const match = sensorType.match(/floor-heating-circle-(\d+)-temp/);
-  if (!match) {
-    return false;
-  }
-  
-  const circleIndex = parseInt(match[1]);
-  const value = parseFloat(message);
-  
-  if (isNaN(value) || isNaN(circleIndex)) {
-    return false;
-  }
-  
-  // Emit temperature update for specific circle
-  io.emit("floorHeatingStatusUpdate", {
-    type: "circle",
-    index: circleIndex,
-    temperature: value,
-    timestamp: new Date().toISOString(),
-  });
-  
-  return true;
-}
+// Legacy handleFloorHeatingTemperature function removed
+// Temperature is now included in full status published by module-3
 
 /**
  * Handle error topics
