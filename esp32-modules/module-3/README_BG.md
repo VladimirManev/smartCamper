@@ -65,7 +65,7 @@ ESP32 модул за управление на система за подово
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `smartcamper/sensors/module-3/status`        | `{"type": "full", "data": {"circles": {...}}}` или `{"type": "circle", "index": 0, "mode": "TEMP_CONTROL", "relay": "ON", "temperature": 32, "error": false}` | При промяна (натискане на бутон, MQTT команда, автоматична промяна, force_update) |
 | `smartcamper/errors/module-3/circle/{index}` | `{"error": true, "type": "sensor_disconnected", "message": "Temperature sensor disconnected", "timestamp": 1234567890}`                                       | Веднъж при възникване на грешка                                                   |
-| `smartcamper/heartbeat/module-3`            | `{"timestamp": 1234567890, "moduleId": "module-3", "uptime": 3600, "wifiRSSI": -65}`                                                                          | На всеки 10 секунди                                                               |
+| `smartcamper/heartbeat/module-3`             | `{"timestamp": 1234567890, "moduleId": "module-3", "uptime": 3600, "wifiRSSI": -65}`                                                                          | На всеки 10 секунди                                                               |
 
 ### Абонирани (Команди)
 

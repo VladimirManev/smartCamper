@@ -36,8 +36,10 @@ export const LEDCard = ({ name, strip, onClick, type = "strip", disabled = false
     }
   }
 
-  // Determine display text
+  // Determine display text or icon
   const displayText = mode === "AUTO" ? "AUTO" : strip?.state || "OFF";
+  const showBulbIcon = displayText === "OFF" || displayText === "ON";
+  const isBulbOn = isOn && displayText === "ON";
 
   // Generate unique gradient ID based on name and type
   // Use a simple hash to ensure uniqueness
@@ -98,7 +100,20 @@ export const LEDCard = ({ name, strip, onClick, type = "strip", disabled = false
             )}
           </svg>
         )}
-        <span className="button-text">{displayText}</span>
+        <span className="button-text">
+          {showBulbIcon ? (
+            <span className={`bulb-icon ${isBulbOn ? "bulb-on" : ""}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Light bulb icon - simple and clean */}
+                <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill={isBulbOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </span>
+          ) : (
+            displayText
+          )}
+        </span>
       </div>
     </div>
   );
