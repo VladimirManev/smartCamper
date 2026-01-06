@@ -561,15 +561,23 @@ body {
   height: 100%;
 }
 
+.temperature-display {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .status-indicator {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 0.5rem;
-  height: 0.5rem;
+  top: -0.15rem;
+  right: -0.15rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 50%;
   background: #3b82f6;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
+  z-index: 1;
 }
 
 /* Error state - red glow */

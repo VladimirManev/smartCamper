@@ -81,10 +81,10 @@ export const FloorHeatingCard = ({ name, circle, onClick, disabled = false }) =>
               </svg>
             </span>
           ) : (
-            <>
+            <span className="temperature-display">
               {temperature !== null && temperature !== undefined ? Math.round(temperature) : "--"}°
               {isRelayOn && <span className="status-indicator"></span>}
-            </>
+            </span>
           )}
         </span>
       </div>

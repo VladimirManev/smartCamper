@@ -236,7 +236,8 @@ void FloorHeatingManager::publishFullStatus() {
   }
   
   // Create JSON payload with all circles status
-  StaticJsonDocument<1024> doc;
+  // Increased size to handle full status with all circles
+  StaticJsonDocument<1536> doc;
   doc["type"] = "full";
   
   JsonObject data = doc.createNestedObject("data");
@@ -250,10 +251,16 @@ void FloorHeatingManager::publishFullStatus() {
     
     circle["mode"] = (mode == CIRCLE_MODE_OFF) ? "OFF" : "TEMP_CONTROL";
     circle["relay"] = relayState ? "ON" : "OFF";
-    if (hasError) {
+    // Always set temperature to null when OFF mode or error (don't publish temperature)
+    if (hasError || mode == CIRCLE_MODE_OFF) {
       circle["temperature"] = nullptr;  // JSON null
     } else {
-      circle["temperature"] = round(sensors[i].getLastTemperature());
+      float temp = sensors[i].getLastTemperature();
+      if (temp > 0 && !isnan(temp)) {
+        circle["temperature"] = round(temp);
+      } else {
+        circle["temperature"] = nullptr;  // JSON null
+      }
     }
     circle["error"] = hasError;
   }
