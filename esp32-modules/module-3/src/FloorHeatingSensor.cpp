@@ -29,6 +29,14 @@ FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, u
   this->forceUpdateRequested = false;
   this->lastMQTTState = false;  // Initialize as disconnected
   
+  // Initialize async reading state
+  this->conversionStarted = false;
+  this->conversionStartTime = 0;
+  
+  // Initialize async reading state
+  this->conversionStarted = false;
+  this->conversionStartTime = 0;
+  
   // Initialize error handling
   this->failedReadCount = 0;
   this->hasError = false;
@@ -49,6 +57,11 @@ void FloorHeatingSensor::begin() {
   // Set resolution to 12 bits (0.0625°C precision, default)
   // This gives us 0.1°C accuracy which is sufficient
   sensors.setResolution(12);
+  
+  // CRITICAL: Disable blocking wait for conversion
+  // This allows requestTemperatures() to return immediately and conversion happens in background
+  // We must wait for conversion to complete before reading (handled in readTemperature with yield)
+  sensors.setWaitForConversion(false);
   
   if (DEBUG_SERIAL) {
     Serial.println("🌡️ DS18B20 Floor Heating Sensor " + String(circleIndex) + " initialized");
@@ -74,15 +87,31 @@ void FloorHeatingSensor::loop() {
     return;  // Cannot proceed without MQTT manager
   }
   
-  // Check if circle is in TEMP_CONTROL mode - if not, don't measure
+  // Track if circle was just turned on (to start reading immediately)
+  static CircleMode lastKnownMode = CIRCLE_MODE_OFF;
+  bool circleJustTurnedOn = false;
+  
   if (controller != nullptr) {
     CircleMode currentMode = controller->getCircleMode(circleIndex);
+    
+    // Check if circle just turned on (transition from OFF to TEMP_CONTROL)
+    if (lastKnownMode == CIRCLE_MODE_OFF && currentMode == CIRCLE_MODE_TEMP_CONTROL) {
+      circleJustTurnedOn = true;
+      // Reset lastSensorRead to force immediate start
+      lastSensorRead = 0;
+    }
+    lastKnownMode = currentMode;
+    
     if (currentMode == CIRCLE_MODE_OFF) {
       // Circle is OFF - don't measure temperature
       // Reset error state when circle is turned off
       if (hasError) {
         hasError = false;
         failedReadCount = 0;
+      }
+      // Reset conversion state when turning off
+      if (conversionStarted) {
+        conversionStarted = false;
       }
       return;
     }
@@ -103,17 +132,57 @@ void FloorHeatingSensor::loop() {
   // Update last known MQTT state
   lastMQTTState = mqttConnected;
   
-  // Read sensors at intervals OR on force update (works offline too)
+  // Async temperature reading state machine (non-blocking)
   unsigned long currentTime = millis();
   bool isForceUpdate = forceUpdateRequested;
-  if (currentTime - lastSensorRead > HEATING_TEMP_READ_INTERVAL || isForceUpdate) {
-    lastSensorRead = currentTime;
-    
-    // Read data from sensor
-    float temperature = readTemperature();
-    
-    // Process if valid
-    if (!isnan(temperature) && temperature != -127.0) {  // -127.0 is DallasTemperature error value
+  
+  // Check if sensor is available before attempting to read
+  int deviceCount = sensors.getDeviceCount();
+  if (deviceCount == 0) {
+    // No sensor found - report error but don't exit early
+    // This allows error handling to work properly
+    if (conversionStarted) {
+      conversionStarted = false;  // Reset state
+    }
+    // Report error if we haven't already
+    if (!hasError && failedReadCount < 3) {
+      failedReadCount = 3;  // Trigger error immediately
+      hasError = true;
+      if (DEBUG_SERIAL) {
+        Serial.println("❌ ERROR: Circle " + String(circleIndex) + " sensor not found");
+      }
+      // Publish error
+      if (mqttManager != nullptr && mqttManager->isMQTTConnected()) {
+        String errorTopic = "smartcamper/errors/module-3/circle/" + String(circleIndex);
+        String errorPayload = "{\"error\":true,\"type\":\"sensor_disconnected\",\"message\":\"Temperature sensor not found\",\"timestamp\":" + String(millis() / 1000) + "}";
+        mqttManager->publishRaw(errorTopic, errorPayload);
+      }
+    }
+    return;  // Exit early if no sensor
+  }
+  
+  if (!conversionStarted) {
+    // Start a new conversion if interval has passed, force update requested, or circle just turned on
+    if (currentTime - lastSensorRead > HEATING_TEMP_READ_INTERVAL || isForceUpdate || circleJustTurnedOn) {
+      sensors.requestTemperatures();  // Start conversion (non-blocking)
+      conversionStarted = true;
+      conversionStartTime = currentTime;
+    }
+  } else {
+    // Check if conversion is complete (non-blocking check)
+    // For 12-bit resolution, conversion takes ~750ms
+    // Wait at least 800ms to ensure conversion is complete (safety margin)
+    unsigned long elapsed = currentTime - conversionStartTime;
+    if (elapsed >= 800) {  // Minimum time for 12-bit conversion + safety margin
+      // Conversion should be complete - read temperature
+      lastSensorRead = currentTime;
+      conversionStarted = false;
+      
+      // Read data from sensor
+      float temperature = readTemperature();
+      
+      // Process if valid
+      if (!isnan(temperature) && temperature != -127.0) {  // -127.0 is DallasTemperature error value
       // Valid reading - reset error counter
       if (failedReadCount > 0) {
         failedReadCount = 0;
@@ -130,6 +199,21 @@ void FloorHeatingSensor::loop() {
         publishIfNeeded(temperature, currentTime, true);
       }
       
+      // CRITICAL: Update last temperature IMMEDIATELY for local control
+      // This allows the controller to use the temperature right away, even before averaging
+      lastTemperature = temperature;
+      
+      // If circle is in TEMP_CONTROL mode, immediately trigger controller update
+      // This ensures relay turns on as soon as we have a temperature reading
+      if (controller != nullptr) {
+        CircleMode currentMode = controller->getCircleMode(circleIndex);
+        if (currentMode == CIRCLE_MODE_TEMP_CONTROL) {
+          // Reset the controller's last check time for this circle
+          // This will force controller to check temperature immediately in next loop()
+          controller->resetLastCheckTime(circleIndex);
+        }
+      }
+      
       // Store temperature reading for averaging
       temperatureReadings[temperatureIndex] = temperature;
       temperatureIndex = (temperatureIndex + 1) % HEATING_TEMP_AVERAGE_COUNT;
@@ -144,47 +228,44 @@ void FloorHeatingSensor::loop() {
         publishIfNeeded(averageTemperature, currentTime, isForceUpdate);
         lastAverageTime = currentTime;
         forceUpdateRequested = false;
-      } else if (isForceUpdate) {
+      } else if (isForceUpdate || circleJustTurnedOn) {
         // If we don't have enough measurements yet, just publish current value
+        // Also publish immediately when circle just turned on
         publishIfNeeded(temperature, currentTime, true);
         forceUpdateRequested = false;
       }
-      
-      // Update last temperature even if not publishing (for local control)
-      lastTemperature = temperature;
-    } else {
-      // Invalid reading - increment error counter
-      failedReadCount++;
-      if (DEBUG_SERIAL) {
-        Serial.println("❌ Invalid floor heating temperature reading for circle " + String(circleIndex) + "! (Failed: " + String(failedReadCount) + "/3)");
-      }
-      
-      // If 3 consecutive failures, trigger error
-      if (failedReadCount >= 3 && !hasError) {
-        hasError = true;
+      } else {
+        // Invalid reading - increment error counter
+        failedReadCount++;
         if (DEBUG_SERIAL) {
-          Serial.println("❌ ERROR: Circle " + String(circleIndex) + " sensor disconnected (3 failed readings)");
+          Serial.println("❌ Invalid floor heating temperature reading for circle " + String(circleIndex) + "! (Failed: " + String(failedReadCount) + "/3)");
         }
-        // Publish error and disable circle (via manager callback)
-        if (mqttManager != nullptr && mqttManager->isMQTTConnected()) {
-          String errorTopic = "smartcamper/errors/module-3/circle/" + String(circleIndex);
-          String errorPayload = "{\"error\":true,\"type\":\"sensor_disconnected\",\"message\":\"Temperature sensor disconnected\",\"timestamp\":" + String(millis() / 1000) + "}";
-          mqttManager->publishRaw(errorTopic, errorPayload);
+        
+        // If 3 consecutive failures, trigger error
+        if (failedReadCount >= 3 && !hasError) {
+          hasError = true;
+          if (DEBUG_SERIAL) {
+            Serial.println("❌ ERROR: Circle " + String(circleIndex) + " sensor disconnected (3 failed readings)");
+          }
+          // Publish error and disable circle (via manager callback)
+          if (mqttManager != nullptr && mqttManager->isMQTTConnected()) {
+            String errorTopic = "smartcamper/errors/module-3/circle/" + String(circleIndex);
+            String errorPayload = "{\"error\":true,\"type\":\"sensor_disconnected\",\"message\":\"Temperature sensor disconnected\",\"timestamp\":" + String(millis() / 1000) + "}";
+            mqttManager->publishRaw(errorTopic, errorPayload);
+          }
+          // Disable circle (set to OFF mode) - need manager reference for this
+          // Will be handled in FloorHeatingManager
         }
-        // Disable circle (set to OFF mode) - need manager reference for this
-        // Will be handled in FloorHeatingManager
+        
+        forceUpdateRequested = false;
       }
-      
-      forceUpdateRequested = false;
     }
   }
 }
 
 float FloorHeatingSensor::readTemperature() {
-  // Request temperature from all sensors
-  sensors.requestTemperatures();
-  
   // Read temperature from first sensor (index 0)
+  // Conversion should already be complete when this is called
   float temp = sensors.getTempCByIndex(0);
   
   // Check for errors (DallasTemperature returns -127.0 on error)

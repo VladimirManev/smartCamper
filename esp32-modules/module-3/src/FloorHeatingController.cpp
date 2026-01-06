@@ -79,7 +79,8 @@ void FloorHeatingController::loop() {
     // Only check if circle is in TEMP_CONTROL mode
     if (circleModes[i] == CIRCLE_MODE_TEMP_CONTROL) {
       // Check temperature every HEATING_MEASURE_INTERVAL (30 seconds)
-      if (currentTime - lastControlCheck[i] >= HEATING_MEASURE_INTERVAL) {
+      // OR immediately if lastControlCheck is 0 (reset by sensor when new reading is available)
+      if (lastControlCheck[i] == 0 || (currentTime - lastControlCheck[i] >= HEATING_MEASURE_INTERVAL)) {
         lastControlCheck[i] = currentTime;
         updateCircleControl(i);
       }
@@ -170,9 +171,13 @@ void FloorHeatingController::setCircleMode(uint8_t circleIndex, CircleMode mode)
     if (mode == CIRCLE_MODE_OFF) {
       setRelayState(circleIndex, false);
     }
-    // If switching to TEMP_CONTROL mode, immediately check temperature
+    // If switching to TEMP_CONTROL mode, reset last check time
+    // This will trigger immediate check in next loop() iteration
+    // We don't call updateCircleControl here because temperature might not be ready yet
+    // Instead, we reset the check time so it will be checked as soon as temperature is available
     else if (mode == CIRCLE_MODE_TEMP_CONTROL) {
-      updateCircleControl(circleIndex);
+      // Reset last check time to force immediate check in next loop()
+      lastControlCheck[circleIndex] = 0;
     }
     
     if (DEBUG_SERIAL) {
@@ -209,6 +214,13 @@ CircleMode FloorHeatingController::getCircleMode(uint8_t circleIndex) const {
     return CIRCLE_MODE_OFF;
   }
   return circleModes[circleIndex];
+}
+
+void FloorHeatingController::resetLastCheckTime(uint8_t circleIndex) {
+  if (circleIndex >= NUM_HEATING_CIRCLES) {
+    return;
+  }
+  lastControlCheck[circleIndex] = 0;  // Reset to 0 to force immediate check
 }
 
 void FloorHeatingController::setTargetTemperature(float temp) {

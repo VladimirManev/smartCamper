@@ -64,10 +64,6 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 |-------|---------------|------------------|
 | `smartcamper/sensors/module-3/status` | `{"type": "full", "data": {"circles": {...}}}` or `{"type": "circle", "index": 0, "mode": "TEMP_CONTROL", "relay": "ON", "temperature": 32, "error": false}` | On change (button press, MQTT command, automatic control change, force_update) |
 | `smartcamper/errors/module-3/circle/{index}` | `{"error": true, "type": "sensor_disconnected", "message": "Temperature sensor disconnected", "timestamp": 1234567890}` | Once when error occurs |
-| `smartcamper/sensors/floor-heating-circle-0-temp` | `32.5` | On change (>0.1°C) |
-| `smartcamper/sensors/floor-heating-circle-1-temp` | `31.8` | On change (>0.1°C) |
-| `smartcamper/sensors/floor-heating-circle-2-temp` | `33.2` | On change (>0.1°C) |
-| `smartcamper/sensors/floor-heating-circle-3-temp` | `30.5` | On change (>0.1°C) |
 | `smartcamper/heartbeat/module-3` | `{"timestamp": 1234567890, "moduleId": "module-3", "uptime": 3600, "wifiRSSI": -65}` | Every 10 seconds |
 
 ### Subscribed (Commands)
@@ -90,20 +86,23 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 
 **TEMP_CONTROL Mode:**
 - Circle is in temperature-based automatic control
-- Temperature is measured continuously (every 1 second, averaged over 5 seconds)
+- Temperature is measured continuously using async non-blocking method (every 1 second, averaged over 5 seconds)
+- Temperature conversion takes ~800ms (non-blocking, doesn't block button handling)
 - Automatic relay control based on temperature:
   - Relay ON when temperature < 32°C
   - Relay OFF when temperature >= 33°C
+- Relay turns on immediately after first temperature reading (~1 second after enabling circle)
 - Hysteresis prevents rapid cycling (2°C difference)
 - Works completely offline (no network required)
-- Control check every 30 seconds
+- Control check every 30 seconds (or immediately when new temperature is available)
 - Button toggles to OFF mode
 
 ### Error Handling
 
-- If sensor fails 3 consecutive readings (90 seconds), circle is automatically disabled (OFF mode)
-- Error is published to `smartcamper/errors/module-3/circle/{index}` topic
-- When sensor recovers, normal status is published and circle can be re-enabled
+- If sensor fails 3 consecutive readings (3 failed attempts, ~2.4 seconds total), circle is automatically disabled (OFF mode)
+- Error is published to `smartcamper/errors/module-3/circle/{index}` topic (published once when error occurs)
+- If sensor is not found during initialization, error is reported immediately
+- When sensor recovers, normal status is published and circle automatically returns to previous state (TEMP_CONTROL if it was enabled)
 
 ### Offline Operation
 
@@ -167,6 +166,8 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 - Test with multimeter (button should connect pin to GND when pressed)
 - Check serial output for button press messages
 - Verify button is momentary push button (normally open)
+- Button debouncing: 100ms debounce delay, 300ms minimum interval between presses
+- If button is not responsive, check for blocking operations in code (should be none)
 
 ### Automatic Control Not Working
 - Verify temperature sensor is reading correctly (check serial output)
@@ -214,8 +215,15 @@ Module operates completely independently:
 - **ModuleManager**: Handles WiFi, MQTT, Heartbeat, Commands
 - **FloorHeatingManager**: Coordinates all floor heating functionality
 - **FloorHeatingController**: Manages relay control and automatic temperature control
-- **FloorHeatingSensor**: Temperature sensor reading and averaging (DS18B20)
-- **FloorHeatingButtonHandler**: Processes button inputs (debouncing, toggle)
+- **FloorHeatingSensor**: Temperature sensor reading and averaging (DS18B20) - uses async non-blocking state machine
+- **FloorHeatingButtonHandler**: Processes button inputs (debouncing, toggle) - non-blocking operation
+
+### Performance Optimizations
+
+- **Non-blocking temperature reading**: Uses async state machine (conversion starts, then reads after ~800ms)
+- **Immediate relay control**: Relay turns on immediately after first temperature reading (~1 second after enabling circle)
+- **No blocking delays**: All operations are non-blocking to ensure responsive button handling
+- **Optimized debouncing**: 100ms debounce delay with 300ms minimum interval between presses
 
 ## Serial Debug Output
 

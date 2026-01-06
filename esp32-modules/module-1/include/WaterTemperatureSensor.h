@@ -22,6 +22,10 @@ private:
   bool forceUpdateRequested;
   bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
   
+  // Async temperature reading state machine
+  bool conversionStarted;  // True if we've started a temperature conversion
+  unsigned long conversionStartTime;  // When we started the conversion
+  
   // Temperature averaging
   float temperatureReadings[WATER_TEMP_AVERAGE_COUNT];
   int temperatureIndex;

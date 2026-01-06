@@ -20,6 +20,10 @@ OutdoorTemperatureSensor::OutdoorTemperatureSensor(MQTTManager* mqtt)
   this->forceUpdateRequested = false;
   this->lastMQTTState = false;  // Initialize as disconnected
   
+  // Initialize async reading state
+  this->conversionStarted = false;
+  this->conversionStartTime = 0;
+  
   // Initialize temperature averaging
   this->temperatureIndex = 0;
   this->temperatureCount = 0;
@@ -35,6 +39,11 @@ void OutdoorTemperatureSensor::begin() {
   // Set resolution to 12 bits (0.0625°C precision, default)
   // This gives us 0.1°C accuracy which is sufficient
   sensors.setResolution(12);
+  
+  // CRITICAL: Disable blocking wait for conversion
+  // This allows requestTemperatures() to return immediately and conversion happens in background
+  // We must wait for conversion to complete before reading (handled in loop with async state machine)
+  sensors.setWaitForConversion(false);
   
   if (DEBUG_SERIAL) {
     Serial.println("🌡️ DS18B20 Outdoor Temperature Sensor initialized");
@@ -76,14 +85,39 @@ void OutdoorTemperatureSensor::loop() {
     return;
   }
   
-  // Read sensors at intervals OR on force update
+  // Async temperature reading state machine (non-blocking)
   unsigned long currentTime = millis();
   bool isForceUpdate = forceUpdateRequested;
-  if (currentTime - lastSensorRead > OUTDOOR_TEMP_READ_INTERVAL || isForceUpdate) {
-    lastSensorRead = currentTime;
-    
-    // Read data from sensor
-    float temperature = readTemperature();
+  
+  // Check if sensor is available before attempting to read
+  int deviceCount = sensors.getDeviceCount();
+  if (deviceCount == 0) {
+    // No sensor found - reset state and exit
+    if (conversionStarted) {
+      conversionStarted = false;
+    }
+    return;
+  }
+  
+  if (!conversionStarted) {
+    // Start a new conversion if interval has passed or force update requested
+    if (currentTime - lastSensorRead > OUTDOOR_TEMP_READ_INTERVAL || isForceUpdate) {
+      sensors.requestTemperatures();  // Start conversion (non-blocking)
+      conversionStarted = true;
+      conversionStartTime = currentTime;
+    }
+  } else {
+    // Check if conversion is complete (non-blocking check)
+    // For 12-bit resolution, conversion takes ~750ms
+    // Wait at least 800ms to ensure conversion is complete (safety margin)
+    unsigned long elapsed = currentTime - conversionStartTime;
+    if (elapsed >= 800) {  // Minimum time for 12-bit conversion + safety margin
+      // Conversion should be complete - read temperature
+      lastSensorRead = currentTime;
+      conversionStarted = false;
+      
+      // Read data from sensor
+      float temperature = readTemperature();
     
     // Process if valid
     if (!isnan(temperature) && temperature != -127.0) {  // -127.0 is DallasTemperature error value
@@ -106,20 +140,22 @@ void OutdoorTemperatureSensor::loop() {
         publishIfNeeded(temperature, currentTime, true);
         forceUpdateRequested = false;
       }
+      
+      // Update last temperature even if not publishing
+      lastTemperature = temperature;
     } else {
       if (DEBUG_SERIAL) {
         Serial.println("❌ Invalid outdoor temperature reading!");
       }
       forceUpdateRequested = false;
     }
+    }
   }
 }
 
 float OutdoorTemperatureSensor::readTemperature() {
-  // Request temperature from all sensors
-  sensors.requestTemperatures();
-  
   // Read temperature from first sensor (index 0)
+  // Conversion should already be complete when this is called
   float temp = sensors.getTempCByIndex(0);
   
   // Check for errors (DallasTemperature returns -127.0 on error)

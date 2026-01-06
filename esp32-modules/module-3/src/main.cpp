@@ -69,6 +69,7 @@ void loop() {
   // Status publishing will only happen if connected (handled inside FloorHeatingManager)
   floorHeatingManager.loop();
   
-  delay(10);  // Small delay to prevent overwhelming the system
+  // No delay() - use yield() if needed, but ESP32 handles task switching automatically
+  // delay() blocks all operations including button handling
 }
 

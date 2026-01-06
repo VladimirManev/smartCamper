@@ -55,6 +55,9 @@ public:
   bool getCircleState(uint8_t circleIndex) const;  // Get relay state (ON/OFF)
   CircleMode getCircleMode(uint8_t circleIndex) const;  // Get circle mode (OFF/TEMP_CONTROL)
   
+  // Reset last check time (for immediate temperature check)
+  void resetLastCheckTime(uint8_t circleIndex);
+  
   // Future: Temperature configuration (for future implementation)
   void setTargetTemperature(float temp);  // Set target temperature (future feature)
   float getTargetTemperature() const { return targetTemperature; }

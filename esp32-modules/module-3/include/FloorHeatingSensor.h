@@ -27,6 +27,10 @@ private:
   bool forceUpdateRequested;
   bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
   
+  // Async temperature reading state machine
+  bool conversionStarted;  // True if we've started a temperature conversion
+  unsigned long conversionStartTime;  // When we started the conversion
+  
   // Error handling
   int failedReadCount;  // Counter for failed readings (3 failures = error)
   bool hasError;  // True if sensor has error (3 consecutive failures)
