@@ -229,14 +229,11 @@ function handleFloorHeating(io, topicParts, message) {
     try {
       const statusData = JSON.parse(message);
       
-      // Send full status to frontend
+      // Forward the status data as-is from module (new format)
+      // Module publishes: {type: "circle", index: 0, mode: "TEMP_CONTROL", relay: "ON", temperature: 22, error: false}
+      // or: {type: "full", data: {circles: {...}}}
       io.emit("floorHeatingStatusUpdate", {
-        type: statusData.type || "full",
-        index: statusData.index,
-        data: statusData.data || statusData,
-        state: statusData.state,
-        temperature: statusData.temperature,
-        manual: statusData.manual,
+        ...statusData, // Forward all fields from module
         timestamp: new Date().toISOString(),
       });
       
