@@ -100,14 +100,19 @@ function App() {
       return;
     }
     
-    // Toggle between OFF and TEMP_CONTROL
+    // Get current mode from state
     const currentMode = circles[index]?.mode || "OFF";
-    const newMode = currentMode === "OFF" ? "on" : "off";
     
+    // Determine action based on current mode
+    // OFF -> on (enable TEMP_CONTROL)
+    // TEMP_CONTROL -> off (disable)
+    const action = currentMode === "OFF" ? "on" : "off";
+    
+    // Send command - state will update when module publishes status
     sendFloorHeatingCommand({
       type: "circle",
       index: index,
-      action: newMode,
+      action: action,
     });
   };
 

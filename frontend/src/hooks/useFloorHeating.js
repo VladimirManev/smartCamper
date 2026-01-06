@@ -48,6 +48,7 @@ export const useFloorHeating = (socket) => {
       }
       // SINGLE CIRCLE FORMAT
       else if (data.type === "circle" && typeof data.index === "number") {
+        // Always update with server state (overwrites optimistic update)
         setCircles((prev) => ({
           ...prev,
           [data.index]: {
