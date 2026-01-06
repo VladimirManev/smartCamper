@@ -22,6 +22,7 @@ private:
   CommandHandler* commandHandler;  // Pointer - will be set by specific module logic
   
   bool initialized;
+  bool lastConnectionState;  // Track previous connection state to detect reconnections
 
 public:
   ModuleManager();

@@ -97,13 +97,12 @@ void FloorHeatingManager::loop() {
         controller.setCircleMode(i, CIRCLE_MODE_OFF);
         publishCircleStatus(i);
       }
-    } else {
-      // Sensor recovered - publish status so frontend knows sensor is OK
-      // Circle remains OFF - user must manually enable it
-      if (controller.getCircleMode(i) == CIRCLE_MODE_OFF) {
-        publishCircleStatus(i);
-      }
     }
+    // Note: We don't publish status here when sensor is OK and circle is OFF
+    // Status will be published when:
+    // 1. Circle mode changes (via button or MQTT command)
+    // 2. Relay state changes (via automatic temperature control)
+    // 3. Sensor error occurs or recovers (handled above)
   }
   
   // Update controller (automatic temperature control - works offline)
@@ -267,8 +266,15 @@ void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex) {
   doc["relay"] = relayState ? "ON" : "OFF";
   if (hasError) {
     doc["temperature"] = nullptr;  // JSON null
+  } else if (mode == CIRCLE_MODE_OFF) {
+    doc["temperature"] = nullptr;  // JSON null - don't publish temperature when OFF
   } else {
-    doc["temperature"] = round(sensors[circleIndex].getLastTemperature());
+    float temp = sensors[circleIndex].getLastTemperature();
+    if (temp > 0 && !isnan(temp)) {
+      doc["temperature"] = round(temp);
+    } else {
+      doc["temperature"] = nullptr;  // JSON null
+    }
   }
   doc["error"] = hasError;
   

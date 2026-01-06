@@ -8,6 +8,7 @@ ModuleManager::ModuleManager()
   : heartbeatManager(&mqttManager, MODULE_ID) {
   this->commandHandler = nullptr;
   this->initialized = false;
+  this->lastConnectionState = false;  // Start as disconnected
 }
 
 void ModuleManager::begin() {
@@ -54,6 +55,19 @@ void ModuleManager::loop() {
   // Update MQTT with WiFi status
   bool wifiConnected = networkManager.isWiFiConnected();
   mqttManager.loop(wifiConnected);
+  
+  // Check for connection state change (disconnected -> connected)
+  bool currentConnectionState = isConnected();
+  if (currentConnectionState && !lastConnectionState) {
+    // Just connected to network (WiFi + MQTT) - send force update
+    if (commandHandler != nullptr) {
+      if (DEBUG_SERIAL) {
+        Serial.println("🔄 Network reconnected - sending force update");
+      }
+      commandHandler->forceUpdate();
+    }
+  }
+  lastConnectionState = currentConnectionState;
   
   // Update Heartbeat Manager (must be after MQTT loop)
   heartbeatManager.loop();

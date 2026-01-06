@@ -44,7 +44,7 @@ export const FloorHeatingCard = ({ name, circle, onClick, disabled = false }) =>
   };
 
   return (
-    <div className={`led-card ${disabled ? "disabled" : ""}`} onClick={handleClick}>
+    <div className={`led-card floor-heating-card ${disabled ? "disabled" : ""}`} onClick={handleClick}>
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
         <svg className="horseshoe-progress" viewBox="0 0 200 200">
@@ -72,7 +72,14 @@ export const FloorHeatingCard = ({ name, circle, onClick, disabled = false }) =>
           {hasError ? (
             <span className="error-icon">!</span>
           ) : isOff ? (
-            <span className="heating-icon">🔥</span>
+            <span className="heating-symbol">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Three vertical wavy lines pointing up - heating symbol (shorter) */}
+                <path d="M 8 18 Q 6 15, 8 12 T 8 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                <path d="M 12 18 Q 10 15, 12 12 T 12 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                <path d="M 16 18 Q 14 15, 16 12 T 16 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+              </svg>
+            </span>
           ) : (
             <>
               {temperature !== null && temperature !== undefined ? Math.round(temperature) : "--"}°

@@ -547,6 +547,20 @@ body {
   display: inline-block;
 }
 
+.heating-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: #94a3b8;
+}
+
+.heating-symbol svg {
+  width: 100%;
+  height: 100%;
+}
+
 .status-indicator {
   position: absolute;
   top: 0.25rem;
@@ -605,8 +619,8 @@ body {
   text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
-/* TEMP_CONTROL mode with relay ON - red temperature */
-.neumorphic-button.on .button-text {
+/* TEMP_CONTROL mode with relay ON - red temperature (only for floor heating) */
+.floor-heating-card .neumorphic-button.on .button-text {
   color: #ef4444;
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
