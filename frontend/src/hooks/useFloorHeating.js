@@ -89,6 +89,7 @@ export const useFloorHeating = (socket) => {
       return;
     }
 
+    console.log("🔥 Sending floor heating command:", command);
     socket.emit("floorHeatingCommand", command);
   };
 

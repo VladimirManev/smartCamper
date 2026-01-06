@@ -97,16 +97,19 @@ function App() {
   const handleCircleToggle = (index) => {
     // Don't send command if module is offline
     if (!isModule3Online) {
+      console.warn("⚠️ Cannot toggle circle - module-3 is offline");
       return;
     }
     
     // Get current mode from state
     const currentMode = circles[index]?.mode || "OFF";
+    console.log(`🔥 Toggling circle ${index}, current mode: ${currentMode}`);
     
     // Determine action based on current mode
     // OFF -> on (enable TEMP_CONTROL)
     // TEMP_CONTROL -> off (disable)
     const action = currentMode === "OFF" ? "on" : "off";
+    console.log(`🔥 Sending action: ${action}`);
     
     // Send command - state will update when module publishes status
     sendFloorHeatingCommand({

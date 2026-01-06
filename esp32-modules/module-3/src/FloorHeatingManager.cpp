@@ -139,8 +139,14 @@ void FloorHeatingManager::handleMQTTMessageStatic(char* topic, byte* payload, un
 
 // Process MQTT message (instance method)
 void FloorHeatingManager::processMQTTMessage(char* topic, byte* payload, unsigned int length) {
-  // First try force_update command (handled by CommandHandler)
   String topicStr = String(topic);
+  
+  if (DEBUG_SERIAL) {
+    Serial.println("📨 FloorHeatingManager received MQTT message:");
+    Serial.println("  Topic: " + topicStr);
+  }
+  
+  // First try force_update command (handled by CommandHandler)
   if (topicStr.endsWith("/force_update")) {
     commandHandler.handleMQTTMessage(topic, payload, length);
     return;
@@ -156,10 +162,17 @@ void FloorHeatingManager::processMQTTMessage(char* topic, byte* payload, unsigne
   String commandPrefix = String(MQTT_TOPIC_COMMANDS) + MODULE_ID + "/";
   
   if (!topicStr.startsWith(commandPrefix)) {
+    if (DEBUG_SERIAL) {
+      Serial.println("  ⚠️ Topic doesn't start with command prefix, ignoring");
+    }
     return;  // Not our command
   }
   
   String commandPath = topicStr.substring(commandPrefix.length());
+  
+  if (DEBUG_SERIAL) {
+    Serial.println("  Command path: " + commandPath);
+  }
   
   // Handle circle commands: circle/{index}/{action}
   if (commandPath.startsWith("circle/")) {
@@ -186,7 +199,18 @@ void FloorHeatingManager::processMQTTMessage(char* topic, byte* payload, unsigne
     }
     
     String action = circleCommand.substring(slashIndex + 1);
+    
+    if (DEBUG_SERIAL) {
+      Serial.println("🔥 Processing circle command:");
+      Serial.println("  Circle index: " + String(circleIndex));
+      Serial.println("  Action: " + action);
+    }
+    
     handleCircleCommand(circleIndex, action, message);
+  } else {
+    if (DEBUG_SERIAL) {
+      Serial.println("  ⚠️ Unknown command path: " + commandPath);
+    }
   }
 }
 
