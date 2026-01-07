@@ -1,9 +1,11 @@
 /**
  * StatusIcons Component
  * Displays connection status icons for backend and modules
+ * Uses signal indicators for modules (antenna + number + signal bars)
  */
 
 import { useModuleStatus } from "../hooks/useModuleStatus";
+import { SignalIndicator } from "./SignalIndicator";
 
 /**
  * StatusIcons component
@@ -12,7 +14,7 @@ import { useModuleStatus } from "../hooks/useModuleStatus";
  * @param {boolean} props.backendConnected - Backend connection status
  */
 export const StatusIcons = ({ socket, backendConnected }) => {
-  const { isModuleOnline } = useModuleStatus(socket);
+  const { isModuleOnline, getModuleStatus } = useModuleStatus(socket);
 
   // Module icons configuration
   const moduleIcons = [
@@ -45,18 +47,23 @@ export const StatusIcons = ({ socket, backendConnected }) => {
         <i className="fas fa-circle"></i>
       </span>
 
-      {/* Module status icons */}
-      {moduleIcons.map((module) => (
-        <span
-          key={module.id}
-          className={`status-item status-number ${
-            isModuleOnline(module.id) ? "online" : "offline"
-          }`}
-          title={module.label}
-        >
-          {module.number}
-        </span>
-      ))}
+      {/* Module signal indicators */}
+      {moduleIcons.map((module) => {
+        const moduleStatus = getModuleStatus(module.id);
+        const isOnline = isModuleOnline(module.id);
+        const rssi = moduleStatus?.wifiRSSI || null;
+        
+        return (
+          <SignalIndicator
+            key={module.id}
+            moduleId={module.id}
+            moduleNumber={module.number}
+            isOnline={isOnline}
+            rssi={rssi}
+            label={module.label}
+          />
+        );
+      })}
     </div>
   );
 };

@@ -12,6 +12,7 @@
 
 // Forward declaration
 class FloorHeatingController;
+class FloorHeatingManager;
 
 class FloorHeatingSensor {
 private:
@@ -24,6 +25,7 @@ private:
   unsigned long lastSensorRead;
   unsigned long lastDataSent;
   float lastTemperature;
+  float lastPublishedTemperature;  // Last temperature value that was published to backend
   bool forceUpdateRequested;
   bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
   
@@ -42,6 +44,7 @@ private:
   unsigned long lastAverageTime;
   
   FloorHeatingController* controller;  // Reference to controller to check mode
+  FloorHeatingManager* manager;  // Reference to manager for publishing status
   
   // Sensor reading functions
   float readTemperature();
@@ -67,13 +70,20 @@ public:
   // Set controller reference (to check if circle is in TEMP_CONTROL mode)
   void setController(FloorHeatingController* ctrl);
   
+  // Set manager reference (for publishing status)
+  void setManager(FloorHeatingManager* mgr);
+  
   // Status (const methods)
   float getLastTemperature() const { return lastTemperature; }
+  float getLastPublishedTemperature() const { return lastPublishedTemperature; }
   unsigned long getLastDataSent() const { return lastDataSent; }
   bool isForceUpdateRequested() const { return forceUpdateRequested; }
   bool hasSensorError() const { return hasError; }
   uint8_t getCircleIndex() const { return circleIndex; }
   void printStatus() const;
+  
+  // Update last published temperature (called by FloorHeatingManager after publishing)
+  void setLastPublishedTemperature(float temp) { lastPublishedTemperature = temp; }
 };
 
 #endif

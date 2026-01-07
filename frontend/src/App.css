@@ -39,7 +39,8 @@ body {
   top: 1rem;
   left: 1rem;
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  align-items: center;
   z-index: 10;
 }
 
@@ -50,7 +51,7 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Status number circles */
+/* Status number circles (for backend connection) */
 .status-number {
   width: 1rem;
   height: 1rem;
@@ -81,6 +82,82 @@ body {
   border-color: #ef4444 !important;
   text-shadow: 0 0 10px rgba(239, 68, 68, 0.6) !important;
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Signal Indicator - WiFi signal strength indicator */
+.signal-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: all 0.3s ease;
+}
+
+/* Module number */
+.signal-module-number {
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 0.5rem;
+  text-align: center;
+}
+
+/* Signal bars container */
+.signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.15rem;
+  height: 0.75rem;
+  margin-left: 0.1rem;
+}
+
+/* Individual signal bar */
+.signal-bar {
+  width: 0.2rem;
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 0.1rem 0.1rem 0 0;
+  transition: all 0.3s ease;
+}
+
+/* Bar heights - first is smallest, others increase */
+.signal-bar.bar-1 {
+  height: 0.25rem;
+}
+
+.signal-bar.bar-2 {
+  height: 0.4rem;
+}
+
+.signal-bar.bar-3 {
+  height: 0.55rem;
+}
+
+.signal-bar.bar-4 {
+  height: 0.75rem;
+}
+
+/* Active bars (filled with current color) */
+.signal-bar.active {
+  background: currentColor;
+}
+
+/* Color classes - only online (blue) and offline (red) */
+.signal-indicator.online {
+  color: #3b82f6; /* Blue */
+  border-color: #3b82f6;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+}
+
+.signal-indicator.offline {
+  color: #ef4444; /* Red */
+  border-color: #ef4444;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }
 
 /* Status item hover moved to @media (hover: hover) below */

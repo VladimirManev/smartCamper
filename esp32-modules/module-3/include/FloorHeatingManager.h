@@ -53,7 +53,7 @@ public:
   
   // Status publishing (public for ButtonHandler and Controller callbacks)
   void publishFullStatus();
-  void publishCircleStatus(uint8_t circleIndex);
+  void publishCircleStatus(uint8_t circleIndex, bool forcePublish = false);
   
   void printStatus() const;
 };

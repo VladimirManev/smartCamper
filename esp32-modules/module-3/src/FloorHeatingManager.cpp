@@ -40,11 +40,13 @@ FloorHeatingManager::FloorHeatingManager(ModuleManager* moduleMgr)
   // Set current instance for static methods
   currentInstance = this;
   
-  // Link sensors to controller
+  // Link sensors to controller and manager
   for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
     controller.setSensor(i, &sensors[i]);
     // Link controller to sensors (for checking circle mode)
     sensors[i].setController(&controller);
+    // Link manager to sensors (for publishing status)
+    sensors[i].setManager(this);
   }
   
   // Link manager to controller (for status publishing callbacks)
@@ -95,7 +97,7 @@ void FloorHeatingManager::loop() {
           Serial.println("❌ Disabling circle " + String(i) + " due to sensor error");
         }
         controller.setCircleMode(i, CIRCLE_MODE_OFF);
-        publishCircleStatus(i);
+        publishCircleStatus(i, true);  // Force publish because mode changed due to error
       }
     }
     // Note: We don't publish status here when sensor is OK and circle is OFF
@@ -218,11 +220,11 @@ void FloorHeatingManager::handleCircleCommand(uint8_t circleIndex, String action
   if (action == "on") {
     // Enable TEMP_CONTROL mode
     controller.setCircleMode(circleIndex, CIRCLE_MODE_TEMP_CONTROL);
-    publishCircleStatus(circleIndex);
+    publishCircleStatus(circleIndex, true);  // Force publish because mode changed
   } else if (action == "off") {
     // Disable circle (OFF mode)
     controller.setCircleMode(circleIndex, CIRCLE_MODE_OFF);
-    publishCircleStatus(circleIndex);
+    publishCircleStatus(circleIndex, true);  // Force publish because mode changed
   } else {
     if (DEBUG_SERIAL) {
       Serial.println("❌ Unknown action: " + action);
@@ -257,7 +259,10 @@ void FloorHeatingManager::publishFullStatus() {
     } else {
       float temp = sensors[i].getLastTemperature();
       if (temp > 0 && !isnan(temp)) {
-        circle["temperature"] = round(temp);
+        float roundedTemp = round(temp);
+        circle["temperature"] = roundedTemp;
+        // Update last published temperature after successful publish
+        sensors[i].setLastPublishedTemperature(roundedTemp);
       } else {
         circle["temperature"] = nullptr;  // JSON null
       }
@@ -276,7 +281,7 @@ void FloorHeatingManager::publishFullStatus() {
   }
 }
 
-void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex) {
+void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex, bool forcePublish) {
   if (!moduleManager || !moduleManager->getMQTTManager().isMQTTConnected()) {
     return;  // Don't publish if not connected
   }
@@ -285,12 +290,34 @@ void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex) {
     return;
   }
   
-  // Create JSON payload for single circle
-  StaticJsonDocument<256> doc;
   CircleMode mode = controller.getCircleMode(circleIndex);
   bool relayState = controller.getCircleState(circleIndex);
   bool hasError = sensors[circleIndex].hasSensorError();
   
+  // Check if temperature has changed (only for TEMP_CONTROL mode and when not forcing publish)
+  // This prevents unnecessary publishing when only temperature changes (relay/mode changes are always published)
+  if (!forcePublish && mode == CIRCLE_MODE_TEMP_CONTROL && !hasError) {
+    float currentTemp = sensors[circleIndex].getLastTemperature();
+    float lastPublishedTemp = sensors[circleIndex].getLastPublishedTemperature();
+    
+    // Check if temperature is valid and different from last published
+    if (currentTemp > 0 && !isnan(currentTemp) && !isnan(lastPublishedTemp)) {
+      // Round both temperatures for comparison (same as in JSON)
+      float roundedCurrent = round(currentTemp);
+      float roundedLast = round(lastPublishedTemp);
+      
+      // If temperature hasn't changed, don't publish (unless forced)
+      if (roundedCurrent == roundedLast) {
+        if (DEBUG_MQTT) {
+          Serial.println("⏭️ Skipping publish for circle " + String(circleIndex) + " - temperature unchanged: " + String(roundedCurrent) + "°C");
+        }
+        return;
+      }
+    }
+  }
+  
+  // Create JSON payload for single circle
+  StaticJsonDocument<256> doc;
   doc["type"] = "circle";
   doc["index"] = circleIndex;
   doc["mode"] = (mode == CIRCLE_MODE_OFF) ? "OFF" : "TEMP_CONTROL";
@@ -302,7 +329,11 @@ void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex) {
   } else {
     float temp = sensors[circleIndex].getLastTemperature();
     if (temp > 0 && !isnan(temp)) {
-      doc["temperature"] = round(temp);
+      float roundedTemp = round(temp);
+      doc["temperature"] = roundedTemp;
+      
+      // Update last published temperature after successful publish
+      sensors[circleIndex].setLastPublishedTemperature(roundedTemp);
     } else {
       doc["temperature"] = nullptr;  // JSON null
     }

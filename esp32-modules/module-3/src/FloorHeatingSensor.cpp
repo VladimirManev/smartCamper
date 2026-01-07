@@ -3,6 +3,7 @@
 
 #include "FloorHeatingSensor.h"
 #include "FloorHeatingController.h"
+#include "FloorHeatingManager.h"
 #include <Arduino.h>
 
 FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, uint8_t pin) 
@@ -26,6 +27,7 @@ FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, u
   this->lastSensorRead = 0;
   this->lastDataSent = 0;
   this->lastTemperature = 0.0;
+  this->lastPublishedTemperature = NAN;  // Initialize as NAN to force first publish
   this->forceUpdateRequested = false;
   this->lastMQTTState = false;  // Initialize as disconnected
   
@@ -41,6 +43,7 @@ FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, u
   this->failedReadCount = 0;
   this->hasError = false;
   this->controller = nullptr;
+  this->manager = nullptr;
   
   // Initialize temperature averaging
   this->temperatureIndex = 0;
@@ -81,6 +84,10 @@ void FloorHeatingSensor::setController(FloorHeatingController* ctrl) {
   controller = ctrl;
 }
 
+void FloorHeatingSensor::setManager(FloorHeatingManager* mgr) {
+  manager = mgr;
+}
+
 void FloorHeatingSensor::loop() {
   // Validate mqttManager pointer
   if (mqttManager == nullptr) {
@@ -89,6 +96,7 @@ void FloorHeatingSensor::loop() {
   
   // Track if circle was just turned on (to start reading immediately)
   static CircleMode lastKnownMode = CIRCLE_MODE_OFF;
+  static bool circleJustTurnedOnFlag = false;
   bool circleJustTurnedOn = false;
   
   if (controller != nullptr) {
@@ -96,9 +104,15 @@ void FloorHeatingSensor::loop() {
     
     // Check if circle just turned on (transition from OFF to TEMP_CONTROL)
     if (lastKnownMode == CIRCLE_MODE_OFF && currentMode == CIRCLE_MODE_TEMP_CONTROL) {
+      // Circle just turned on - set flag for first measurement only
+      circleJustTurnedOnFlag = true;
       circleJustTurnedOn = true;
       // Reset lastSensorRead to force immediate start
       lastSensorRead = 0;
+    } else {
+      // Circle is not just turned on - reset flag
+      circleJustTurnedOn = false;
+      circleJustTurnedOnFlag = false;  // Always reset flag if not just turned on
     }
     lastKnownMode = currentMode;
     
@@ -126,7 +140,10 @@ void FloorHeatingSensor::loop() {
       Serial.println("🔄 MQTT reconnected - will send floor heating temperature data immediately for circle " + String(circleIndex));
     }
     // Force a sensor read and publish on next iteration
-    forceUpdateRequested = true;
+    // But only if we're not already in the middle of a conversion
+    if (!conversionStarted) {
+      forceUpdateRequested = true;
+    }
   }
   
   // Update last known MQTT state
@@ -162,8 +179,16 @@ void FloorHeatingSensor::loop() {
   }
   
   if (!conversionStarted) {
-    // Start a new conversion if interval has passed, force update requested, or circle just turned on
-    if (currentTime - lastSensorRead > HEATING_TEMP_READ_INTERVAL || isForceUpdate || circleJustTurnedOn) {
+    // Start a new conversion ONLY if interval has passed (5 seconds)
+    // This ensures we don't start new conversion immediately after previous one
+    bool intervalPassed = (currentTime - lastSensorRead >= HEATING_TEMP_READ_INTERVAL);
+    
+    // Allow immediate start ONLY for first measurement (when lastSensorRead is 0)
+    // This happens when circle just turned on or on first boot
+    // NOTE: Do NOT use isForceUpdate or circleJustTurnedOn here - they cause continuous conversions
+    bool isFirstMeasurement = (lastSensorRead == 0);
+    
+    if (intervalPassed || isFirstMeasurement) {
       sensors.requestTemperatures();  // Start conversion (non-blocking)
       conversionStarted = true;
       conversionStartTime = currentTime;
@@ -195,23 +220,7 @@ void FloorHeatingSensor::loop() {
         if (DEBUG_SERIAL) {
           Serial.println("✅ Circle " + String(circleIndex) + " sensor recovered - temperature: " + String(temperature, 1) + "°C");
         }
-        // Publish normal status (frontend will update, but circle stays OFF until user enables it)
-        publishIfNeeded(temperature, currentTime, true);
-      }
-      
-      // CRITICAL: Update last temperature IMMEDIATELY for local control
-      // This allows the controller to use the temperature right away, even before averaging
-      lastTemperature = temperature;
-      
-      // If circle is in TEMP_CONTROL mode, immediately trigger controller update
-      // This ensures relay turns on as soon as we have a temperature reading
-      if (controller != nullptr) {
-        CircleMode currentMode = controller->getCircleMode(circleIndex);
-        if (currentMode == CIRCLE_MODE_TEMP_CONTROL) {
-          // Reset the controller's last check time for this circle
-          // This will force controller to check temperature immediately in next loop()
-          controller->resetLastCheckTime(circleIndex);
-        }
+        // Don't publish here - wait for averaging
       }
       
       // Store temperature reading for averaging
@@ -221,18 +230,47 @@ void FloorHeatingSensor::loop() {
         temperatureCount++;
       }
       
-      // Calculate average temperature every 5 seconds OR on force update
+      // Calculate average temperature on every 6th measurement (30 seconds)
+      // ONLY publish when we have averaged temperature
       if (temperatureCount >= HEATING_TEMP_AVERAGE_COUNT && 
           (currentTime - lastAverageTime >= HEATING_TEMP_AVERAGE_INTERVAL || isForceUpdate)) {
         float averageTemperature = calculateAverageTemperature();
+        
+        // CRITICAL: Update last temperature with averaged value for local control
+        // This ensures the controller uses the averaged temperature for automatic control
+        lastTemperature = averageTemperature;
+        
+        // If circle is in TEMP_CONTROL mode, immediately trigger controller update
+        // This ensures relay turns on/off based on averaged temperature
+        if (controller != nullptr) {
+          CircleMode currentMode = controller->getCircleMode(circleIndex);
+          if (currentMode == CIRCLE_MODE_TEMP_CONTROL) {
+            controller->resetLastCheckTime(circleIndex);
+          }
+        }
+        
+        // ONLY publish when we have averaged temperature (every 6th measurement or 30 seconds)
+        // publishIfNeeded will check if temperature has changed and publish only if different
         publishIfNeeded(averageTemperature, currentTime, isForceUpdate);
         lastAverageTime = currentTime;
         forceUpdateRequested = false;
-      } else if (isForceUpdate || circleJustTurnedOn) {
-        // If we don't have enough measurements yet, just publish current value
-        // Also publish immediately when circle just turned on
-        publishIfNeeded(temperature, currentTime, true);
-        forceUpdateRequested = false;
+      } else {
+        // Don't have enough measurements yet - store temperature for control but don't publish
+        // Use current temperature for control (controller needs it immediately)
+        lastTemperature = temperature;
+        
+        // If circle just turned on, trigger controller update immediately
+        if (circleJustTurnedOn && circleJustTurnedOnFlag) {
+          circleJustTurnedOnFlag = false;
+          if (controller != nullptr) {
+            CircleMode currentMode = controller->getCircleMode(circleIndex);
+            if (currentMode == CIRCLE_MODE_TEMP_CONTROL) {
+              controller->resetLastCheckTime(circleIndex);
+            }
+          }
+        }
+        
+        // DO NOT publish here - wait for averaging (every 6th measurement or 30 seconds)
       }
       } else {
         // Invalid reading - increment error counter
@@ -310,17 +348,34 @@ void FloorHeatingSensor::publishIfNeeded(float temperature, unsigned long curren
     // Still publish but log warning
   }
   
-  // Round to 1 decimal place (0.1°C precision)
-  temperature = round(temperature * 10) / 10;
+  // Round to whole number (same as in publishCircleStatus for consistency)
+  float roundedTemp = round(temperature);
   
-  // Note: We no longer publish temperature-only updates here
-  // Temperature is included in the full status published by FloorHeatingManager
-  // This keeps the system simpler and ensures mode/relay state is always included
-  
-  // Save for comparison and local control
+  // Save for comparison and local control (keep original precision for control)
   lastTemperature = temperature;
   if (forcePublish) {
     lastDataSent = currentTime;
+  }
+  
+  // Check if temperature has changed before publishing (only if not forcing)
+  if (!forcePublish) {
+    float lastPublishedTemp = lastPublishedTemperature;
+    if (!isnan(lastPublishedTemp) && roundedTemp == lastPublishedTemp) {
+      // Temperature hasn't changed, don't publish
+      if (DEBUG_MQTT) {
+        Serial.println("⏭️ FloorHeatingSensor: Skipping publish for circle " + String(circleIndex) + " - temperature unchanged: " + String(roundedTemp) + "°C");
+      }
+      return;
+    }
+  }
+  
+  // Publish through manager (which will also check if temperature has changed)
+  // Only publish if manager is available and we have a valid temperature
+  if (manager != nullptr && roundedTemp > 0 && !isnan(roundedTemp)) {
+    if (DEBUG_MQTT) {
+      Serial.println("📤 FloorHeatingSensor: Calling publishCircleStatus for circle " + String(circleIndex) + " - temp: " + String(roundedTemp) + "°C, force: " + String(forcePublish));
+    }
+    manager->publishCircleStatus(circleIndex, forcePublish);
   }
 }
 

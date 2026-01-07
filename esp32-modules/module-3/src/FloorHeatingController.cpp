@@ -138,8 +138,9 @@ void FloorHeatingController::updateCircleControl(uint8_t circleIndex) {
   }
   
   // Publish status if state changed (via manager callback)
+  // Force publish because relay state changed, not just temperature
   if (stateChanged && manager != nullptr) {
-    manager->publishCircleStatus(circleIndex);
+    manager->publishCircleStatus(circleIndex, true);
   }
 }
 
@@ -186,8 +187,9 @@ void FloorHeatingController::setCircleMode(uint8_t circleIndex, CircleMode mode)
     }
     
     // Publish status update
+    // Force publish because circle mode changed
     if (manager != nullptr) {
-      manager->publishCircleStatus(circleIndex);
+      manager->publishCircleStatus(circleIndex, true);
     }
   }
 }
