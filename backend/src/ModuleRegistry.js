@@ -37,6 +37,30 @@ class ModuleRegistry {
   }
 
   /**
+   * Calculate number of signal bars based on RSSI value
+   * Same logic as frontend SignalIndicator component
+   * @param {number|null} rssi - WiFi RSSI value in dBm
+   * @returns {number} Number of bars (0-4)
+   */
+  getSignalBars(rssi) {
+    if (rssi === null || rssi === undefined || rssi === -999) {
+      return 0; // No WiFi
+    }
+    
+    if (rssi >= -50) {
+      return 4; // Excellent signal (-30 to -50 dBm)
+    } else if (rssi >= -60) {
+      return 3; // Very good signal (-50 to -60 dBm)
+    } else if (rssi >= -70) {
+      return 2; // Good signal (-60 to -70 dBm)
+    } else if (rssi >= -80) {
+      return 1; // Weak signal (-70 to -80 dBm)
+    } else {
+      return 0; // Very weak signal (below -80 dBm)
+    }
+  }
+
+  /**
    * Process heartbeat message from module
    * @param {string} moduleId - Module identifier
    * @param {Object} heartbeatData - Heartbeat payload data
@@ -44,6 +68,9 @@ class ModuleRegistry {
   processHeartbeat(moduleId, heartbeatData) {
     const now = Date.now();
     const wasOnline = this.isModuleOnline(moduleId);
+    const oldModule = this.modules.get(moduleId);
+    const oldRSSI = oldModule?.wifiRSSI;
+    const oldBars = oldModule ? this.getSignalBars(oldRSSI) : 0;
     
     // Update or create module entry
     const moduleInfo = {
@@ -58,8 +85,14 @@ class ModuleRegistry {
     
     this.modules.set(moduleId, moduleInfo);
     
-    // Only notify if status changed from offline to online
-    if (!wasOnline) {
+    // Calculate new signal bars count
+    const newBars = this.getSignalBars(heartbeatData.wifiRSSI);
+    
+    // Notify if:
+    // 1. Status changed from offline to online, OR
+    // 2. Signal bars count changed (RSSI crossed a threshold)
+    const barsChanged = oldBars !== newBars;
+    if (!wasOnline || barsChanged) {
       this.notifyStatusChange();
     }
   }
