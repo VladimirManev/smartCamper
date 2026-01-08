@@ -36,6 +36,9 @@ function App() {
   // Check if module-3 is online (provides floor heating controls)
   const isModule3Online = isModuleOnline("module-3");
 
+  // Check if module-4 is online (base module - ready for extension)
+  const isModule4Online = isModuleOnline("module-4");
+
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
 

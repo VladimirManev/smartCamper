@@ -33,6 +33,11 @@ export const StatusIcons = ({ socket, backendConnected }) => {
       number: "3",
       label: "Module 3 (Floor Heating Controller)",
     },
+    {
+      id: "module-4",
+      number: "4",
+      label: "Module 4 (Base Module - Ready for Extension)",
+    },
   ];
 
   return (
