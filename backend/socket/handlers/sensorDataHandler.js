@@ -40,6 +40,10 @@ const sensorDataHandler = (io, topic, message) => {
       // Module-3 is the floor heating module
       return handleFloorHeating(io, topicParts, message);
     
+    case "module-4":
+      // Module-4 is the heating control module (dampers)
+      return handleDamper(io, topicParts, message);
+    
     case "errors":
       // Error topics: smartcamper/errors/{module-id}/{component-type}/{component-id}
       return handleErrorTopic(io, topicParts, message);
@@ -245,6 +249,36 @@ function handleFloorHeating(io, topicParts, message) {
 
 // Legacy handleFloorHeatingTemperature function removed
 // Temperature is now included in full status published by module-3
+
+/**
+ * Handle damper status data
+ * Format: smartcamper/sensors/module-4/damper/{index}/angle
+ */
+function handleDamper(io, topicParts, message) {
+  // Format: smartcamper/sensors/module-4/damper/{index}/angle
+  if (topicParts.length >= 6 && topicParts[3] === "damper" && topicParts[5] === "angle") {
+    try {
+      const damperIndex = parseInt(topicParts[4]);
+      const statusData = JSON.parse(message);
+      
+      if (!isNaN(damperIndex) && statusData.angle !== undefined) {
+        io.emit("damperStatusUpdate", {
+          type: "damper",
+          index: damperIndex,
+          angle: statusData.angle,
+          timestamp: new Date().toISOString(),
+        });
+        
+        return true;
+      }
+    } catch (error) {
+      console.log(`❌ Failed to parse damper status JSON: ${error.message}`);
+      return true; // Handled, but error
+    }
+  }
+  
+  return false;
+}
 
 /**
  * Handle error topics

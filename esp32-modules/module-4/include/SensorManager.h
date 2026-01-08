@@ -8,11 +8,13 @@
 #include "Config.h"
 #include "ModuleManager.h"
 #include "CommandHandler.h"
+#include "DamperManager.h"
 
 class SensorManager {
 private:
   ModuleManager* moduleManager;  // Reference to module manager (not owned)
   CommandHandler commandHandler;
+  DamperManager damperManager;
   
   // Static pointer for MQTT callback
   static SensorManager* currentInstance;

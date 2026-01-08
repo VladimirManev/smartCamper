@@ -28,8 +28,13 @@
 #define WIFI_CHECK_INTERVAL 2000  // 2 seconds - WiFi connection check
 #define WIFI_PING_TIMEOUT 1000    // 1 second timeout for ping
 
-// Module 4 specific configuration
-// TODO: Add module-4 specific settings here (e.g., servo motor pins, etc.)
+// Module 4 specific configuration - Heating Control
+// Damper (air vent) configuration
+#define NUM_DAMPERS 1 // Number of dampers
+
+// Servo motor pins for each damper (array indices match damper indices)
+#define DAMPER_0_SERVO_PIN 2  // GPIO pin for damper 0 servo signal (Yellow/Orange wire)
+#define DAMPER_0_BUTTON_PIN 4 // GPIO pin for damper 0 toggle button
 
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output
@@ -41,4 +46,3 @@
 // #define WATCHDOG_TIMEOUT 30  // seconds
 
 #endif
-

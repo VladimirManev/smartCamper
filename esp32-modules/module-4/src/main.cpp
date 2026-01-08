@@ -59,11 +59,8 @@ void loop() {
   // This must be called first to ensure connectivity
   moduleManager.loop();
   
-  // Only update sensor manager if infrastructure is connected
-  if (moduleManager.isConnected()) {
-    // Update sensor manager (can be extended with specific functionality)
-    sensorManager.loop();
-  }
-  // If not connected, sensor manager will wait until connection is restored
+  // ALWAYS update sensor manager (physical functions must work offline)
+  // Status publishing will only happen if connected (handled inside SensorManager)
+  sensorManager.loop();
 }
 

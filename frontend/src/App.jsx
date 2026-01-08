@@ -9,11 +9,13 @@ import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
 import { useLEDController } from "./hooks/useLEDController";
 import { useFloorHeating } from "./hooks/useFloorHeating";
+import { useDamperController } from "./hooks/useDamperController";
 import { StatusIcons } from "./components/StatusIcons";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
 import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
+import { DamperCard } from "./components/DamperCard";
 import "./App.css";
 
 function App() {
@@ -44,6 +46,9 @@ function App() {
 
   // Floor heating controller
   const { circles, sendFloorHeatingCommand } = useFloorHeating(socket);
+
+  // Damper controller
+  const { dampers, sendDamperCommand } = useDamperController(socket);
 
   // LED command handlers
   const handleStripToggle = (index) => {
@@ -119,6 +124,38 @@ function App() {
       type: "circle",
       index: index,
       action: action,
+    });
+  };
+
+  // Damper command handlers
+  const handleDamperToggle = (index) => {
+    // Don't send command if module is offline
+    if (!isModule4Online) {
+      console.warn("⚠️ Cannot toggle damper - module-4 is offline");
+      return;
+    }
+    
+    // Get current angle
+    const currentAngle = dampers[index]?.angle || 0;
+    
+    // Cycle through positions: 0° → 45° → 90° → 0°
+    let nextAngle;
+    if (currentAngle === 0) {
+      nextAngle = 45;
+    } else if (currentAngle === 45) {
+      nextAngle = 90;
+    } else {
+      nextAngle = 0;
+    }
+    
+    console.log(`🌬️ Toggling damper ${index}: ${currentAngle}° → ${nextAngle}°`);
+    
+    // Send command
+    sendDamperCommand({
+      type: "damper",
+      index: index,
+      action: "set_angle",
+      angle: nextAngle,
     });
   };
 
@@ -269,6 +306,17 @@ function App() {
             disabled={!isModule3Online}
           />
           <p className="card-label">Podium</p>
+        </div>
+
+        {/* Damper */}
+        <div className="card-wrapper">
+          <DamperCard
+            name="Damper"
+            damper={dampers[0]}
+            onClick={() => handleDamperToggle(0)}
+            disabled={!isModule4Online}
+          />
+          <p className="card-label">Damper</p>
         </div>
       </div>
     </div>
