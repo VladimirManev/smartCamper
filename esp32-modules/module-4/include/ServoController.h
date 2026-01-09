@@ -22,8 +22,8 @@ private:
   Servo* servo;  // Servo object (forward declared)
   
   // Smooth movement settings
-  static const int STEP_SIZE = 5;  // Degrees per step
-  static const int MOVE_DELAY = 150;  // ms between steps (for smooth movement)
+  static const int STEP_SIZE = 10;  // Degrees per step (increased for faster movement)
+  static const int MOVE_DELAY = 20;  // ms between steps (reduced for maximum speed)
   
   // Internal methods
   void moveStep();

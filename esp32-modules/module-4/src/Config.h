@@ -30,11 +30,19 @@
 
 // Module 4 specific configuration - Heating Control
 // Damper (air vent) configuration
-#define NUM_DAMPERS 1 // Number of dampers
+#define NUM_DAMPERS 5 // Number of dampers
 
 // Servo motor pins for each damper (array indices match damper indices)
 #define DAMPER_0_SERVO_PIN 2  // GPIO pin for damper 0 servo signal (Yellow/Orange wire)
 #define DAMPER_0_BUTTON_PIN 4 // GPIO pin for damper 0 toggle button
+#define DAMPER_1_SERVO_PIN 5  // GPIO pin for damper 1 servo signal
+#define DAMPER_1_BUTTON_PIN 16 // GPIO pin for damper 1 toggle button
+#define DAMPER_2_SERVO_PIN 12 // GPIO pin for damper 2 servo signal
+#define DAMPER_2_BUTTON_PIN 17 // GPIO pin for damper 2 toggle button
+#define DAMPER_3_SERVO_PIN 13 // GPIO pin for damper 3 servo signal
+#define DAMPER_3_BUTTON_PIN 18 // GPIO pin for damper 3 toggle button
+#define DAMPER_4_SERVO_PIN 14 // GPIO pin for damper 4 servo signal
+#define DAMPER_4_BUTTON_PIN 19 // GPIO pin for damper 4 toggle button
 
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output

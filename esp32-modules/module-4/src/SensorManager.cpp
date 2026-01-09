@@ -34,6 +34,11 @@ void SensorManager::begin() {
   // Initialize damper manager
   damperManager.begin();
   
+  // Set MQTT callback to SensorManager::handleMQTTMessage (handles both force_update and damper commands)
+  if (moduleManager) {
+    moduleManager->getMQTTManager().setCallback(SensorManager::handleMQTTMessage);
+  }
+  
   // Command handler will be initialized by ModuleManager
   // (ModuleManager.begin() is called with commandHandler reference)
   
@@ -63,34 +68,43 @@ void SensorManager::handleForceUpdate() {
   damperManager.forceUpdate();
 }
 
-// Static MQTT callback method
+// Static MQTT callback method (wrapper for MQTTManager)
 void SensorManager::handleMQTTMessage(char* topic, byte* payload, unsigned int length) {
-  if (!currentInstance) {
-    return;
+  if (currentInstance) {
+    currentInstance->processMQTTMessage(topic, payload, length);
   }
-  
+}
+
+// Process MQTT message (instance method)
+void SensorManager::processMQTTMessage(char* topic, byte* payload, unsigned int length) {
   String topicStr = String(topic);
   String message = "";
   for (int i = 0; i < length; i++) {
     message += (char)payload[i];
   }
   
+  if (DEBUG_SERIAL) {
+    Serial.println("📨 Received MQTT message:");
+    Serial.println("  Topic: " + topicStr);
+    Serial.println("  Message: " + message);
+  }
+  
   // Check if it's a force_update command (handled by CommandHandler)
   if (topicStr.endsWith("/force_update")) {
-    currentInstance->commandHandler.handleMQTTMessage(topic, payload, length);
+    commandHandler.handleMQTTMessage(topic, payload, length);
     return;
   }
   
   // Check if it's a damper command
-  // Topic format: smartcamper/commands/module-4/damper/...
-  if (topicStr.indexOf("/damper/") >= 0 || message.indexOf("\"type\":\"damper\"") >= 0) {
+  // Topic format: smartcamper/commands/module-4/damper/{index}/set_angle
+  if (topicStr.indexOf("/damper/") >= 0) {
     // Forward to damper manager
-    currentInstance->damperManager.handleMQTTCommand(message);
+    damperManager.handleMQTTCommand(message);
     return;
   }
   
   // Default: forward to command handler
-  currentInstance->commandHandler.handleMQTTMessage(topic, payload, length);
+  commandHandler.handleMQTTMessage(topic, payload, length);
 }
 
 void SensorManager::printStatus() const {

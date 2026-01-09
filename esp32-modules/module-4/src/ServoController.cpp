@@ -25,15 +25,15 @@ void ServoController::begin() {
   
   if (servo) {
     servo->attach(servoPin);
-    servo->write(0);  // Start at 0 degrees
+    servo->write(90);  // Start at 90 degrees (open)
   }
-  currentAngle = 0;
-  targetAngle = 0;
+  currentAngle = 90;
+  targetAngle = 90;
   isAttached = true;
   isMoving = false;
   
   if (DEBUG_SERIAL) {
-    Serial.println("🔧 ServoController initialized on pin " + String(servoPin));
+    Serial.println("🔧 ServoController initialized on pin " + String(servoPin) + " at 90°");
   }
 }
 

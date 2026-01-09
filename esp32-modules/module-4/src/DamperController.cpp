@@ -12,16 +12,16 @@ const int DamperController::POSITIONS[NUM_POSITIONS] = {0, 45, 90};
 DamperController::DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt)
   : servo(servoPin), buttonPin(btnPin), damperIndex(index), mqttManager(mqtt),
     lastButtonState(false), debouncedButtonState(false), lastDebounceTime(0),
-    currentPositionIndex(0) {
+    currentPositionIndex(2) {  // Start at position 2 (90° - open)
 }
 
 void DamperController::begin() {
   // Initialize servo
   servo.begin();
   
-  // Set initial position to 0°
-  servo.setAngle(0);
-  currentPositionIndex = 0;
+  // Set initial position to 90° (open)
+  servo.setAngle(90);
+  currentPositionIndex = 2;  // Position 2 = 90° (open)
   
   // Initialize button pin
   pinMode(buttonPin, INPUT_PULLUP);
@@ -32,7 +32,7 @@ void DamperController::begin() {
   if (DEBUG_SERIAL) {
     Serial.println("🔧 DamperController " + String(damperIndex) + " initialized");
     Serial.println("  Button pin: " + String(buttonPin));
-    Serial.println("  Initial position: 0°");
+    Serial.println("  Initial position: 90° (open)");
   }
 }
 

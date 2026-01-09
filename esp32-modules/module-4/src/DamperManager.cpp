@@ -24,14 +24,21 @@ DamperManager::DamperManager(ModuleManager* moduleMgr)
   dampers = new DamperController*[numDampers];
   
   // Initialize each damper with its pins
-  // Note: For now we have only one damper, but structure allows easy expansion
   if (numDampers >= 1) {
     dampers[0] = new DamperController(0, DAMPER_0_SERVO_PIN, DAMPER_0_BUTTON_PIN, &moduleMgr->getMQTTManager());
   }
-  // Add more dampers here as needed:
-  // if (numDampers >= 2) {
-  //   dampers[1] = new DamperController(1, DAMPER_1_SERVO_PIN, DAMPER_1_BUTTON_PIN, &moduleMgr->getMQTTManager());
-  // }
+  if (numDampers >= 2) {
+    dampers[1] = new DamperController(1, DAMPER_1_SERVO_PIN, DAMPER_1_BUTTON_PIN, &moduleMgr->getMQTTManager());
+  }
+  if (numDampers >= 3) {
+    dampers[2] = new DamperController(2, DAMPER_2_SERVO_PIN, DAMPER_2_BUTTON_PIN, &moduleMgr->getMQTTManager());
+  }
+  if (numDampers >= 4) {
+    dampers[3] = new DamperController(3, DAMPER_3_SERVO_PIN, DAMPER_3_BUTTON_PIN, &moduleMgr->getMQTTManager());
+  }
+  if (numDampers >= 5) {
+    dampers[4] = new DamperController(4, DAMPER_4_SERVO_PIN, DAMPER_4_BUTTON_PIN, &moduleMgr->getMQTTManager());
+  }
   
   // Set current instance for static methods
   currentInstance = this;

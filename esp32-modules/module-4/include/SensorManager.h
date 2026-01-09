@@ -34,6 +34,9 @@ public:
   // MQTT callback (static for MQTTManager)
   static void handleMQTTMessage(char* topic, byte* payload, unsigned int length);
   
+  // Process MQTT message (instance method)
+  void processMQTTMessage(char* topic, byte* payload, unsigned int length);
+  
   // Getter for CommandHandler (needed by ModuleManager)
   CommandHandler& getCommandHandler() { return commandHandler; }
   
