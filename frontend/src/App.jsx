@@ -311,52 +311,52 @@ function App() {
         {/* Dampers */}
         <div className="card-wrapper">
           <DamperCard
-            name="Damper 0"
+            name="Front"
             damper={dampers[0]}
             onClick={() => handleDamperToggle(0)}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Damper 0</p>
+          <p className="card-label">Front</p>
         </div>
 
         <div className="card-wrapper">
           <DamperCard
-            name="Damper 1"
+            name="Rear"
             damper={dampers[1]}
             onClick={() => handleDamperToggle(1)}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Damper 1</p>
+          <p className="card-label">Rear</p>
         </div>
 
         <div className="card-wrapper">
           <DamperCard
-            name="Damper 2"
+            name="Bath"
             damper={dampers[2]}
             onClick={() => handleDamperToggle(2)}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Damper 2</p>
+          <p className="card-label">Bath</p>
         </div>
 
         <div className="card-wrapper">
           <DamperCard
-            name="Damper 3"
+            name="Shoes"
             damper={dampers[3]}
             onClick={() => handleDamperToggle(3)}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Damper 3</p>
+          <p className="card-label">Shoes</p>
         </div>
 
         <div className="card-wrapper">
           <DamperCard
-            name="Damper 4"
+            name="Cockpit"
             damper={dampers[4]}
             onClick={() => handleDamperToggle(4)}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Damper 4</p>
+          <p className="card-label">Cockpit</p>
         </div>
       </div>
     </div>
