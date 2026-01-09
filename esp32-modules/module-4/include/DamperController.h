@@ -21,8 +21,9 @@ private:
   // Button state
   bool lastButtonState;
   bool debouncedButtonState;
+  bool lastDebouncedState;  // Previous debounced state for edge detection
   unsigned long lastDebounceTime;
-  static const unsigned long DEBOUNCE_DELAY = 50;  // ms
+  static const unsigned long DEBOUNCE_DELAY = 100;  // ms (increased for better debouncing)
   
   // Position management
   static const int NUM_POSITIONS = 3;

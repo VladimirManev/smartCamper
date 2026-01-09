@@ -12,8 +12,13 @@ import { useState, useEffect } from "react";
  * @returns {Object} { dampers, sendDamperCommand }
  */
 export const useDamperController = (socket) => {
+  // Initialize all 5 dampers (0-4) with default angle 90° (open)
   const [dampers, setDampers] = useState({
-    0: { angle: 0 }, // Damper 0
+    0: { angle: 90 }, // Damper 0 - Front
+    1: { angle: 90 }, // Damper 1 - Rear
+    2: { angle: 90 }, // Damper 2 - Bath
+    3: { angle: 90 }, // Damper 3 - Shoes
+    4: { angle: 90 }, // Damper 4 - Cockpit
   });
 
   useEffect(() => {

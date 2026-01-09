@@ -11,7 +11,7 @@ const int DamperController::POSITIONS[NUM_POSITIONS] = {0, 45, 90};
 
 DamperController::DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt)
   : servo(servoPin), buttonPin(btnPin), damperIndex(index), mqttManager(mqtt),
-    lastButtonState(false), debouncedButtonState(false), lastDebounceTime(0),
+    lastButtonState(false), debouncedButtonState(false), lastDebouncedState(false), lastDebounceTime(0),
     currentPositionIndex(2) {  // Start at position 2 (90° - open)
 }
 
@@ -27,6 +27,7 @@ void DamperController::begin() {
   pinMode(buttonPin, INPUT_PULLUP);
   lastButtonState = (digitalRead(buttonPin) == LOW);
   debouncedButtonState = lastButtonState;
+  lastDebouncedState = lastButtonState;  // Initialize previous debounced state
   lastDebounceTime = millis();
   
   if (DEBUG_SERIAL) {
@@ -37,6 +38,9 @@ void DamperController::begin() {
 }
 
 void DamperController::setAngle(int angle) {
+  // Get current angle before setting new target
+  int previousAngle = getCurrentAngle();
+  
   // Validate and set angle
   servo.setAngle(angle);
   
@@ -48,7 +52,12 @@ void DamperController::setAngle(int angle) {
     }
   }
   
-  // Status will be published in loop() when servo reaches target
+  // If servo is already at target (no movement needed), publish status immediately
+  // Otherwise, status will be published in loop() when servo reaches target
+  if (!servo.isMovingToTarget() && getCurrentAngle() == angle) {
+    // Servo already at target - publish status immediately
+    publishStatus();
+  }
 }
 
 void DamperController::togglePosition() {
@@ -67,23 +76,29 @@ void DamperController::processButton() {
   unsigned long currentTime = millis();
   bool rawButtonReading = (digitalRead(buttonPin) == LOW);
   
-  // Debounce logic
+  // Debounce logic: reset timer if button state changed
   if (rawButtonReading != lastButtonState) {
     lastDebounceTime = currentTime;
   }
   
+  // Update debounced state only after debounce delay
   if (currentTime - lastDebounceTime > DEBOUNCE_DELAY) {
-    debouncedButtonState = rawButtonReading;
+    // Only update if state actually changed
+    if (debouncedButtonState != rawButtonReading) {
+      debouncedButtonState = rawButtonReading;
+    }
   }
   
   lastButtonState = rawButtonReading;
   
-  // Detect button press (transition from HIGH to LOW)
-  static bool lastDebouncedState = false;
+  // Detect button press (rising edge: transition from not-pressed to pressed)
+  // Only trigger on rising edge (button was released, now pressed)
   if (debouncedButtonState && !lastDebouncedState) {
-    // Button pressed
+    // Button pressed - toggle position
     togglePosition();
   }
+  
+  // Update previous debounced state
   lastDebouncedState = debouncedButtonState;
 }
 

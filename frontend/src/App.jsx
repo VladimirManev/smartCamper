@@ -4,6 +4,7 @@
  * Uses custom hooks and components for separation of concerns
  */
 
+import { useRef } from "react";
 import { useSocket } from "./hooks/useSocket";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
@@ -127,7 +128,10 @@ function App() {
     });
   };
 
-  // Damper command handlers
+  // Damper command handlers with debouncing
+  const lastCommandTime = useRef({});
+  const DEBOUNCE_DELAY = 300; // ms - prevent multiple rapid clicks
+  
   const handleDamperToggle = (index) => {
     // Don't send command if module is offline
     if (!isModule4Online) {
@@ -135,8 +139,17 @@ function App() {
       return;
     }
     
+    // Debounce: prevent multiple rapid clicks
+    const now = Date.now();
+    const lastTime = lastCommandTime.current[index] || 0;
+    if (now - lastTime < DEBOUNCE_DELAY) {
+      console.log(`⏱️ Debouncing damper ${index} command (${now - lastTime}ms since last)`);
+      return;
+    }
+    lastCommandTime.current[index] = now;
+    
     // Get current angle
-    const currentAngle = dampers[index]?.angle || 0;
+    const currentAngle = dampers[index]?.angle ?? 90; // Default to 90° if undefined
     
     // Cycle through positions: 0° → 45° → 90° → 0°
     let nextAngle;
@@ -146,6 +159,12 @@ function App() {
       nextAngle = 90;
     } else {
       nextAngle = 0;
+    }
+    
+    // Don't send command if already at target angle (shouldn't happen, but safety check)
+    if (currentAngle === nextAngle) {
+      console.log(`⏭️ Damper ${index} already at ${nextAngle}°, skipping command`);
+      return;
     }
     
     console.log(`🌬️ Toggling damper ${index}: ${currentAngle}° → ${nextAngle}°`);
