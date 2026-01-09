@@ -53,6 +53,7 @@
 // Table timing settings
 #define TABLE_DOUBLE_CLICK_TIMEOUT 500  // ms - max time between clicks for double-click detection
 #define TABLE_AUTO_MOVE_DURATION 5000   // ms - duration for auto movement on double-click
+#define TABLE_START_DELAY 600           // ms - delay before starting motor (longer than double-click timeout)
 
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output

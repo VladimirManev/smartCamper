@@ -12,9 +12,10 @@ import { useState, useEffect } from "react";
  * @returns {Object} { tableState, sendTableCommand }
  */
 export const useTableController = (socket) => {
-  // Table state: "up", "down", or "stopped"
+  // Table state: "up", "down", or "stopped", and autoMoving flag
   const [tableState, setTableState] = useState({
     direction: "stopped",
+    autoMoving: false,
   });
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export const useTableController = (socket) => {
       if (data.type === "table" && data.direction !== undefined) {
         setTableState({
           direction: data.direction,
+          autoMoving: data.autoMoving || false,
         });
       }
     };

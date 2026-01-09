@@ -189,6 +189,14 @@ function App() {
       console.warn("⚠️ Cannot move table up - module-4 is offline");
       return;
     }
+    
+    // CRITICAL: If auto-moving, stop immediately on any button press
+    if (tableState?.autoMoving) {
+      console.log("⏹️ Table: Auto movement stopped by up button");
+      handleTableStop();
+      return;
+    }
+    
     console.log("⬆️ Table: Moving up");
     sendTableCommand({
       type: "table",
@@ -201,6 +209,14 @@ function App() {
       console.warn("⚠️ Cannot move table down - module-4 is offline");
       return;
     }
+    
+    // CRITICAL: If auto-moving, stop immediately on any button press
+    if (tableState?.autoMoving) {
+      console.log("⏹️ Table: Auto movement stopped by down button");
+      handleTableStop();
+      return;
+    }
+    
     console.log("⬇️ Table: Moving down");
     sendTableCommand({
       type: "table",

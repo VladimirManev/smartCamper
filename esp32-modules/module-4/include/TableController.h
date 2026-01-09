@@ -38,6 +38,12 @@ private:
   bool waitingForDoubleClickUp;
   bool waitingForDoubleClickDown;
   
+  // Start delay (wait before starting motor to allow for double-click)
+  unsigned long pendingMoveUpTime;
+  unsigned long pendingMoveDownTime;
+  bool pendingMoveUp;
+  bool pendingMoveDown;
+  
   // Auto movement (5-second timer)
   bool autoMoving;
   unsigned long autoMoveStartTime;

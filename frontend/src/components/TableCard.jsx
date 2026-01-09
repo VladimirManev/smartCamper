@@ -39,70 +39,128 @@ export const TableCard = ({
     buttonClass += " off";
   }
   
-  // Double-click detection
-  const lastClickTime = useRef(0);
-  const clickTimer = useRef(null);
+  // Track if double-click was detected (from onDoubleClick event)
+  const doubleClickDetected = useRef(false);
+  const mouseDownTimeout = useRef(null);
   
-  const handleClick = (e) => {
+  // Handle double-click (use native React event)
+  const handleDoubleClick = (e) => {
     if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
     
-    const currentTime = Date.now();
-    const timeSinceLastClick = currentTime - lastClickTime.current;
+    // Mark double-click detected
+    doubleClickDetected.current = true;
     
-    // Clear previous single-click timer
-    if (clickTimer.current) {
-      clearTimeout(clickTimer.current);
-      clickTimer.current = null;
+    // Cancel any pending mouseDown action
+    if (mouseDownTimeout.current) {
+      clearTimeout(mouseDownTimeout.current);
+      mouseDownTimeout.current = null;
     }
     
-    // Check for double-click (within 500ms)
-    if (timeSinceLastClick < 500 && lastClickTime.current > 0) {
-      // Double-click detected
-      lastClickTime.current = 0;
-      if (onDoubleClick) {
-        onDoubleClick();
-      }
-    } else {
-      // Single click - wait for potential second click
-      lastClickTime.current = currentTime;
-      clickTimer.current = setTimeout(() => {
-        // Single click confirmed (no second click within timeout)
-        clickTimer.current = null;
-        lastClickTime.current = 0;
-      }, 500);
+    // Call double-click handler
+    if (onDoubleClick) {
+      onDoubleClick();
     }
+    
+    // Reset flag after delay
+    setTimeout(() => {
+      doubleClickDetected.current = false;
+    }, 200);
   };
   
-  // Handle mouse down (hold to move)
+  // Handle mouse down (hold to move) - with delay to allow double-click detection
   const handleMouseDown = (e) => {
     if (disabled) return;
     e.preventDefault();
-    if (onMouseDown) {
-      onMouseDown();
+    
+    // CRITICAL: If auto-moving, stop immediately on any button press
+    if (tableState?.autoMoving) {
+      // Cancel any pending timeout
+      if (mouseDownTimeout.current) {
+        clearTimeout(mouseDownTimeout.current);
+        mouseDownTimeout.current = null;
+      }
+      // Stop movement immediately
+      if (onMouseUp) {
+        onMouseUp();
+      }
+      return;
     }
+    
+    // Cancel any existing timeout
+    if (mouseDownTimeout.current) {
+      clearTimeout(mouseDownTimeout.current);
+      mouseDownTimeout.current = null;
+    }
+    
+    // Add delay (700ms) - longer than double-click detection timeout
+    // This delay allows onDoubleClick to be called first if it's a double-click
+    mouseDownTimeout.current = setTimeout(() => {
+      // Only start movement if double-click was not detected
+      if (!doubleClickDetected.current && onMouseDown) {
+        onMouseDown();
+      }
+      mouseDownTimeout.current = null;
+    }, 700); // 700ms delay - allows double-click event to fire first
   };
   
   // Handle mouse up (stop)
   const handleMouseUp = (e) => {
     if (disabled) return;
     e.preventDefault();
+    
+    // Cancel pending mouseDown if exists
+    if (mouseDownTimeout.current) {
+      clearTimeout(mouseDownTimeout.current);
+      mouseDownTimeout.current = null;
+    }
+    
+    // Call stop handler
     if (onMouseUp) {
       onMouseUp();
     }
   };
   
-  // Handle touch events (for mobile)
+  // Handle touch events (for mobile) - same logic as mouse
   const handleTouchStart = (e) => {
     if (disabled) return;
     e.preventDefault();
-    if (onMouseDown) {
-      onMouseDown();
+    
+    // CRITICAL: If auto-moving, stop immediately on any button press
+    if (tableState?.autoMoving) {
+      if (mouseDownTimeout.current) {
+        clearTimeout(mouseDownTimeout.current);
+        mouseDownTimeout.current = null;
+      }
+      if (onMouseUp) {
+        onMouseUp();
+      }
+      return;
     }
+    
+    if (mouseDownTimeout.current) {
+      clearTimeout(mouseDownTimeout.current);
+      mouseDownTimeout.current = null;
+    }
+    
+    mouseDownTimeout.current = setTimeout(() => {
+      if (!doubleClickDetected.current && onMouseDown) {
+        onMouseDown();
+      }
+      mouseDownTimeout.current = null;
+    }, 700);
   };
   
   const handleTouchEnd = (e) => {
     if (disabled) return;
     e.preventDefault();
+    
+    if (mouseDownTimeout.current) {
+      clearTimeout(mouseDownTimeout.current);
+      mouseDownTimeout.current = null;
+    }
+    
     if (onMouseUp) {
       onMouseUp();
     }
@@ -121,7 +179,7 @@ export const TableCard = ({
       onMouseLeave={handleMouseUp} // Stop if mouse leaves while holding
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       <p className="led-name">{name}</p>
       <div className={buttonClass}>

@@ -14,6 +14,8 @@ TableController::TableController(int relayUp, int relayDown, int btnUp, int btnD
     lastDebounceUpTime(0), lastDebounceDownTime(0),
     lastClickUpTime(0), lastClickDownTime(0),
     waitingForDoubleClickUp(false), waitingForDoubleClickDown(false),
+    pendingMoveUpTime(0), pendingMoveDownTime(0),
+    pendingMoveUp(false), pendingMoveDown(false),
     autoMoving(false), autoMoveStartTime(0), autoMoveDirection(false) {
 }
 
@@ -49,6 +51,15 @@ void TableController::begin() {
 }
 
 void TableController::moveUp() {
+  // If auto-moving, stop immediately on any button press
+  if (autoMoving) {
+    stop();
+    if (DEBUG_SERIAL) {
+      Serial.println("⏹️ TableController: Auto movement stopped by move up command");
+    }
+    return;
+  }
+  
   // Safety: if down relay is active, ignore up command
   if (relayDownActive) {
     if (DEBUG_SERIAL) {
@@ -56,9 +67,6 @@ void TableController::moveUp() {
     }
     return;
   }
-  
-  // Cancel auto movement if active
-  autoMoving = false;
   
   relayUpActive = true;
   updateRelays();
@@ -70,6 +78,15 @@ void TableController::moveUp() {
 }
 
 void TableController::moveDown() {
+  // If auto-moving, stop immediately on any button press
+  if (autoMoving) {
+    stop();
+    if (DEBUG_SERIAL) {
+      Serial.println("⏹️ TableController: Auto movement stopped by move down command");
+    }
+    return;
+  }
+  
   // Safety: if up relay is active, ignore down command
   if (relayUpActive) {
     if (DEBUG_SERIAL) {
@@ -77,9 +94,6 @@ void TableController::moveDown() {
     }
     return;
   }
-  
-  // Cancel auto movement if active
-  autoMoving = false;
   
   relayDownActive = true;
   updateRelays();
@@ -172,22 +186,37 @@ void TableController::processButtons() {
     // Detect button press (rising edge: transition from not-pressed to pressed)
     if (debouncedButtonUpState && !previousDebouncedState) {
       // Button pressed
-      unsigned long timeSinceLastClick = currentTime - lastClickUpTime;
       
-      // Check for double-click: second press within timeout and we're waiting for it
-      if (timeSinceLastClick < TABLE_DOUBLE_CLICK_TIMEOUT && waitingForDoubleClickUp) {
-        // Double-click detected! (second press while waiting)
+      // CRITICAL: If auto-moving, stop immediately on any button press
+      if (autoMoving) {
+        stop();
         waitingForDoubleClickUp = false;
-        moveUpAuto();
+        pendingMoveUp = false;
         if (DEBUG_SERIAL) {
-          Serial.println("🔄 TableController: Double-click up detected - auto moving up");
+          Serial.println("⏹️ TableController: Auto movement stopped by up button press");
         }
+        // Don't process further for this button press - skip to button release handling
       } else {
-        // First press or timeout passed - start manual movement
-        waitingForDoubleClickUp = true;
-        lastClickUpTime = currentTime;
-        if (!autoMoving || (autoMoving && autoMoveDirection)) {  // Only start if not auto-moving in same direction
-          moveUp();
+        unsigned long timeSinceLastClick = currentTime - lastClickUpTime;
+        
+        // Check for double-click: second press within timeout
+        if (timeSinceLastClick < TABLE_DOUBLE_CLICK_TIMEOUT && waitingForDoubleClickUp) {
+          // Double-click detected! Cancel pending move and start auto movement
+          waitingForDoubleClickUp = false;
+          pendingMoveUp = false;
+          moveUpAuto();
+          if (DEBUG_SERIAL) {
+            Serial.println("🔄 TableController: Double-click up detected - auto moving up");
+          }
+        } else {
+          // First press - schedule delayed start (to allow for double-click detection)
+          waitingForDoubleClickUp = true;
+          lastClickUpTime = currentTime;
+          pendingMoveUp = true;
+          pendingMoveUpTime = currentTime;
+          if (DEBUG_SERIAL) {
+            Serial.println("⏳ TableController: Up button pressed - waiting for double-click or start delay");
+          }
         }
       }
     }
@@ -195,14 +224,16 @@ void TableController::processButtons() {
     // Detect button release (falling edge: transition from pressed to not-pressed)
     if (!debouncedButtonUpState && previousDebouncedState) {
       // Button released - stop only if not auto-moving (manual hold was released)
-      if (!autoMoving) {
+      if (!autoMoving && relayUpActive) {
         stop();
+        pendingMoveUp = false;  // Cancel pending move
         if (DEBUG_SERIAL) {
           Serial.println("🔼 TableController: Up button released - stopped");
         }
       }
-      // Reset double-click waiting if timeout passed
-      if (waitingForDoubleClickUp && (currentTime - lastClickUpTime) >= TABLE_DOUBLE_CLICK_TIMEOUT) {
+      // If pending move not started yet, cancel it
+      if (pendingMoveUp && !relayUpActive) {
+        pendingMoveUp = false;
         waitingForDoubleClickUp = false;
       }
     }
@@ -225,22 +256,37 @@ void TableController::processButtons() {
     // Detect button press (rising edge: transition from not-pressed to pressed)
     if (debouncedButtonDownState && !previousDebouncedState) {
       // Button pressed
-      unsigned long timeSinceLastClick = currentTime - lastClickDownTime;
       
-      // Check for double-click: second press within timeout and we're waiting for it
-      if (timeSinceLastClick < TABLE_DOUBLE_CLICK_TIMEOUT && waitingForDoubleClickDown) {
-        // Double-click detected! (second press while waiting)
+      // CRITICAL: If auto-moving, stop immediately on any button press
+      if (autoMoving) {
+        stop();
         waitingForDoubleClickDown = false;
-        moveDownAuto();
+        pendingMoveDown = false;
         if (DEBUG_SERIAL) {
-          Serial.println("🔄 TableController: Double-click down detected - auto moving down");
+          Serial.println("⏹️ TableController: Auto movement stopped by down button press");
         }
+        // Don't process further for this button press - skip to button release handling
       } else {
-        // First press or timeout passed - start manual movement
-        waitingForDoubleClickDown = true;
-        lastClickDownTime = currentTime;
-        if (!autoMoving || (autoMoving && !autoMoveDirection)) {  // Only start if not auto-moving in same direction
-          moveDown();
+        unsigned long timeSinceLastClick = currentTime - lastClickDownTime;
+        
+        // Check for double-click: second press within timeout
+        if (timeSinceLastClick < TABLE_DOUBLE_CLICK_TIMEOUT && waitingForDoubleClickDown) {
+          // Double-click detected! Cancel pending move and start auto movement
+          waitingForDoubleClickDown = false;
+          pendingMoveDown = false;
+          moveDownAuto();
+          if (DEBUG_SERIAL) {
+            Serial.println("🔄 TableController: Double-click down detected - auto moving down");
+          }
+        } else {
+          // First press - schedule delayed start (to allow for double-click detection)
+          waitingForDoubleClickDown = true;
+          lastClickDownTime = currentTime;
+          pendingMoveDown = true;
+          pendingMoveDownTime = currentTime;
+          if (DEBUG_SERIAL) {
+            Serial.println("⏳ TableController: Down button pressed - waiting for double-click or start delay");
+          }
         }
       }
     }
@@ -248,14 +294,16 @@ void TableController::processButtons() {
     // Detect button release (falling edge: transition from pressed to not-pressed)
     if (!debouncedButtonDownState && previousDebouncedState) {
       // Button released - stop only if not auto-moving (manual hold was released)
-      if (!autoMoving) {
+      if (!autoMoving && relayDownActive) {
         stop();
+        pendingMoveDown = false;  // Cancel pending move
         if (DEBUG_SERIAL) {
           Serial.println("🔽 TableController: Down button released - stopped");
         }
       }
-      // Reset double-click waiting if timeout passed
-      if (waitingForDoubleClickDown && (currentTime - lastClickDownTime) >= TABLE_DOUBLE_CLICK_TIMEOUT) {
+      // If pending move not started yet, cancel it
+      if (pendingMoveDown && !relayDownActive) {
+        pendingMoveDown = false;
         waitingForDoubleClickDown = false;
       }
     }
@@ -286,6 +334,7 @@ void TableController::publishStatus() {
   // Create JSON payload
   StaticJsonDocument<128> doc;
   doc["direction"] = direction;
+  doc["autoMoving"] = autoMoving;  // Indicate if this is auto movement
   
   String payload;
   serializeJson(doc, payload);
@@ -314,23 +363,61 @@ String TableController::getDirection() const {
 }
 
 void TableController::loop() {
+  unsigned long currentTime = millis();
+  
   // Process button inputs
   processButtons();
   
+  // Check pending moves - start movement after delay if button still pressed and no double-click detected
+  if (pendingMoveUp && !relayUpActive && !autoMoving) {
+    unsigned long elapsed = currentTime - pendingMoveUpTime;
+    // Only start if delay passed AND button is still pressed
+    if (elapsed >= TABLE_START_DELAY && debouncedButtonUpState) {
+      // Start delay passed and button still held - start movement
+      pendingMoveUp = false;
+      waitingForDoubleClickUp = false;
+      moveUp();
+      if (DEBUG_SERIAL) {
+        Serial.println("▶️ TableController: Start delay passed - starting up movement");
+      }
+    } else if (!debouncedButtonUpState) {
+      // Button released before delay - cancel pending move
+      pendingMoveUp = false;
+      waitingForDoubleClickUp = false;
+    }
+  }
+  
+  if (pendingMoveDown && !relayDownActive && !autoMoving) {
+    unsigned long elapsed = currentTime - pendingMoveDownTime;
+    // Only start if delay passed AND button is still pressed
+    if (elapsed >= TABLE_START_DELAY && debouncedButtonDownState) {
+      // Start delay passed and button still held - start movement
+      pendingMoveDown = false;
+      waitingForDoubleClickDown = false;
+      moveDown();
+      if (DEBUG_SERIAL) {
+        Serial.println("▶️ TableController: Start delay passed - starting down movement");
+      }
+    } else if (!debouncedButtonDownState) {
+      // Button released before delay - cancel pending move
+      pendingMoveDown = false;
+      waitingForDoubleClickDown = false;
+    }
+  }
+  
   // Check auto movement timer (handled in processButtons, but also here for safety)
   if (autoMoving) {
-    unsigned long elapsed = millis() - autoMoveStartTime;
+    unsigned long elapsed = currentTime - autoMoveStartTime;
     if (elapsed >= TABLE_AUTO_MOVE_DURATION) {
       stop();
     }
   }
   
-  // Reset double-click waiting flags if timeout passed
-  unsigned long currentTime = millis();
-  if (waitingForDoubleClickUp && (currentTime - lastClickUpTime) >= TABLE_DOUBLE_CLICK_TIMEOUT) {
+  // Reset double-click waiting flags if timeout passed (and no pending move)
+  if (waitingForDoubleClickUp && !pendingMoveUp && (currentTime - lastClickUpTime) >= TABLE_DOUBLE_CLICK_TIMEOUT) {
     waitingForDoubleClickUp = false;
   }
-  if (waitingForDoubleClickDown && (currentTime - lastClickDownTime) >= TABLE_DOUBLE_CLICK_TIMEOUT) {
+  if (waitingForDoubleClickDown && !pendingMoveDown && (currentTime - lastClickDownTime) >= TABLE_DOUBLE_CLICK_TIMEOUT) {
     waitingForDoubleClickDown = false;
   }
 }

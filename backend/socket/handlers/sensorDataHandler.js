@@ -298,6 +298,7 @@ function handleTable(io, topicParts, message) {
         io.emit("tableStatusUpdate", {
           type: "table",
           direction: statusData.direction,
+          autoMoving: statusData.autoMoving || false,  // Forward autoMoving flag
           timestamp: new Date().toISOString(),
         });
         
