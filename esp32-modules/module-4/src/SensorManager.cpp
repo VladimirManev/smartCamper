@@ -12,7 +12,8 @@ SensorManager* SensorManager::currentInstance = nullptr;
 SensorManager::SensorManager(ModuleManager* moduleMgr) 
   : moduleManager(moduleMgr),
     commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID),
-    damperManager(moduleMgr) {
+    damperManager(moduleMgr),
+    tableManager(moduleMgr) {
   
   // Validate input parameter
   if (moduleMgr == nullptr) {
@@ -34,7 +35,10 @@ void SensorManager::begin() {
   // Initialize damper manager
   damperManager.begin();
   
-  // Set MQTT callback to SensorManager::handleMQTTMessage (handles both force_update and damper commands)
+  // Initialize table manager
+  tableManager.begin();
+  
+  // Set MQTT callback to SensorManager::handleMQTTMessage (handles force_update, damper, and table commands)
   if (moduleManager) {
     moduleManager->getMQTTManager().setCallback(SensorManager::handleMQTTMessage);
   }
@@ -56,6 +60,9 @@ void SensorManager::loop() {
   // Update damper manager (handles servo movement and button processing)
   damperManager.loop();
   
+  // Update table manager (handles relay control and button processing)
+  tableManager.loop();
+  
   // Note: ModuleManager.loop() is called separately in main loop
 }
 
@@ -66,6 +73,9 @@ void SensorManager::handleForceUpdate() {
   
   // Force update all dampers (publish status for all)
   damperManager.forceUpdate();
+  
+  // Force update table (publish current status)
+  tableManager.forceUpdate();
 }
 
 // Static MQTT callback method (wrapper for MQTTManager)
@@ -103,6 +113,14 @@ void SensorManager::processMQTTMessage(char* topic, byte* payload, unsigned int 
     return;
   }
   
+  // Check if it's a table command
+  // Topic format: smartcamper/commands/module-4/table/{action}
+  if (topicStr.indexOf("/table") >= 0) {
+    // Forward to table manager
+    tableManager.handleMQTTCommand(message);
+    return;
+  }
+  
   // Default: forward to command handler
   commandHandler.handleMQTTMessage(topic, payload, length);
 }
@@ -113,6 +131,7 @@ void SensorManager::printStatus() const {
     Serial.println("  Module Manager: " + String(moduleManager != nullptr ? "OK" : "NULL"));
     Serial.println("  Module ID: " + String(MODULE_ID));
     damperManager.printStatus();
+    tableManager.printStatus();
   }
 }
 

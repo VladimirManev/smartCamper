@@ -11,12 +11,14 @@ import { useSensorData } from "./hooks/useSensorData";
 import { useLEDController } from "./hooks/useLEDController";
 import { useFloorHeating } from "./hooks/useFloorHeating";
 import { useDamperController } from "./hooks/useDamperController";
+import { useTableController } from "./hooks/useTableController";
 import { StatusIcons } from "./components/StatusIcons";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
 import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
 import { DamperCard } from "./components/DamperCard";
+import { TableCard } from "./components/TableCard";
 import "./App.css";
 
 function App() {
@@ -50,6 +52,9 @@ function App() {
 
   // Damper controller
   const { dampers, sendDamperCommand } = useDamperController(socket);
+
+  // Table controller
+  const { tableState, sendTableCommand } = useTableController(socket);
 
   // LED command handlers
   const handleStripToggle = (index) => {
@@ -175,6 +180,68 @@ function App() {
       index: index,
       action: "set_angle",
       angle: nextAngle,
+    });
+  };
+
+  // Table command handlers
+  const handleTableMoveUp = () => {
+    if (!isModule4Online) {
+      console.warn("⚠️ Cannot move table up - module-4 is offline");
+      return;
+    }
+    console.log("⬆️ Table: Moving up");
+    sendTableCommand({
+      type: "table",
+      action: "move_up",
+    });
+  };
+
+  const handleTableMoveDown = () => {
+    if (!isModule4Online) {
+      console.warn("⚠️ Cannot move table down - module-4 is offline");
+      return;
+    }
+    console.log("⬇️ Table: Moving down");
+    sendTableCommand({
+      type: "table",
+      action: "move_down",
+    });
+  };
+
+  const handleTableStop = () => {
+    if (!isModule4Online) {
+      return;
+    }
+    console.log("⏹️ Table: Stopped");
+    sendTableCommand({
+      type: "table",
+      action: "stop",
+    });
+  };
+
+  const handleTableDoubleClickUp = () => {
+    if (!isModule4Online) {
+      console.warn("⚠️ Cannot auto move table up - module-4 is offline");
+      return;
+    }
+    console.log("⬆️ Table: Auto moving up for 5 seconds");
+    sendTableCommand({
+      type: "table",
+      action: "move_up_auto",
+      duration: 5000,
+    });
+  };
+
+  const handleTableDoubleClickDown = () => {
+    if (!isModule4Online) {
+      console.warn("⚠️ Cannot auto move table down - module-4 is offline");
+      return;
+    }
+    console.log("⬇️ Table: Auto moving down for 5 seconds");
+    sendTableCommand({
+      type: "table",
+      action: "move_down_auto",
+      duration: 5000,
     });
   };
 
@@ -376,6 +443,33 @@ function App() {
             disabled={!isModule4Online}
           />
           <p className="card-label">Cockpit</p>
+        </div>
+
+        {/* Table Controls */}
+        <div className="card-wrapper">
+          <TableCard
+            name="Up"
+            direction="up"
+            tableState={tableState}
+            onMouseDown={handleTableMoveUp}
+            onMouseUp={handleTableStop}
+            onDoubleClick={handleTableDoubleClickUp}
+            disabled={!isModule4Online}
+          />
+          <p className="card-label">Table Up</p>
+        </div>
+
+        <div className="card-wrapper">
+          <TableCard
+            name="Down"
+            direction="down"
+            tableState={tableState}
+            onMouseDown={handleTableMoveDown}
+            onMouseUp={handleTableStop}
+            onDoubleClick={handleTableDoubleClickDown}
+            disabled={!isModule4Online}
+          />
+          <p className="card-label">Table Down</p>
         </div>
       </div>
     </div>

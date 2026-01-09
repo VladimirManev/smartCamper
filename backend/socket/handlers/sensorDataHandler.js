@@ -41,8 +41,12 @@ const sensorDataHandler = (io, topic, message) => {
       return handleFloorHeating(io, topicParts, message);
     
     case "module-4":
-      // Module-4 is the heating control module (dampers)
-      return handleDamper(io, topicParts, message);
+      // Module-4 is the heating control module (dampers and table)
+      // Try damper first, then table
+      if (handleDamper(io, topicParts, message)) {
+        return true;
+      }
+      return handleTable(io, topicParts, message);
     
     case "errors":
       // Error topics: smartcamper/errors/{module-id}/{component-type}/{component-id}
@@ -273,6 +277,34 @@ function handleDamper(io, topicParts, message) {
       }
     } catch (error) {
       console.log(`❌ Failed to parse damper status JSON: ${error.message}`);
+      return true; // Handled, but error
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Handle table status data
+ * Format: smartcamper/sensors/module-4/table/direction
+ */
+function handleTable(io, topicParts, message) {
+  // Format: smartcamper/sensors/module-4/table/direction
+  if (topicParts.length >= 5 && topicParts[3] === "table" && topicParts[4] === "direction") {
+    try {
+      const statusData = JSON.parse(message);
+      
+      if (statusData.direction !== undefined) {
+        io.emit("tableStatusUpdate", {
+          type: "table",
+          direction: statusData.direction,
+          timestamp: new Date().toISOString(),
+        });
+        
+        return true;
+      }
+    } catch (error) {
+      console.log(`❌ Failed to parse table status JSON: ${error.message}`);
       return true; // Handled, but error
     }
   }

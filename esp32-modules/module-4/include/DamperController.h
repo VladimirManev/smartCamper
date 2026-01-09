@@ -29,6 +29,7 @@ private:
   static const int NUM_POSITIONS = 3;
   static const int POSITIONS[NUM_POSITIONS];  // {0, 45, 90}
   int currentPositionIndex;  // 0, 1, or 2
+  int lastPublishedAngle;  // Last published angle to avoid duplicate publishes
   
   // Internal methods
   void processButton();

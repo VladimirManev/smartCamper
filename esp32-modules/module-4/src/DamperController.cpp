@@ -12,7 +12,7 @@ const int DamperController::POSITIONS[NUM_POSITIONS] = {0, 45, 90};
 DamperController::DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt)
   : servo(servoPin), buttonPin(btnPin), damperIndex(index), mqttManager(mqtt),
     lastButtonState(false), debouncedButtonState(false), lastDebouncedState(false), lastDebounceTime(0),
-    currentPositionIndex(2) {  // Start at position 2 (90° - open)
+    currentPositionIndex(2), lastPublishedAngle(-1) {  // Start at position 2 (90° - open)
 }
 
 void DamperController::begin() {
@@ -29,6 +29,9 @@ void DamperController::begin() {
   debouncedButtonState = lastButtonState;
   lastDebouncedState = lastButtonState;  // Initialize previous debounced state
   lastDebounceTime = millis();
+  
+  // Initialize last published angle to initial position (90°)
+  lastPublishedAngle = 90;
   
   if (DEBUG_SERIAL) {
     Serial.println("🔧 DamperController " + String(damperIndex) + " initialized");
@@ -142,7 +145,6 @@ void DamperController::loop() {
   processButton();
   
   // Publish status when servo reaches target (was moving, now stopped)
-  static int lastPublishedAngle = -1;
   if (wasMoving && servo.isAtTarget()) {
     // Servo was moving and now reached target - publish status
     int currentAngle = getCurrentAngle();

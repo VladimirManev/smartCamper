@@ -44,6 +44,16 @@
 #define DAMPER_4_SERVO_PIN 14 // GPIO pin for damper 4 servo signal
 #define DAMPER_4_BUTTON_PIN 19 // GPIO pin for damper 4 toggle button
 
+// Table (lift) configuration
+#define TABLE_RELAY_UP_PIN 21   // GPIO pin for table relay up (NO contact -> +)
+#define TABLE_RELAY_DOWN_PIN 22 // GPIO pin for table relay down (NO contact -> +)
+#define TABLE_BUTTON_UP_PIN 23  // GPIO pin for table button up (INPUT_PULLUP)
+#define TABLE_BUTTON_DOWN_PIN 25 // GPIO pin for table button down (INPUT_PULLUP)
+
+// Table timing settings
+#define TABLE_DOUBLE_CLICK_TIMEOUT 500  // ms - max time between clicks for double-click detection
+#define TABLE_AUTO_MOVE_DURATION 5000   // ms - duration for auto movement on double-click
+
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output
 #define DEBUG_MQTT true     // Enable MQTT debug output
