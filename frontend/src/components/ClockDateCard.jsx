@@ -113,13 +113,6 @@ export const ClockDateCard = ({ indoorTemp, outdoorTemp, humidity }) => {
         </div>
       </div>
 
-      {/* Date text below clock */}
-      <div className="date-text-container">
-        <div className="date-text">
-          <span className="day-name">{dayName}</span>
-          <span className="date-value">{dateString}</span>
-        </div>
-      </div>
     </div>
   );
 };

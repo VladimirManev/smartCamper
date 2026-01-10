@@ -4,7 +4,7 @@
  * Uses custom hooks and components for separation of concerns
  */
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useSocket } from "./hooks/useSocket";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
@@ -26,6 +26,27 @@ import "./App.css";
 function App() {
   // Socket connection
   const { socket, connected } = useSocket();
+
+  // Date state
+  const [date, setDate] = useState(new Date());
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDate(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format date
+  const day = date.getDate();
+  const monthNames = [
+    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+  ];
+  const month = monthNames[date.getMonth()];
+  const dateString = `${day} ${month}`;
+  const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const dayName = dayNames[date.getDay()];
 
   // Module status tracking (from heartbeat system)
   const { isModuleOnline, moduleStatuses } = useModuleStatus(socket);
@@ -239,8 +260,14 @@ function App() {
       <StatusIcons socket={socket} backendConnected={connected} />
 
       <div className="content-with-image">
-        {/* Sensor text labels above the image-clock-container: IN temp, IN humidity, OUT temp */}
+        {/* Date and sensor text labels: Date, IN temp, IN humidity, OUT temp */}
         <div className="sensor-text-row">
+          <div className="sensor-text-item date-text-item">
+            <div className="sensor-text-content">
+              <span className="sensor-label date-label">{dayName}</span>
+              <span className="sensor-value date-value">{dateString}</span>
+            </div>
+          </div>
           <div className="sensor-text-item">
             <i className="fas fa-thermometer-half sensor-icon"></i>
             <div className="sensor-text-content">
@@ -248,7 +275,7 @@ function App() {
               <span className="sensor-value">
                 {indoorTemperature !== null && indoorTemperature !== undefined 
                   ? `${indoorTemperature.toFixed(1)}°` 
-                  : "22.5°"}
+                  : "--°"}
               </span>
             </div>
           </div>
@@ -259,7 +286,7 @@ function App() {
               <span className="sensor-value">
                 {indoorHumidity !== null && indoorHumidity !== undefined 
                   ? `${indoorHumidity.toFixed(0)}%` 
-                  : "65%"}
+                  : "--%"}
               </span>
             </div>
           </div>
@@ -270,62 +297,26 @@ function App() {
               <span className="sensor-value">
                 {outdoorTemperature !== null && outdoorTemperature !== undefined 
                   ? `${outdoorTemperature.toFixed(1)}°` 
-                  : "18.3°"}
+                  : "--°"}
               </span>
             </div>
           </div>
         </div>
         
         <div className="image-clock-container">
-          <div className="image-sensor-wrapper">
-            <div className="image-container">
-              <img src={ducatoImage} alt="Ducato" className="ducato-image" />
-            </div>
-          </div>
           <ClockDateCard 
             indoorTemp={indoorTemperature}
             outdoorTemp={outdoorTemperature}
             humidity={indoorHumidity}
           />
+          <div className="image-sensor-wrapper">
+            <div className="image-container">
+              <img src={ducatoImage} alt="Ducato" className="ducato-image" />
+            </div>
+          </div>
         </div>
 
         <div className="main-content">
-        {/* Indoor Temperature Sensor */}
-        <div className="card-wrapper">
-          <SensorCard
-            icon="fas fa-thermometer-half"
-            value={indoorTemperature}
-            unit="°"
-            decimals={1}
-            disabled={!isModule1Online}
-          />
-          <p className="card-label">Indoor Temp</p>
-        </div>
-
-        {/* Outdoor Temperature Sensor */}
-        <div className="card-wrapper">
-          <SensorCard
-            icon="fas fa-thermometer-half"
-            value={outdoorTemperature}
-            unit="°"
-            decimals={1}
-            disabled={!isModule1Online}
-          />
-          <p className="card-label">Outdoor Temp</p>
-        </div>
-
-        {/* Indoor Humidity Sensor */}
-        <div className="card-wrapper">
-          <SensorCard
-            icon="fas fa-tint"
-            value={indoorHumidity}
-            unit="%"
-            decimals={0}
-            disabled={!isModule1Online}
-          />
-          <p className="card-label">Humidity</p>
-        </div>
-
         {/* Gray Water Tank */}
         <div className="card-wrapper">
           <GrayWaterTank
