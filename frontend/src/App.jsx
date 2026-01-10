@@ -184,11 +184,17 @@ function App() {
   };
 
   // Table command handlers - simplified: single click triggers auto movement
+  const lastTableCommandTime = useRef(0);
+  const lastTableCommandDirection = useRef(null);
+  const TABLE_COMMAND_DEBOUNCE = 500; // ms - prevent duplicate commands before status update
+  
   const handleTableClick = (direction) => {
     if (!isModule4Online) {
       console.warn(`⚠️ Cannot move table ${direction} - module-4 is offline`);
       return;
     }
+    
+    const now = Date.now();
     
     // CRITICAL: If auto-moving, stop immediately on any button press
     if (tableState?.autoMoving) {
@@ -197,6 +203,18 @@ function App() {
         type: "table",
         action: "stop",
       });
+      lastTableCommandTime.current = now;
+      lastTableCommandDirection.current = null;
+      return;
+    }
+    
+    // Debounce: prevent duplicate commands in same direction before status update
+    // This handles race condition where command is sent but status not yet received
+    if (
+      lastTableCommandDirection.current === direction &&
+      now - lastTableCommandTime.current < TABLE_COMMAND_DEBOUNCE
+    ) {
+      console.log(`⏱️ Table: Ignoring duplicate ${direction} command (debounce)`);
       return;
     }
     
@@ -208,6 +226,10 @@ function App() {
       action: direction === "up" ? "move_up_auto" : "move_down_auto",
       duration: 5000,
     });
+    
+    // Track last command
+    lastTableCommandTime.current = now;
+    lastTableCommandDirection.current = direction;
   };
 
   return (

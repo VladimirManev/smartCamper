@@ -4,6 +4,8 @@
  * Simplified: Single click/touch triggers auto movement
  */
 
+import { useRef } from "react";
+
 /**
  * TableCard component
  * @param {Object} props - Component props
@@ -23,6 +25,13 @@ export const TableCard = ({
   const directionState = tableState?.direction || "stopped";
   const isActive = directionState === direction;
   
+  // Debounce and touch tracking to prevent double triggers
+  const lastActionTime = useRef(0);
+  const touchStartPos = useRef({ x: 0, y: 0 });
+  const hasTriggeredTouch = useRef(false); // Track if touch event already triggered action
+  const DEBOUNCE_DELAY = 300; // ms - prevent rapid double clicks
+  const MAX_TOUCH_MOVE = 15; // pixels - max movement to consider it a tap (not drag)
+  
   // Determine button class and color
   let buttonClass = "neumorphic-button";
   let iconColor = "#9ca3af"; // Gray when inactive
@@ -34,15 +43,68 @@ export const TableCard = ({
     buttonClass += " off";
   }
   
-  // Handle click/touch - simplified: just call onClick handler
-  const handleClick = (e) => {
-    if (disabled) return;
-    e.preventDefault();
-    e.stopPropagation();
+  // Common action handler - with debouncing
+  const triggerAction = () => {
+    // Debounce: prevent rapid multiple actions
+    const now = Date.now();
+    if (now - lastActionTime.current < DEBOUNCE_DELAY) {
+      return; // Ignore rapid actions
+    }
+    lastActionTime.current = now;
     
     if (onClick) {
       onClick();
     }
+  };
+  
+  // Handle click (desktop) - with protection against touch events
+  const handleClick = (e) => {
+    if (disabled) return;
+    
+    // If touch event already triggered, ignore this click (prevent double trigger)
+    if (hasTriggeredTouch.current) {
+      hasTriggeredTouch.current = false; // Reset for next interaction
+      return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    triggerAction();
+  };
+  
+  // Handle touch start - track position
+  const handleTouchStart = (e) => {
+    if (disabled) return;
+    hasTriggeredTouch.current = false; // Reset flag
+    const touch = e.touches[0];
+    if (touch) {
+      touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    }
+  };
+  
+  // Handle touch end - trigger action if it was a tap (not drag)
+  const handleTouchEnd = (e) => {
+    if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if it was a drag or swipe (movement > threshold)
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartPos.current.x);
+      const deltaY = Math.abs(touch.clientY - touchStartPos.current.y);
+      
+      // If moved too much, it was a drag - ignore
+      if (deltaX > MAX_TOUCH_MOVE || deltaY > MAX_TOUCH_MOVE) {
+        return;
+      }
+    }
+    
+    // Mark that touch event triggered action (to prevent onClick from also firing)
+    hasTriggeredTouch.current = true;
+    
+    // It was a tap - trigger action
+    triggerAction();
   };
   
   // Determine arrow direction
@@ -54,7 +116,8 @@ export const TableCard = ({
     <div 
       className={`led-card ${disabled ? "disabled" : ""}`}
       onClick={handleClick}
-      onTouchStart={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
