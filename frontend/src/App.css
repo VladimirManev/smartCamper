@@ -404,14 +404,8 @@ body {
   }
 }
 
-/* Active state for mobile devices */
-.sensor-card:active,
-.led-card:active {
-  transform: translateY(-2px) scale(0.98);
-  /* Keep original box-shadow without adding extra glow on click */
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
+/* Active state for mobile devices - completely removed for touch screens */
+/* No active effect - finger covers button on touch screens anyway, so no transform */
 
 /* Disabled sensor card (module offline) */
 .sensor-card.disabled {
@@ -533,13 +527,16 @@ body {
 /* ON state - raised with gradient ring */
 .neumorphic-button.on {
   background: #1e293b;
-  /* Simple larger blue glow */
+  /* Very bright and saturated glow effect - extra bright inner ring */
   box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03),
-    0 8px 25px rgba(59, 130, 246, 0.25);
+    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 2px rgba(59, 130, 246, 1),
+    0 0 5px rgba(59, 130, 246, 1), 0 0 10px rgba(59, 130, 246, 1),
+    0 0 15px rgba(59, 130, 246, 0.95), 0 0 20px rgba(59, 130, 246, 0.85),
+    0 0 8px rgba(37, 99, 235, 1);
 }
 
-.neumorphic-button.on::before {
+/* ::before effect removed for testing */
+/* .neumorphic-button.on::before {
   content: "";
   position: absolute;
   top: -3px;
@@ -549,9 +546,9 @@ body {
   border-radius: 50%;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   z-index: -1;
-  opacity: 1; /* Increased from 0.8 to 1 for brighter effect */
-  filter: blur(3px); /* Increased blur from 2px for more focused glow */
-}
+  opacity: 1;
+  filter: blur(3px);
+} */
 
 /* Horseshoe SVG */
 .horseshoe-progress {
