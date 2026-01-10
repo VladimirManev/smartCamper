@@ -183,80 +183,29 @@ function App() {
     });
   };
 
-  // Table command handlers
-  const handleTableMoveUp = () => {
+  // Table command handlers - simplified: single click triggers auto movement
+  const handleTableClick = (direction) => {
     if (!isModule4Online) {
-      console.warn("⚠️ Cannot move table up - module-4 is offline");
+      console.warn(`⚠️ Cannot move table ${direction} - module-4 is offline`);
       return;
     }
     
     // CRITICAL: If auto-moving, stop immediately on any button press
     if (tableState?.autoMoving) {
-      console.log("⏹️ Table: Auto movement stopped by up button");
-      handleTableStop();
+      console.log("⏹️ Table: Auto movement stopped by button press");
+      sendTableCommand({
+        type: "table",
+        action: "stop",
+      });
       return;
     }
     
-    console.log("⬆️ Table: Moving up");
+    // Start auto movement in the specified direction
+    const arrow = direction === "up" ? "⬆️" : "⬇️";
+    console.log(`${arrow} Table: Auto moving ${direction} for 5 seconds`);
     sendTableCommand({
       type: "table",
-      action: "move_up",
-    });
-  };
-
-  const handleTableMoveDown = () => {
-    if (!isModule4Online) {
-      console.warn("⚠️ Cannot move table down - module-4 is offline");
-      return;
-    }
-    
-    // CRITICAL: If auto-moving, stop immediately on any button press
-    if (tableState?.autoMoving) {
-      console.log("⏹️ Table: Auto movement stopped by down button");
-      handleTableStop();
-      return;
-    }
-    
-    console.log("⬇️ Table: Moving down");
-    sendTableCommand({
-      type: "table",
-      action: "move_down",
-    });
-  };
-
-  const handleTableStop = () => {
-    if (!isModule4Online) {
-      return;
-    }
-    console.log("⏹️ Table: Stopped");
-    sendTableCommand({
-      type: "table",
-      action: "stop",
-    });
-  };
-
-  const handleTableDoubleClickUp = () => {
-    if (!isModule4Online) {
-      console.warn("⚠️ Cannot auto move table up - module-4 is offline");
-      return;
-    }
-    console.log("⬆️ Table: Auto moving up for 5 seconds");
-    sendTableCommand({
-      type: "table",
-      action: "move_up_auto",
-      duration: 5000,
-    });
-  };
-
-  const handleTableDoubleClickDown = () => {
-    if (!isModule4Online) {
-      console.warn("⚠️ Cannot auto move table down - module-4 is offline");
-      return;
-    }
-    console.log("⬇️ Table: Auto moving down for 5 seconds");
-    sendTableCommand({
-      type: "table",
-      action: "move_down_auto",
+      action: direction === "up" ? "move_up_auto" : "move_down_auto",
       duration: 5000,
     });
   };
@@ -467,9 +416,7 @@ function App() {
             name="Up"
             direction="up"
             tableState={tableState}
-            onMouseDown={handleTableMoveUp}
-            onMouseUp={handleTableStop}
-            onDoubleClick={handleTableDoubleClickUp}
+            onClick={() => handleTableClick("up")}
             disabled={!isModule4Online}
           />
           <p className="card-label">Table Up</p>
@@ -480,9 +427,7 @@ function App() {
             name="Down"
             direction="down"
             tableState={tableState}
-            onMouseDown={handleTableMoveDown}
-            onMouseUp={handleTableStop}
-            onDoubleClick={handleTableDoubleClickDown}
+            onClick={() => handleTableClick("down")}
             disabled={!isModule4Online}
           />
           <p className="card-label">Table Down</p>
