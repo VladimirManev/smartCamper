@@ -19,6 +19,8 @@ import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
 import { DamperCard } from "./components/DamperCard";
 import { TableCard } from "./components/TableCard";
+import { ClockDateCard } from "./components/ClockDateCard";
+import ducatoImage from "./assets/ducato.png";
 import "./App.css";
 
 function App() {
@@ -236,7 +238,58 @@ function App() {
     <div className="app">
       <StatusIcons socket={socket} backendConnected={connected} />
 
-      <div className="main-content">
+      <div className="content-with-image">
+        {/* Sensor text labels above the image-clock-container: IN temp, IN humidity, OUT temp */}
+        <div className="sensor-text-row">
+          <div className="sensor-text-item">
+            <i className="fas fa-thermometer-half sensor-icon"></i>
+            <div className="sensor-text-content">
+              <span className="sensor-label">IN</span>
+              <span className="sensor-value">
+                {indoorTemperature !== null && indoorTemperature !== undefined 
+                  ? `${indoorTemperature.toFixed(1)}°` 
+                  : "22.5°"}
+              </span>
+            </div>
+          </div>
+          <div className="sensor-text-item">
+            <i className="fas fa-tint sensor-icon"></i>
+            <div className="sensor-text-content">
+              <span className="sensor-label">IN</span>
+              <span className="sensor-value">
+                {indoorHumidity !== null && indoorHumidity !== undefined 
+                  ? `${indoorHumidity.toFixed(0)}%` 
+                  : "65%"}
+              </span>
+            </div>
+          </div>
+          <div className="sensor-text-item">
+            <i className="fas fa-thermometer-half sensor-icon"></i>
+            <div className="sensor-text-content">
+              <span className="sensor-label">OUT</span>
+              <span className="sensor-value">
+                {outdoorTemperature !== null && outdoorTemperature !== undefined 
+                  ? `${outdoorTemperature.toFixed(1)}°` 
+                  : "18.3°"}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="image-clock-container">
+          <div className="image-sensor-wrapper">
+            <div className="image-container">
+              <img src={ducatoImage} alt="Ducato" className="ducato-image" />
+            </div>
+          </div>
+          <ClockDateCard 
+            indoorTemp={indoorTemperature}
+            outdoorTemp={outdoorTemperature}
+            humidity={indoorHumidity}
+          />
+        </div>
+
+        <div className="main-content">
         {/* Indoor Temperature Sensor */}
         <div className="card-wrapper">
           <SensorCard
@@ -454,6 +507,7 @@ function App() {
           />
           <p className="card-label">Table Down</p>
         </div>
+      </div>
       </div>
     </div>
   );
