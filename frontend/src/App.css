@@ -164,19 +164,22 @@ body {
 
 /* Main container for sensors and LED controls - iPhone menu style */
 .main-content {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between; /* Distribute gap evenly, but don't center last row */
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
   gap: 0.5rem;
   width: 100%;
   max-width: 100%;
   padding: 1rem;
   margin: 0 auto;
+  justify-items: center; /* Center items within grid cells */
 }
 
 /* Tablet and larger screens - larger cards */
 @media (min-width: 768px) {
+  .main-content {
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  }
+
   .sensor-card,
   .led-card {
     width: 90px;
@@ -224,6 +227,10 @@ body {
 }
 
 @media (min-width: 1024px) {
+  .main-content {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  }
+
   .sensor-card,
   .led-card {
     width: 110px;
@@ -271,6 +278,10 @@ body {
 }
 
 @media (min-width: 1440px) {
+  .main-content {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
   .sensor-card,
   .led-card {
     width: 130px;
