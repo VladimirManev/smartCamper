@@ -3,15 +3,18 @@
  * Displays and controls a single floor heating circle
  */
 
+import { useLongPress } from "../hooks/useLongPress";
+
 /**
  * FloorHeatingCard component
  * @param {Object} props - Component props
  * @param {string} props.name - Display name (e.g., "Central 1")
  * @param {Object} props.circle - Circle state object { mode, relay, temperature, error? }
  * @param {Function} props.onClick - Click handler function
+ * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
-export const FloorHeatingCard = ({ name, circle, onClick, disabled = false }) => {
+export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled = false }) => {
   const mode = circle?.mode || "OFF";
   const relay = circle?.relay || "OFF";
   const temperature = circle?.temperature;
@@ -43,8 +46,18 @@ export const FloorHeatingCard = ({ name, circle, onClick, disabled = false }) =>
     }
   };
 
+  // Handle long press
+  const handleLongPress = () => {
+    if (!disabled && onLongPress) {
+      onLongPress();
+    }
+  };
+
+  // Long press handlers
+  const longPressHandlers = useLongPress(handleLongPress, handleClick);
+
   return (
-    <div className={`led-card floor-heating-card ${disabled ? "disabled" : ""}`} onClick={handleClick}>
+    <div className={`led-card floor-heating-card ${disabled ? "disabled" : ""}`} {...longPressHandlers}>
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
         <svg className="horseshoe-progress" viewBox="0 0 200 200">

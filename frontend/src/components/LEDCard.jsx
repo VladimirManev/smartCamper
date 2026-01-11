@@ -4,6 +4,7 @@
  */
 
 import { getArcProgress } from "../utils/arcProgress";
+import { useLongPress } from "../hooks/useLongPress";
 
 /**
  * LEDCard component
@@ -11,10 +12,11 @@ import { getArcProgress } from "../utils/arcProgress";
  * @param {string} props.name - Display name (e.g., "Kitchen")
  * @param {Object} props.strip - Strip state object { state, brightness, mode? }
  * @param {Function} props.onClick - Click handler function
+ * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {string} props.type - Type: "strip" or "relay" (default: "strip")
  * @param {boolean} props.disabled - Whether the LED control is disabled/offline
  */
-export const LEDCard = ({ name, strip, onClick, type = "strip", disabled = false }) => {
+export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false }) => {
   const isOn = strip?.state === "ON";
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
@@ -52,8 +54,18 @@ export const LEDCard = ({ name, strip, onClick, type = "strip", disabled = false
     }
   };
 
+  // Handle long press
+  const handleLongPress = () => {
+    if (!disabled && onLongPress) {
+      onLongPress();
+    }
+  };
+
+  // Long press handlers
+  const longPressHandlers = useLongPress(handleLongPress, handleClick);
+
   return (
-    <div className={`led-card ${disabled ? "disabled" : ""}`} onClick={handleClick}>
+    <div className={`led-card ${disabled ? "disabled" : ""}`} {...longPressHandlers}>
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
         {type === "strip" ? (

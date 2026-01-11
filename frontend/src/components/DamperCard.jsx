@@ -3,15 +3,18 @@
  * Displays and controls a single damper (air vent)
  */
 
+import { useLongPress } from "../hooks/useLongPress";
+
 /**
  * DamperCard component
  * @param {Object} props - Component props
  * @param {string} props.name - Display name (e.g., "Kitchen")
  * @param {Object} props.damper - Damper state object { angle }
  * @param {Function} props.onClick - Click handler function
+ * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {boolean} props.disabled - Whether the damper control is disabled/offline
  */
-export const DamperCard = ({ name, damper, onClick, disabled = false }) => {
+export const DamperCard = ({ name, damper, onClick, onLongPress, disabled = false }) => {
   const angle = damper?.angle || 0;
   
   // Determine damper state: 0° (closed), 45° (half-open), 90° (open)
@@ -37,8 +40,18 @@ export const DamperCard = ({ name, damper, onClick, disabled = false }) => {
     }
   };
 
+  // Handle long press
+  const handleLongPress = () => {
+    if (!disabled && onLongPress) {
+      onLongPress();
+    }
+  };
+
+  // Long press handlers
+  const longPressHandlers = useLongPress(handleLongPress, handleClick);
+
   return (
-    <div className={`led-card ${disabled ? "disabled" : ""}`} onClick={handleClick}>
+    <div className={`led-card ${disabled ? "disabled" : ""}`} {...longPressHandlers}>
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
         <svg className="damper-icon" viewBox="0 0 100 100" width="100" height="100">
