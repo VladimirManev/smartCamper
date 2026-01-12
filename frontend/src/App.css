@@ -875,9 +875,12 @@ body {
   align-items: center;
   gap: 0.25rem;
   flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
-/* Card label below the card */
 .card-label {
   font-size: 0.65rem;
   font-weight: 500;
