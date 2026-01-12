@@ -598,16 +598,22 @@ function App() {
       </div>
       </div>
 
-      {/* Card Modal - render only top modal from stack */}
-      {currentModal && (
-        <CardModal
-          isOpen={true}
-          onClose={closeModal}
-          title={currentModal.cardName}
-        >
-          {renderModalContent(currentModal)}
-        </CardModal>
-      )}
+      {/* Card Modal - render all modals in stack */}
+      {modalStack.map((modal, index) => {
+        const isTopModal = index === modalStack.length - 1;
+        return (
+          <CardModal
+            key={index}
+            isOpen={true}
+            onClose={isTopModal ? closeModal : null}
+            title={modal.cardName}
+            isNested={!isTopModal}
+            zIndex={1000 + index}
+          >
+            {renderModalContent(modal)}
+          </CardModal>
+        );
+      })}
     </div>
   );
 }

@@ -8,8 +8,10 @@ import { useEffect, useRef, useState } from "react";
  * @param {Function} props.onClose - Close handler
  * @param {string} props.title - Modal title
  * @param {ReactNode} props.children - Modal content
+ * @param {boolean} props.isNested - Whether this is a nested modal (not the top one)
+ * @param {number} props.zIndex - Z-index for the modal
  */
-export const CardModal = ({ isOpen, onClose, title, children }) => {
+export const CardModal = ({ isOpen, onClose, title, children, isNested = false, zIndex = 1000 }) => {
   const modalRef = useRef(null);
   const overlayRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -17,7 +19,8 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
   // Handle click outside to close
   const handleOverlayClick = (event) => {
     // Only close if clicking directly on overlay, not on modal content
-    if (event.target === overlayRef.current) {
+    // Don't close nested modals via overlay click
+    if (event.target === overlayRef.current && !isNested && onClose) {
       event.preventDefault();
       event.stopPropagation();
       handleClose();
@@ -26,6 +29,7 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
 
   // Handle close with animation
   const handleClose = () => {
+    if (!onClose) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsClosing(false);
@@ -80,18 +84,20 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div 
-      className={`modal-overlay ${isClosing ? "closing" : ""}`}
+      className={`modal-overlay ${isClosing ? "closing" : ""} ${isNested ? "nested" : ""}`}
       ref={overlayRef} 
       onClick={handleOverlayClick}
+      style={{ zIndex }}
     >
       <div 
-        className={`modal-container ${isClosing ? "closing" : ""}`}
+        className={`modal-container ${isClosing ? "closing" : ""} ${isNested ? "nested" : ""}`}
         ref={modalRef} 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
-          <button className="modal-close-button" onClick={handleClose} aria-label="Close">
+          {!isNested && (
+            <button className="modal-close-button" onClick={handleClose} aria-label="Close">
             <svg
               width="20"
               height="20"
@@ -106,6 +112,7 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
+          )}
         </div>
         <div className="modal-content">{children}</div>
       </div>
