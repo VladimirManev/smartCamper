@@ -1168,7 +1168,8 @@ body {
 .modal-container {
   background: #1e293b;
   border-radius: 20px;
-  width: 80%;
+  width: 100%;
+  max-width: 500px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
