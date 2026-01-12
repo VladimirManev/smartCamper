@@ -208,6 +208,10 @@ body {
   max-width: 80%;
   height: auto;
   object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Sensor text row - above the image-clock-container with 5rem gap */
