@@ -14,34 +14,44 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
   const overlayRef = useRef(null);
 
   // Handle click outside to close
+  const handleOverlayClick = (event) => {
+    // Only close if clicking directly on overlay, not on modal content
+    if (event.target === overlayRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    }
+  };
+
+  // Block click events on elements below overlay using capture phase
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleClickOutside = (event) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target) &&
-        overlayRef.current &&
-        overlayRef.current.contains(event.target)
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        onClose();
+    const blockClicks = (event) => {
+      // Allow clicks on modal elements (modal container and its children)
+      if (modalRef.current && modalRef.current.contains(event.target)) {
+        return;
       }
+      // Allow clicks on overlay itself (for closing)
+      if (overlayRef.current && event.target === overlayRef.current) {
+        return;
+      }
+      // Block all other clicks (elements below overlay)
+      event.stopPropagation();
+      event.preventDefault();
+      event.stopImmediatePropagation();
     };
 
-    // Add event listener with small delay to avoid immediate trigger
-    const timeoutId = setTimeout(() => {
-      document.addEventListener("mousedown", handleClickOutside, true); // Use capture phase
-      document.addEventListener("touchstart", handleClickOutside, true); // Use capture phase
-    }, 100);
+    // Use capture phase to catch events before they reach elements below
+    // Only block mousedown/touchstart to prevent clicks from being registered
+    document.addEventListener('mousedown', blockClicks, true);
+    document.addEventListener('touchstart', blockClicks, true);
 
     return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener("mousedown", handleClickOutside, true);
-      document.removeEventListener("touchstart", handleClickOutside, true);
+      document.removeEventListener('mousedown', blockClicks, true);
+      document.removeEventListener('touchstart', blockClicks, true);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -57,16 +67,17 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
 
   if (!isOpen) return null;
 
-  // Handle overlay click - stop propagation to prevent triggering elements below
-  const handleOverlayClick = (e) => {
-    if (e.target === overlayRef.current) {
-      e.stopPropagation();
-    }
-  };
-
   return (
-    <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
-      <div className="modal-container" ref={modalRef} onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="modal-overlay" 
+      ref={overlayRef} 
+      onClick={handleOverlayClick}
+    >
+      <div 
+        className="modal-container" 
+        ref={modalRef} 
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           <button className="modal-close-button" onClick={onClose} aria-label="Close">
