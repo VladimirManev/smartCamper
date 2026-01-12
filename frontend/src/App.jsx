@@ -277,28 +277,52 @@ function App() {
     }
 
     if (cardType === "table-group") {
-      // Render all table cards in grid
+      // Render all table cards in column: auto(up), hold(up), hold(down), auto(down)
       return (
-        <div className="modal-grid">
+        <div className="modal-grid table-modal-column">
+          {/* Auto card: Auto Up */}
           <div className="card-wrapper">
             <TableCard
               name="Up"
               direction="up"
               tableState={tableState}
               onClick={() => handleTableClick("up")}
+              isAuto={true}
               disabled={!isModule4Online}
             />
-            <p className="card-label">Table Up</p>
           </div>
+          {/* Hold card: Hold Up */}
+          <div className="card-wrapper">
+            <TableCard
+              name="Up"
+              direction="up"
+              tableState={tableState}
+              onHoldStart={() => handleTableHoldStart("up")}
+              onHoldEnd={handleTableHoldEnd}
+              disabled={!isModule4Online}
+            />
+          </div>
+          {/* Hold card: Hold Down */}
+          <div className="card-wrapper">
+            <TableCard
+              name="Down"
+              direction="down"
+              tableState={tableState}
+              onHoldStart={() => handleTableHoldStart("down")}
+              onHoldEnd={handleTableHoldEnd}
+              disabled={!isModule4Online}
+            />
+          </div>
+          {/* Auto card: Auto Down */}
           <div className="card-wrapper">
             <TableCard
               name="Down"
               direction="down"
               tableState={tableState}
               onClick={() => handleTableClick("down")}
+              isAuto={true}
               disabled={!isModule4Online}
             />
-            <p className="card-label">Table Down</p>
           </div>
         </div>
       );
@@ -482,6 +506,43 @@ function App() {
     // Track last command
     lastTableCommandTime.current = now;
     lastTableCommandDirection.current = direction;
+  };
+
+  // Table hold/release handlers for manual control
+  const handleTableHoldStart = (direction) => {
+    if (!isModule4Online) {
+      console.warn(`⚠️ Cannot hold table ${direction} - module-4 is offline`);
+      return;
+    }
+    
+    // Stop any auto movement first
+    if (tableState?.autoMoving) {
+      sendTableCommand({
+        type: "table",
+        action: "stop",
+      });
+    }
+    
+    // Start continuous movement
+    const arrow = direction === "up" ? "⬆️" : "⬇️";
+    console.log(`${arrow} Table: Holding ${direction} - continuous movement`);
+    sendTableCommand({
+      type: "table",
+      action: direction === "up" ? "move_up" : "move_down",
+    });
+  };
+
+  const handleTableHoldEnd = () => {
+    if (!isModule4Online) {
+      return;
+    }
+    
+    // Stop movement when released
+    console.log("⏹️ Table: Released - stopping movement");
+    sendTableCommand({
+      type: "table",
+      action: "stop",
+    });
   };
 
   return (
