@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * CardModal Component
@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react";
 export const CardModal = ({ isOpen, onClose, title, children }) => {
   const modalRef = useRef(null);
   const overlayRef = useRef(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Handle click outside to close
   const handleOverlayClick = (event) => {
@@ -19,8 +20,17 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
     if (event.target === overlayRef.current) {
       event.preventDefault();
       event.stopPropagation();
-      onClose();
+      handleClose();
     }
+  };
+
+  // Handle close with animation
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 500); // Match animation duration
   };
 
   // Block click events on elements below overlay using capture phase
@@ -57,6 +67,7 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      setIsClosing(false);
     } else {
       document.body.style.overflow = "";
     }
@@ -69,18 +80,18 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div 
-      className="modal-overlay" 
+      className={`modal-overlay ${isClosing ? "closing" : ""}`}
       ref={overlayRef} 
       onClick={handleOverlayClick}
     >
       <div 
-        className="modal-container" 
+        className={`modal-container ${isClosing ? "closing" : ""}`}
         ref={modalRef} 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
-          <button className="modal-close-button" onClick={onClose} aria-label="Close">
+          <button className="modal-close-button" onClick={handleClose} aria-label="Close">
             <svg
               width="20"
               height="20"
