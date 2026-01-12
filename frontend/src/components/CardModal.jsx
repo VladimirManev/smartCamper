@@ -24,20 +24,22 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
         overlayRef.current &&
         overlayRef.current.contains(event.target)
       ) {
+        event.preventDefault();
+        event.stopPropagation();
         onClose();
       }
     };
 
     // Add event listener with small delay to avoid immediate trigger
     const timeoutId = setTimeout(() => {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside, true); // Use capture phase
+      document.addEventListener("touchstart", handleClickOutside, true); // Use capture phase
     }, 100);
 
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside, true);
+      document.removeEventListener("touchstart", handleClickOutside, true);
     };
   }, [isOpen, onClose]);
 
@@ -55,9 +57,16 @@ export const CardModal = ({ isOpen, onClose, title, children }) => {
 
   if (!isOpen) return null;
 
+  // Handle overlay click - stop propagation to prevent triggering elements below
+  const handleOverlayClick = (e) => {
+    if (e.target === overlayRef.current) {
+      e.stopPropagation();
+    }
+  };
+
   return (
-    <div className="modal-overlay" ref={overlayRef}>
-      <div className="modal-container" ref={modalRef}>
+    <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
+      <div className="modal-container" ref={modalRef} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           <button className="modal-close-button" onClick={onClose} aria-label="Close">
