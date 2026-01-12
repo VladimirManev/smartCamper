@@ -19,6 +19,9 @@ import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
 import { DamperCard } from "./components/DamperCard";
 import { TableCard } from "./components/TableCard";
+import { LEDGroupCard } from "./components/LEDGroupCard";
+import { FloorHeatingGroupCard } from "./components/FloorHeatingGroupCard";
+import { DamperGroupCard } from "./components/DamperGroupCard";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { CardModal } from "./components/CardModal";
 import ducatoImage from "./assets/ducato.png";
@@ -80,30 +83,200 @@ function App() {
   // Table controller
   const { tableState, sendTableCommand } = useTableController(socket);
 
-  // Modal state
-  const [modalState, setModalState] = useState({
-    isOpen: false,
-    cardType: null, // 'led', 'floor-heating', 'damper'
-    cardName: null,
-    cardData: null,
-  });
+  // Modal state - stack of modals
+  const [modalStack, setModalStack] = useState([]);
 
   const openModal = (cardType, cardName, cardData = null) => {
-    setModalState({
-      isOpen: true,
-      cardType,
-      cardName,
-      cardData,
-    });
+    setModalStack((prevStack) => [
+      ...prevStack,
+      { cardType, cardName, cardData },
+    ]);
   };
 
   const closeModal = () => {
-    setModalState({
-      isOpen: false,
-      cardType: null,
-      cardName: null,
-      cardData: null,
-    });
+    setModalStack((prevStack) => prevStack.slice(0, -1));
+  };
+
+  // Get current (top) modal
+  const currentModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
+
+  // Render modal content based on cardType
+  const renderModalContent = (modal) => {
+    if (!modal) return null;
+
+    const { cardType } = modal;
+
+    if (cardType === "lighting-group") {
+      // Render all LED cards in grid
+      return (
+        <div className="modal-grid">
+          <div className="card-wrapper">
+            <LEDCard
+              name="Main"
+              strip={ledStrips[1]}
+              onClick={() => handleStripToggle(1)}
+              onLongPress={() => openModal("led", "Main", { strip: ledStrips[1], type: "strip", index: 1 })}
+              type="strip"
+              disabled={!isModule2Online}
+            />
+            <p className="card-label">Main</p>
+          </div>
+          <div className="card-wrapper">
+            <LEDCard
+              name="Kitchen"
+              strip={ledStrips[0]}
+              onClick={() => handleStripToggle(0)}
+              onLongPress={() => openModal("led", "Kitchen", { strip: ledStrips[0], type: "strip", index: 0 })}
+              type="strip"
+              disabled={!isModule2Online}
+            />
+            <p className="card-label">Kitchen</p>
+          </div>
+          <div className="card-wrapper">
+            <LEDCard
+              name="Bedroom"
+              strip={ledStrips[4]}
+              onClick={() => handleStripToggle(4)}
+              onLongPress={() => openModal("led", "Bedroom", { strip: ledStrips[4], type: "strip", index: 4 })}
+              type="strip"
+              disabled={!isModule2Online}
+            />
+            <p className="card-label">Bedroom</p>
+          </div>
+          <div className="card-wrapper">
+            <LEDCard
+              name="Bathroom"
+              strip={ledStrips[3]}
+              onClick={handleBathroomModeCycle}
+              onLongPress={() => openModal("led", "Bathroom", { strip: ledStrips[3], type: "strip", index: 3 })}
+              type="strip"
+              disabled={!isModule2Online}
+            />
+            <p className="card-label">Bathroom</p>
+          </div>
+          <div className="card-wrapper">
+            <LEDCard
+              name="Ambient"
+              strip={relays[0]}
+              onClick={handleRelayToggle}
+              onLongPress={() => openModal("led", "Ambient", { strip: relays[0], type: "relay", index: 0 })}
+              type="relay"
+              disabled={!isModule2Online}
+            />
+            <p className="card-label">Ambient</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (cardType === "floor-heating-group") {
+      // Render all floor heating cards in grid
+      return (
+        <div className="modal-grid">
+          <div className="card-wrapper">
+            <FloorHeatingCard
+              name="Central 1"
+              circle={circles[0]}
+              onClick={() => handleCircleToggle(0)}
+              onLongPress={() => openModal("floor-heating", "Central 1", { circle: circles[0], index: 0 })}
+              disabled={!isModule3Online}
+            />
+            <p className="card-label">Central 1</p>
+          </div>
+          <div className="card-wrapper">
+            <FloorHeatingCard
+              name="Central 2"
+              circle={circles[1]}
+              onClick={() => handleCircleToggle(1)}
+              onLongPress={() => openModal("floor-heating", "Central 2", { circle: circles[1], index: 1 })}
+              disabled={!isModule3Online}
+            />
+            <p className="card-label">Central 2</p>
+          </div>
+          <div className="card-wrapper">
+            <FloorHeatingCard
+              name="Bathroom"
+              circle={circles[2]}
+              onClick={() => handleCircleToggle(2)}
+              onLongPress={() => openModal("floor-heating", "Bathroom", { circle: circles[2], index: 2 })}
+              disabled={!isModule3Online}
+            />
+            <p className="card-label">Bathroom</p>
+          </div>
+          <div className="card-wrapper">
+            <FloorHeatingCard
+              name="Podium"
+              circle={circles[3]}
+              onClick={() => handleCircleToggle(3)}
+              onLongPress={() => openModal("floor-heating", "Podium", { circle: circles[3], index: 3 })}
+              disabled={!isModule3Online}
+            />
+            <p className="card-label">Podium</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (cardType === "damper-group") {
+      // Render all damper cards in grid
+      return (
+        <div className="modal-grid">
+          <div className="card-wrapper">
+            <DamperCard
+              name="Front"
+              damper={dampers[0]}
+              onClick={() => handleDamperToggle(0)}
+              onLongPress={() => openModal("damper", "Front", { damper: dampers[0], index: 0 })}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Front</p>
+          </div>
+          <div className="card-wrapper">
+            <DamperCard
+              name="Rear"
+              damper={dampers[1]}
+              onClick={() => handleDamperToggle(1)}
+              onLongPress={() => openModal("damper", "Rear", { damper: dampers[1], index: 1 })}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Rear</p>
+          </div>
+          <div className="card-wrapper">
+            <DamperCard
+              name="Bath"
+              damper={dampers[2]}
+              onClick={() => handleDamperToggle(2)}
+              onLongPress={() => openModal("damper", "Bath", { damper: dampers[2], index: 2 })}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Bath</p>
+          </div>
+          <div className="card-wrapper">
+            <DamperCard
+              name="Shoes"
+              damper={dampers[3]}
+              onClick={() => handleDamperToggle(3)}
+              onLongPress={() => openModal("damper", "Shoes", { damper: dampers[3], index: 3 })}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Shoes</p>
+          </div>
+          <div className="card-wrapper">
+            <DamperCard
+              name="Cockpit"
+              damper={dampers[4]}
+              onClick={() => handleDamperToggle(4)}
+              onLongPress={() => openModal("damper", "Cockpit", { damper: dampers[4], index: 4 })}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Cockpit</p>
+          </div>
+        </div>
+      );
+    }
+
+    // For individual card modals (led, floor-heating, damper) - empty for now
+    return null;
   };
 
   // LED command handlers
@@ -354,167 +527,34 @@ function App() {
           <p className="card-label">Gray Water</p>
         </div>
 
-        {/* LED Strips */}
+        {/* LED Group Card */}
         <div className="card-wrapper">
-          <LEDCard
-            name="Main"
-            strip={ledStrips[1]}
-            onClick={() => handleStripToggle(1)}
-            onLongPress={() => openModal("led", "Main", { strip: ledStrips[1], type: "strip", index: 1 })}
-            type="strip"
+          <LEDGroupCard
+            name="Lighting"
+            onLongPress={() => openModal("lighting-group", "Lighting")}
             disabled={!isModule2Online}
           />
-          <p className="card-label">Main</p>
+          <p className="card-label">Lighting</p>
         </div>
 
+        {/* Floor Heating Group Card */}
         <div className="card-wrapper">
-          <LEDCard
-            name="Kitchen"
-            strip={ledStrips[0]}
-            onClick={() => handleStripToggle(0)}
-            onLongPress={() => openModal("led", "Kitchen", { strip: ledStrips[0], type: "strip", index: 0 })}
-            type="strip"
-            disabled={!isModule2Online}
-          />
-          <p className="card-label">Kitchen</p>
-        </div>
-
-        <div className="card-wrapper">
-          <LEDCard
-            name="Bedroom"
-            strip={ledStrips[4]}
-            onClick={() => handleStripToggle(4)}
-            onLongPress={() => openModal("led", "Bedroom", { strip: ledStrips[4], type: "strip", index: 4 })}
-            type="strip"
-            disabled={!isModule2Online}
-          />
-          <p className="card-label">Bedroom</p>
-        </div>
-
-        <div className="card-wrapper">
-          <LEDCard
-            name="Bathroom"
-            strip={ledStrips[3]}
-            onClick={handleBathroomModeCycle}
-            onLongPress={() => openModal("led", "Bathroom", { strip: ledStrips[3], type: "strip", index: 3 })}
-            type="strip"
-            disabled={!isModule2Online}
-          />
-          <p className="card-label">Bathroom</p>
-        </div>
-
-        {/* Relay */}
-        <div className="card-wrapper">
-          <LEDCard
-            name="Ambient"
-            strip={relays[0]}
-            onClick={handleRelayToggle}
-            onLongPress={() => openModal("led", "Ambient", { strip: relays[0], type: "relay", index: 0 })}
-            type="relay"
-            disabled={!isModule2Online}
-          />
-          <p className="card-label">Ambient</p>
-        </div>
-
-        {/* Floor Heating Circles */}
-        <div className="card-wrapper">
-          <FloorHeatingCard
-            name="Central 1"
-            circle={circles[0]}
-            onClick={() => handleCircleToggle(0)}
-            onLongPress={() => openModal("floor-heating", "Central 1", { circle: circles[0], index: 0 })}
+          <FloorHeatingGroupCard
+            name="Floor Heating"
+            onLongPress={() => openModal("floor-heating-group", "Floor Heating")}
             disabled={!isModule3Online}
           />
-          <p className="card-label">Central 1</p>
+          <p className="card-label">Floor Heating</p>
         </div>
 
+        {/* Dampers Group Card */}
         <div className="card-wrapper">
-          <FloorHeatingCard
-            name="Central 2"
-            circle={circles[1]}
-            onClick={() => handleCircleToggle(1)}
-            onLongPress={() => openModal("floor-heating", "Central 2", { circle: circles[1], index: 1 })}
-            disabled={!isModule3Online}
-          />
-          <p className="card-label">Central 2</p>
-        </div>
-
-        <div className="card-wrapper">
-          <FloorHeatingCard
-            name="Bathroom"
-            circle={circles[2]}
-            onClick={() => handleCircleToggle(2)}
-            onLongPress={() => openModal("floor-heating", "Bathroom", { circle: circles[2], index: 2 })}
-            disabled={!isModule3Online}
-          />
-          <p className="card-label">Bathroom</p>
-        </div>
-
-        <div className="card-wrapper">
-          <FloorHeatingCard
-            name="Podium"
-            circle={circles[3]}
-            onClick={() => handleCircleToggle(3)}
-            onLongPress={() => openModal("floor-heating", "Podium", { circle: circles[3], index: 3 })}
-            disabled={!isModule3Online}
-          />
-          <p className="card-label">Podium</p>
-        </div>
-
-        {/* Dampers */}
-        <div className="card-wrapper">
-          <DamperCard
-            name="Front"
-            damper={dampers[0]}
-            onClick={() => handleDamperToggle(0)}
-            onLongPress={() => openModal("damper", "Front", { damper: dampers[0], index: 0 })}
+          <DamperGroupCard
+            name="Dampers"
+            onLongPress={() => openModal("damper-group", "Dampers")}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Front</p>
-        </div>
-
-        <div className="card-wrapper">
-          <DamperCard
-            name="Rear"
-            damper={dampers[1]}
-            onClick={() => handleDamperToggle(1)}
-            onLongPress={() => openModal("damper", "Rear", { damper: dampers[1], index: 1 })}
-            disabled={!isModule4Online}
-          />
-          <p className="card-label">Rear</p>
-        </div>
-
-        <div className="card-wrapper">
-          <DamperCard
-            name="Bath"
-            damper={dampers[2]}
-            onClick={() => handleDamperToggle(2)}
-            onLongPress={() => openModal("damper", "Bath", { damper: dampers[2], index: 2 })}
-            disabled={!isModule4Online}
-          />
-          <p className="card-label">Bath</p>
-        </div>
-
-        <div className="card-wrapper">
-          <DamperCard
-            name="Shoes"
-            damper={dampers[3]}
-            onClick={() => handleDamperToggle(3)}
-            onLongPress={() => openModal("damper", "Shoes", { damper: dampers[3], index: 3 })}
-            disabled={!isModule4Online}
-          />
-          <p className="card-label">Shoes</p>
-        </div>
-
-        <div className="card-wrapper">
-          <DamperCard
-            name="Cockpit"
-            damper={dampers[4]}
-            onClick={() => handleDamperToggle(4)}
-            onLongPress={() => openModal("damper", "Cockpit", { damper: dampers[4], index: 4 })}
-            disabled={!isModule4Online}
-          />
-          <p className="card-label">Cockpit</p>
+          <p className="card-label">Dampers</p>
         </div>
 
         {/* Table Controls */}
@@ -542,14 +582,16 @@ function App() {
       </div>
       </div>
 
-      {/* Card Modal */}
-      <CardModal
-        isOpen={modalState.isOpen}
-        onClose={closeModal}
-        title={modalState.cardName}
-      >
-        {/* Modal content will be added later based on cardType */}
-      </CardModal>
+      {/* Card Modal - render only top modal from stack */}
+      {currentModal && (
+        <CardModal
+          isOpen={true}
+          onClose={closeModal}
+          title={currentModal.cardName}
+        >
+          {renderModalContent(currentModal)}
+        </CardModal>
+      )}
     </div>
   );
 }

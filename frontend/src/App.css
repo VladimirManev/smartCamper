@@ -1245,6 +1245,15 @@ body {
   color: #f5f5f5;
 }
 
+/* Grid layout for modal content (same as main-content) */
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  justify-items: center;
+}
+
 /* Scrollbar styling for modal content */
 .modal-content::-webkit-scrollbar {
   width: 8px;
