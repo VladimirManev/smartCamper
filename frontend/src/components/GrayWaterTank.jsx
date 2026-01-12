@@ -25,25 +25,25 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
         >
           {/* Tank outline */}
           <rect
-            x="50"
+            x="45"
             y="20"
-            width="100"
+            width="110"
             height="160"
             fill="none"
             stroke="#3b82f6"
-            strokeWidth="4"
-            rx="6"
+            strokeWidth="8"
+            rx="12"
           />
 
           {/* Water fill - fills from bottom up */}
           {displayLevel !== null && displayLevel !== undefined && (
             <rect
-              x="54"
+              x="49"
               y={180 - (displayLevel / 100) * 160}
-              width="92"
+              width="102"
               height={(displayLevel / 100) * 160}
               fill="url(#grayWaterGradient)"
-              rx="4"
+              rx="8"
               style={{
                 transition: "y 0.5s ease, height 0.5s ease",
               }}
@@ -72,7 +72,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             x2="50"
             y2="60"
             stroke="#3b82f6"
-            strokeWidth="2"
+            strokeWidth="3"
             opacity="0.5"
           />
           <line
@@ -81,7 +81,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             x2="50"
             y2="100"
             stroke="#3b82f6"
-            strokeWidth="2"
+            strokeWidth="3"
             opacity="0.5"
           />
           <line
@@ -90,7 +90,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             x2="50"
             y2="140"
             stroke="#3b82f6"
-            strokeWidth="2"
+            strokeWidth="3"
             opacity="0.5"
           />
 

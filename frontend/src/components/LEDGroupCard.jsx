@@ -10,10 +10,10 @@ import { useLongPress } from "../hooks/useLongPress";
  * LEDGroupCard component
  * @param {Object} props - Component props
  * @param {string} props.name - Display name (e.g., "Lighting")
- * @param {Function} props.onLongPress - Long press handler function (opens modal)
+ * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
-export const LEDGroupCard = ({ name, onLongPress, disabled = false }) => {
+export const LEDGroupCard = ({ name, onClick, disabled = false }) => {
   // Always show as OFF state for group card
   const isOn = false;
   const brightness = 0;
@@ -22,23 +22,23 @@ export const LEDGroupCard = ({ name, onLongPress, disabled = false }) => {
   const arcLength = Math.PI * 80 * (270 / 180);
   const progress = 0;
 
-  // Button class - always OFF state
+  // Button class - always OFF state (no glow)
   const buttonClass = "neumorphic-button off";
 
   // Generate unique gradient ID based on name
   const gradientId = `gradient-${name.toLowerCase().replace(/\s+/g, "-")}-group`;
 
-  // Handle click - placeholder (does nothing for now)
+  // Handle click - opens modal
   const handleClick = () => {
-    if (!disabled) {
-      console.log("LED Group card clicked");
+    if (!disabled && onClick) {
+      onClick();
     }
   };
 
-  // Handle long press
+  // Handle long press - placeholder (logs to console for now)
   const handleLongPress = () => {
-    if (!disabled && onLongPress) {
-      onLongPress();
+    if (!disabled) {
+      console.log("LED Group card long pressed");
     }
   };
 
@@ -73,9 +73,9 @@ export const LEDGroupCard = ({ name, onLongPress, disabled = false }) => {
           <span className="bulb-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Light bulb icon - simple and clean */}
-              <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="#3b82f6" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="9" y1="18" x2="15" y2="18" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="10" y1="21" x2="14" y2="21" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </span>
         </span>

@@ -22,6 +22,7 @@ import { TableCard } from "./components/TableCard";
 import { LEDGroupCard } from "./components/LEDGroupCard";
 import { FloorHeatingGroupCard } from "./components/FloorHeatingGroupCard";
 import { DamperGroupCard } from "./components/DamperGroupCard";
+import { TableGroupCard } from "./components/TableGroupCard";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { CardModal } from "./components/CardModal";
 import ducatoImage from "./assets/ducato.png";
@@ -275,6 +276,34 @@ function App() {
       );
     }
 
+    if (cardType === "table-group") {
+      // Render all table cards in grid
+      return (
+        <div className="modal-grid">
+          <div className="card-wrapper">
+            <TableCard
+              name="Up"
+              direction="up"
+              tableState={tableState}
+              onClick={() => handleTableClick("up")}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Table Up</p>
+          </div>
+          <div className="card-wrapper">
+            <TableCard
+              name="Down"
+              direction="down"
+              tableState={tableState}
+              onClick={() => handleTableClick("down")}
+              disabled={!isModule4Online}
+            />
+            <p className="card-label">Table Down</p>
+          </div>
+        </div>
+      );
+    }
+
     // For individual card modals (led, floor-heating, damper) - empty for now
     return null;
   };
@@ -517,21 +546,11 @@ function App() {
         </div>
 
         <div className="main-content">
-        {/* Gray Water Tank */}
-        <div className="card-wrapper">
-          <GrayWaterTank
-            level={grayWaterLevel}
-            temperature={grayWaterTemperature}
-            disabled={!isModule1Online}
-          />
-          <p className="card-label">Gray Water</p>
-        </div>
-
         {/* LED Group Card */}
         <div className="card-wrapper">
           <LEDGroupCard
             name="Lighting"
-            onLongPress={() => openModal("lighting-group", "Lighting")}
+            onClick={() => openModal("lighting-group", "Lighting")}
             disabled={!isModule2Online}
           />
           <p className="card-label">Lighting</p>
@@ -541,7 +560,7 @@ function App() {
         <div className="card-wrapper">
           <FloorHeatingGroupCard
             name="Floor Heating"
-            onLongPress={() => openModal("floor-heating-group", "Floor Heating")}
+            onClick={() => openModal("floor-heating-group", "Floor Heating")}
             disabled={!isModule3Online}
           />
           <p className="card-label">Floor Heating</p>
@@ -550,34 +569,31 @@ function App() {
         {/* Dampers Group Card */}
         <div className="card-wrapper">
           <DamperGroupCard
-            name="Dampers"
-            onLongPress={() => openModal("damper-group", "Dampers")}
+            name="Airflow"
+            onClick={() => openModal("damper-group", "Airflow")}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Dampers</p>
+          <p className="card-label">Airflow</p>
         </div>
 
-        {/* Table Controls */}
+        {/* Table Group Card */}
         <div className="card-wrapper">
-          <TableCard
-            name="Up"
-            direction="up"
-            tableState={tableState}
-            onClick={() => handleTableClick("up")}
+          <TableGroupCard
+            name="Table"
+            onClick={() => openModal("table-group", "Table")}
             disabled={!isModule4Online}
           />
-          <p className="card-label">Table Up</p>
+          <p className="card-label">Table</p>
         </div>
 
+        {/* Gray Water Tank */}
         <div className="card-wrapper">
-          <TableCard
-            name="Down"
-            direction="down"
-            tableState={tableState}
-            onClick={() => handleTableClick("down")}
-            disabled={!isModule4Online}
+          <GrayWaterTank
+            level={grayWaterLevel}
+            temperature={grayWaterTemperature}
+            disabled={!isModule1Online}
           />
-          <p className="card-label">Table Down</p>
+          <p className="card-label">Gray Water</p>
         </div>
       </div>
       </div>

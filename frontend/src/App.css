@@ -501,8 +501,8 @@ body {
   }
 
   .water-tank {
-    max-width: 90px;
-    max-height: 90px;
+    max-width: 165px;
+    max-height: 165px;
   }
 
   .water-tank-temperature {
@@ -608,8 +608,8 @@ body {
   }
 
   .water-tank {
-    max-width: 80px;
-    max-height: 80px;
+    max-width: 105px;
+    max-height: 105px;
   }
 
   .water-tank-temperature {
@@ -714,8 +714,8 @@ body {
   }
 
   .water-tank {
-    max-width: 90px;
-    max-height: 90px;
+    max-width: 165px;
+    max-height: 165px;
   }
 
   .water-tank-temperature {
@@ -786,8 +786,8 @@ body {
   }
 
   .water-tank {
-    max-width: 110px;
-    max-height: 110px;
+    max-width: 165px;
+    max-height: 165px;
   }
 
   .water-tank-temperature {
@@ -857,8 +857,8 @@ body {
   }
 
   .water-tank {
-    max-width: 130px;
-    max-height: 130px;
+    max-width: 165px;
+    max-height: 165px;
   }
 
   .water-tank-temperature {
@@ -1016,8 +1016,8 @@ body {
 .water-tank {
   width: 100%;
   height: 100%;
-  max-width: 70px;
-  max-height: 70px;
+  max-width: 95px;
+  max-height: 95px;
 }
 
 .water-tank-card {
@@ -1280,6 +1280,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
+  margin-left: 1rem;
 }
 
 /* Date text container - below clock */

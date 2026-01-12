@@ -10,29 +10,29 @@ import { useLongPress } from "../hooks/useLongPress";
  * DamperGroupCard component
  * @param {Object} props - Component props
  * @param {string} props.name - Display name (e.g., "Dampers")
- * @param {Function} props.onLongPress - Long press handler function (opens modal)
+ * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
-export const DamperGroupCard = ({ name, onLongPress, disabled = false }) => {
+export const DamperGroupCard = ({ name, onClick, disabled = false }) => {
   // Always show as closed (OFF) state for group card
   const angle = 0;
   const isClosed = true;
 
-  // Button class - always OFF state
+  // Button class - always OFF state (no glow)
   const buttonClass = "neumorphic-button off";
-  const damperColor = "#9ca3af"; // Gray for closed
+  const damperColor = "#3b82f6"; // Blue for group card (like active state)
 
-  // Handle click - placeholder (does nothing for now)
+  // Handle click - opens modal
   const handleClick = () => {
-    if (!disabled) {
-      console.log("Damper Group card clicked");
+    if (!disabled && onClick) {
+      onClick();
     }
   };
 
-  // Handle long press
+  // Handle long press - placeholder (logs to console for now)
   const handleLongPress = () => {
-    if (!disabled && onLongPress) {
-      onLongPress();
+    if (!disabled) {
+      console.log("Damper Group card long pressed");
     }
   };
 
