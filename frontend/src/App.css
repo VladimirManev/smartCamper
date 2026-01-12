@@ -1195,30 +1195,34 @@ body {
     inset 4px 4px 8px rgba(0, 0, 0, 0.3),
     inset -4px -4px 8px rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  animation: modalComeIn 0.7s ease-out;
+  animation: modalSlideUp 0.4s ease-out;
   overflow: hidden;
   transform-origin: center center;
 }
 
-@keyframes modalComeIn {
+@keyframes modalSlideUp {
   from {
-    transform: scale(0.2);
+    transform: translateY(100px);
+    opacity: 0;
   }
   to {
-    transform: scale(0.7);
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
 .modal-container.closing {
-  animation: modalGoAway 0.7s ease-in;
+  animation: modalSlideDown 0.4s ease-in;
 }
 
-@keyframes modalGoAway {
+@keyframes modalSlideDown {
   from {
-    transform: scale(0.7);
+    transform: translateY(0);
+    opacity: 1;
   }
   to {
-    transform: scale(0.2);
+    transform: translateY(100px);
+    opacity: 0;
   }
 }
 
