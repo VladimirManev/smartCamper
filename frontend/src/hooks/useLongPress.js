@@ -41,6 +41,11 @@ export const useLongPress = (onLongPress, onClick, delay = 500) => {
         !isLongPressRef.current &&
         onClick
       ) {
+        // Stop propagation to prevent clicks from passing through
+        if (event) {
+          event.stopPropagation();
+          event.preventDefault();
+        }
         onClick(event);
       }
 

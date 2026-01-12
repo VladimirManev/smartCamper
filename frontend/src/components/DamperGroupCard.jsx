@@ -23,8 +23,12 @@ export const DamperGroupCard = ({ name, onClick, disabled = false }) => {
   const damperColor = "#3b82f6"; // Blue for group card (like active state)
 
   // Handle click - opens modal
-  const handleClick = () => {
+  const handleClick = (event) => {
     if (!disabled && onClick) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       onClick();
     }
   };

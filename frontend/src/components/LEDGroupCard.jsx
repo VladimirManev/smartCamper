@@ -29,8 +29,12 @@ export const LEDGroupCard = ({ name, onClick, disabled = false }) => {
   const gradientId = `gradient-${name.toLowerCase().replace(/\s+/g, "-")}-group`;
 
   // Handle click - opens modal
-  const handleClick = () => {
+  const handleClick = (event) => {
     if (!disabled && onClick) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       onClick();
     }
   };
