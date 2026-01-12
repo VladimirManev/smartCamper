@@ -12,10 +12,12 @@ import { useRef, useCallback } from "react";
 export const useLongPress = (onLongPress, onClick, delay = 500) => {
   const timeoutRef = useRef(null);
   const isLongPressRef = useRef(false);
+  const hasStartedRef = useRef(false);
 
   const start = useCallback(
     (event) => {
       isLongPressRef.current = false;
+      hasStartedRef.current = true;
       timeoutRef.current = setTimeout(() => {
         isLongPressRef.current = true;
         if (onLongPress) {
@@ -27,17 +29,23 @@ export const useLongPress = (onLongPress, onClick, delay = 500) => {
   );
 
   const clear = useCallback(
-    (event) => {
+    (event, shouldTriggerClick = true) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
 
-      // Only trigger onClick if it wasn't a long press
-      if (!isLongPressRef.current && onClick) {
+      // Only trigger onClick if it wasn't a long press and we started on this element
+      if (
+        shouldTriggerClick &&
+        hasStartedRef.current &&
+        !isLongPressRef.current &&
+        onClick
+      ) {
         onClick(event);
       }
 
-      // Reset after a short delay to allow onClick to fire
+      // Reset flags
+      hasStartedRef.current = false;
       setTimeout(() => {
         isLongPressRef.current = false;
       }, 0);
@@ -48,8 +56,9 @@ export const useLongPress = (onLongPress, onClick, delay = 500) => {
   return {
     onMouseDown: start,
     onTouchStart: start,
-    onMouseUp: clear,
-    onMouseLeave: clear,
-    onTouchEnd: clear,
+    onMouseUp: (e) => clear(e, true),
+    onMouseLeave: (e) => clear(e, false), // Don't trigger click on mouse leave
+    onTouchEnd: (e) => clear(e, true),
+    onTouchCancel: (e) => clear(e, false), // Don't trigger click on touch cancel
   };
 };
