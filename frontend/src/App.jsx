@@ -81,11 +81,23 @@ function App() {
   // Damper controller
   const { dampers, sendDamperCommand } = useDamperController(socket);
 
+  // Damper presets - array of { name, angles: [angle0, angle1, angle2, angle3, angle4] }
+  const damperPresets = [
+    { name: "All Open", angles: [90, 90, 90, 90, 90] },
+    { name: "All Half", angles: [45, 45, 45, 45, 45] },
+    { name: "All Closed", angles: [0, 0, 0, 0, 0] },
+    { name: "Front Open", angles: [90, 0, 0, 0, 0] },
+    { name: "Bath Only", angles: [0, 0, 90, 0, 0] },
+  ];
+
   // Table controller
   const { tableState, sendTableCommand } = useTableController(socket);
 
   // Modal state - stack of modals
   const [modalStack, setModalStack] = useState([]);
+  
+  // Damper preset selection state
+  const [selectedPreset, setSelectedPreset] = useState("");
 
   const openModal = (cardType, cardName, cardData = null) => {
     setModalStack((prevStack) => [
@@ -221,7 +233,53 @@ function App() {
     if (cardType === "damper-group") {
       // Render all damper cards in grid
       return (
-        <div className="modal-grid">
+        <div>
+          <div style={{ marginBottom: "20px", padding: "0 10px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "0.65rem", fontWeight: "500", color: "#f5f5f5", textAlign: "center" }}>
+              Preset
+            </label>
+            <select
+              value={selectedPreset}
+              onChange={(e) => {
+                const presetName = e.target.value;
+                setSelectedPreset(presetName);
+                const preset = damperPresets.find(p => p.name === presetName);
+                if (preset) {
+                  handleDamperPreset(preset);
+                }
+              }}
+              className="damper-preset-select"
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                paddingRight: "2rem",
+                fontSize: "0.65rem",
+                fontWeight: "500",
+                color: "#f5f5f5",
+                backgroundColor: "#1e293b",
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233b82f6' d='M6 9L1 4h10z'/%3E%3C/svg%3E\")",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.5rem center",
+                border: "1px solid rgba(59, 130, 246, 0.3)",
+                borderRadius: "16px",
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+                transition: "all 0.3s ease",
+                appearance: "none",
+                WebkitAppearance: "none",
+                MozAppearance: "none",
+                outline: "none",
+              }}
+            >
+              <option value="">Select preset...</option>
+              {damperPresets.map((preset) => (
+                <option key={preset.name} value={preset.name}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-grid">
           <div className="card-wrapper">
             <DamperCard
               name="Front"
@@ -271,6 +329,7 @@ function App() {
               disabled={!isModule4Online}
             />
             <p className="card-label">Cockpit</p>
+          </div>
           </div>
         </div>
       );
@@ -432,14 +491,14 @@ function App() {
     // Get current angle
     const currentAngle = dampers[index]?.angle ?? 90; // Default to 90° if undefined
     
-    // Cycle through positions: 0° → 45° → 90° → 0°
+    // Cycle through positions: 90° → 45° → 0° → 90°
     let nextAngle;
-    if (currentAngle === 0) {
+    if (currentAngle === 90) {
       nextAngle = 45;
     } else if (currentAngle === 45) {
-      nextAngle = 90;
-    } else {
       nextAngle = 0;
+    } else {
+      nextAngle = 90;
     }
     
     // Don't send command if already at target angle (shouldn't happen, but safety check)
@@ -456,6 +515,26 @@ function App() {
       index: index,
       action: "set_angle",
       angle: nextAngle,
+    });
+  };
+
+  // Damper preset handler
+  const handleDamperPreset = (preset) => {
+    if (!isModule4Online) {
+      console.warn("⚠️ Cannot apply preset - module-4 is offline");
+      return;
+    }
+
+    console.log(`🌬️ Applying preset: ${preset.name}`);
+    
+    // Send command for each damper
+    preset.angles.forEach((angle, index) => {
+      sendDamperCommand({
+        type: "damper",
+        index: index,
+        action: "set_angle",
+        angle: angle,
+      });
     });
   };
 

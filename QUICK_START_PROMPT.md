@@ -18,6 +18,7 @@ Act as a senior developer. This is the SmartCamper project - an IoT system for c
 **Key Preferences:**
 
 - All code/comments/commits in English
+- Chat communication in Bulgarian
 - Simple, clear code - avoid unnecessary complexity
 - Validate external input data (MQTT, WebSocket, UI) - basic checks only
 - Suggest code reuse, refactoring, and helper functions when appropriate
