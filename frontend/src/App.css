@@ -971,47 +971,56 @@ body {
   /* display: none; */
 }
 
+/* Damper preset container and label */
+.damper-preset-container {
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.damper-preset-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #f5f5f5;
+  text-align: center;
+}
+
 /* Damper preset select dropdown - styled like cards */
 .modal-content .damper-preset-select,
 .damper-preset-select {
-  width: 100% !important;
-  padding: 0.5rem !important;
-  padding-right: 2rem !important;
-  font-size: 0.65rem !important;
-  font-weight: 500 !important;
-  color: #f5f5f5 !important;
-  background-color: #1e293b !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233b82f6' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 0.5rem center !important;
-  border: 1px solid rgba(59, 130, 246, 0.3) !important;
-  border-radius: 16px !important;
-  cursor: pointer !important;
+  width: 100%;
+  padding: 0.9rem;
+  padding-right: 2rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #f5f5f5;
+  background-color: #1e293b;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233b82f6' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 16px;
+  cursor: pointer;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-  transition: all 0.3s ease !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  outline: none !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  outline: none;
 }
 
 .damper-preset-select:focus {
   border-color: rgba(59, 130, 246, 0.6);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 0 3px rgba(59, 130, 246, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .damper-preset-select option {
-  background-color: #1e293b !important;
-  color: #f5f5f5 !important;
+  background-color: #1e293b;
+  color: #f5f5f5;
   padding: 0.5rem;
-}
-
-/* Ensure select text color is visible */
-.damper-preset-select:not([value=""]) {
-  color: #f5f5f5 !important;
 }
 
 @media (hover: hover) and (pointer: fine) {

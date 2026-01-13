@@ -82,12 +82,14 @@ function App() {
   const { dampers, sendDamperCommand } = useDamperController(socket);
 
   // Damper presets - array of { name, angles: [angle0, angle1, angle2, angle3, angle4] }
+  // Index: 0=Front, 1=Rear, 2=Bath, 3=Shoes, 4=Cockpit
   const damperPresets = [
     { name: "All Open", angles: [90, 90, 90, 90, 90] },
     { name: "All Half", angles: [45, 45, 45, 45, 45] },
-    { name: "All Closed", angles: [0, 0, 0, 0, 0] },
-    { name: "Front Open", angles: [90, 0, 0, 0, 0] },
     { name: "Bath Only", angles: [0, 0, 90, 0, 0] },
+    { name: "Only Cockpit", angles: [0, 0, 0, 0, 90] },
+    { name: "Only Rear", angles: [0, 90, 0, 0, 0] },
+    { name: "Comfort", angles: [45, 90, 45, 45, 0] },
   ];
 
   // Table controller
@@ -97,7 +99,11 @@ function App() {
   const [modalStack, setModalStack] = useState([]);
   
   // Damper preset selection state
-  const [selectedPreset, setSelectedPreset] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState("Manual");
+  
+  // Track expected angles when applying preset (to detect physical button changes)
+  const expectedPresetAngles = useRef(null);
+  const isApplyingPreset = useRef(false);
 
   const openModal = (cardType, cardName, cardData = null) => {
     setModalStack((prevStack) => [
@@ -234,10 +240,7 @@ function App() {
       // Render all damper cards in grid
       return (
         <div>
-          <div style={{ marginBottom: "20px", padding: "0 10px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontSize: "0.65rem", fontWeight: "500", color: "#f5f5f5", textAlign: "center" }}>
-              Preset
-            </label>
+          <div className="damper-preset-container">
             <select
               value={selectedPreset}
               onChange={(e) => {
@@ -249,29 +252,8 @@ function App() {
                 }
               }}
               className="damper-preset-select"
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                paddingRight: "2rem",
-                fontSize: "0.65rem",
-                fontWeight: "500",
-                color: "#f5f5f5",
-                backgroundColor: "#1e293b",
-                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233b82f6' d='M6 9L1 4h10z'/%3E%3C/svg%3E\")",
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 0.5rem center",
-                border: "1px solid rgba(59, 130, 246, 0.3)",
-                borderRadius: "16px",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
-                transition: "all 0.3s ease",
-                appearance: "none",
-                WebkitAppearance: "none",
-                MozAppearance: "none",
-                outline: "none",
-              }}
             >
-              <option value="">Select preset...</option>
+              <option value="Manual">Manual</option>
               {damperPresets.map((preset) => (
                 <option key={preset.name} value={preset.name}>
                   {preset.name}
@@ -509,6 +491,12 @@ function App() {
     
     console.log(`🌬️ Toggling damper ${index}: ${currentAngle}° → ${nextAngle}°`);
     
+    // If a preset is selected, switch to Manual when manually changing a damper
+    if (selectedPreset !== "Manual") {
+      setSelectedPreset("Manual");
+      expectedPresetAngles.current = null;
+    }
+    
     // Send command
     sendDamperCommand({
       type: "damper",
@@ -527,16 +515,59 @@ function App() {
 
     console.log(`🌬️ Applying preset: ${preset.name}`);
     
-    // Send command for each damper
-    preset.angles.forEach((angle, index) => {
-      sendDamperCommand({
-        type: "damper",
-        index: index,
-        action: "set_angle",
-        angle: angle,
-      });
+    // Store expected angles and set flag to ignore updates temporarily
+    expectedPresetAngles.current = preset.angles;
+    isApplyingPreset.current = true;
+    
+    // Create array of commands with index and angle, then sort by angle (descending)
+    // This ensures we open dampers first, then close them (protection: at least one must be open)
+    const commands = preset.angles.map((angle, index) => ({ index, angle }));
+    commands.sort((a, b) => b.angle - a.angle); // Sort descending: open first, close last
+    
+    // Send commands in sorted order with delay between each (to allow module to process)
+    const COMMAND_DELAY = 200; // ms delay between commands
+    commands.forEach(({ index, angle }, commandIndex) => {
+      setTimeout(() => {
+        sendDamperCommand({
+          type: "damper",
+          index: index,
+          action: "set_angle",
+          angle: angle,
+        });
+      }, commandIndex * COMMAND_DELAY);
     });
+    
+    // Clear flag after 2 seconds (enough time for all updates to arrive)
+    setTimeout(() => {
+      isApplyingPreset.current = false;
+    }, 2000);
   };
+
+  // Detect physical button changes - switch to Manual if preset doesn't match
+  useEffect(() => {
+    // Skip if we're currently applying a preset (waiting for updates)
+    if (isApplyingPreset.current) {
+      return;
+    }
+    
+    // Skip if no preset is selected (already Manual)
+    if (selectedPreset === "Manual" || !expectedPresetAngles.current) {
+      return;
+    }
+    
+    // Check if current angles match expected preset angles
+    const currentAngles = [0, 1, 2, 3, 4].map(i => dampers[i]?.angle ?? 90);
+    const expectedAngles = expectedPresetAngles.current;
+    
+    // Compare angles - if any doesn't match, switch to Manual
+    const anglesMatch = currentAngles.every((angle, index) => angle === expectedAngles[index]);
+    
+    if (!anglesMatch) {
+      console.log("🌬️ Physical button change detected - switching to Manual");
+      setSelectedPreset("Manual");
+      expectedPresetAngles.current = null;
+    }
+  }, [dampers, selectedPreset]);
 
   // Table command handlers - simplified: single click triggers auto movement
   const lastTableCommandTime = useRef(0);
