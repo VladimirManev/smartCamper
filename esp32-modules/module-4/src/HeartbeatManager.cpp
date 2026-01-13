@@ -5,6 +5,7 @@
 #include "MQTTManager.h"
 #include <ArduinoJson.h>
 #include <WiFi.h>
+#include <esp_system.h>
 
 // MQTT topic prefix for heartbeats
 #define HEARTBEAT_TOPIC_PREFIX "smartcamper/heartbeat/"
@@ -16,6 +17,48 @@ HeartbeatManager::HeartbeatManager(MQTTManager* mqtt, String moduleId) {
   this->enabled = true;
   this->uptimeStart = millis();
   this->lastMQTTState = false;  // Initialize as disconnected
+  this->resetReasonSent = false;
+  
+  // Get reset reason once at boot
+  esp_reset_reason_t resetReason = esp_reset_reason();
+  switch (resetReason) {
+    case ESP_RST_UNKNOWN:
+      this->resetReason = "UNKNOWN";
+      break;
+    case ESP_RST_POWERON:
+      this->resetReason = "POWERON";
+      break;
+    case ESP_RST_EXT:
+      this->resetReason = "EXTERNAL";
+      break;
+    case ESP_RST_SW:
+      this->resetReason = "SOFTWARE";
+      break;
+    case ESP_RST_PANIC:
+      this->resetReason = "PANIC";
+      break;
+    case ESP_RST_INT_WDT:
+      this->resetReason = "INT_WDT";
+      break;
+    case ESP_RST_TASK_WDT:
+      this->resetReason = "TASK_WDT";
+      break;
+    case ESP_RST_WDT:
+      this->resetReason = "WDT";
+      break;
+    case ESP_RST_DEEPSLEEP:
+      this->resetReason = "DEEPSLEEP";
+      break;
+    case ESP_RST_BROWNOUT:
+      this->resetReason = "BROWNOUT";
+      break;
+    case ESP_RST_SDIO:
+      this->resetReason = "SDIO";
+      break;
+    default:
+      this->resetReason = "UNKNOWN_" + String(resetReason);
+      break;
+  }
 }
 
 void HeartbeatManager::begin() {
@@ -101,6 +144,12 @@ String HeartbeatManager::buildHeartbeatPayload() {
     doc["wifiRSSI"] = WiFi.RSSI();
   } else {
     doc["wifiRSSI"] = -999;  // Invalid value to indicate no WiFi
+  }
+  
+  // Reset reason - only include in first heartbeat after boot
+  if (!resetReasonSent && resetReason.length() > 0) {
+    doc["resetReason"] = resetReason;
+    resetReasonSent = true;  // Mark as sent, won't include in future heartbeats
   }
   
   // Serialize to string

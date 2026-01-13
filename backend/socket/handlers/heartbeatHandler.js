@@ -29,6 +29,20 @@ const heartbeatHandler = (moduleRegistry, io, topic, message) => {
       return true; // Handled, but invalid
     }
 
+    // Check for reset reason (only present in first heartbeat after boot)
+    if (heartbeatData.resetReason) {
+      const timestamp = new Date().toISOString();
+      console.log(`\n🔍 === MODULE RESTART DETECTED ===`);
+      console.log(`Module: ${moduleId}`);
+      console.log(`Reset Reason: ${heartbeatData.resetReason}`);
+      console.log(`Timestamp: ${timestamp}`);
+      console.log(`Uptime: ${heartbeatData.uptime || 0} seconds`);
+      if (heartbeatData.wifiRSSI && heartbeatData.wifiRSSI !== -999) {
+        console.log(`WiFi RSSI: ${heartbeatData.wifiRSSI} dBm`);
+      }
+      console.log(`===================================\n`);
+    }
+
     // Process heartbeat in registry
     moduleRegistry.processHeartbeat(moduleId, heartbeatData);
 

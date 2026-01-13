@@ -85,10 +85,9 @@ function App() {
   // Index: 0=Front, 1=Rear, 2=Bath, 3=Shoes, 4=Cockpit
   const damperPresets = [
     { name: "All Open", angles: [90, 90, 90, 90, 90] },
-    { name: "All Half", angles: [45, 45, 45, 45, 45] },
     { name: "Bath Only", angles: [0, 0, 90, 0, 0] },
-    { name: "Only Cockpit", angles: [0, 0, 0, 0, 90] },
-    { name: "Only Rear", angles: [0, 90, 0, 0, 0] },
+    { name: "Cockpit Only", angles: [0, 0, 0, 0, 90] },
+    { name: "Rear Only", angles: [0, 90, 0, 0, 0] },
     { name: "Comfort", angles: [45, 90, 45, 45, 0] },
   ];
 

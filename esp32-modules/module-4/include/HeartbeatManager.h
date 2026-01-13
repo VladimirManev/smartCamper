@@ -18,6 +18,8 @@ private:
   bool enabled;                     // Whether heartbeat is enabled
   unsigned long uptimeStart;        // Module start time for uptime calculation
   bool lastMQTTState;               // Previous MQTT connection state (for detecting reconnects)
+  String resetReason;                // Reset reason (set once at boot, sent in first heartbeat only)
+  bool resetReasonSent;              // Whether reset reason has been sent
 
   // Internal methods
   bool shouldSendHeartbeat();
