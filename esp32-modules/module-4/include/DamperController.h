@@ -10,6 +10,7 @@
 
 // Forward declaration
 class MQTTManager;
+class DamperManager;
 
 class DamperController {
 private:
@@ -17,6 +18,7 @@ private:
   int buttonPin;
   int damperIndex;
   MQTTManager* mqttManager;
+  DamperManager* damperManager;  // Pointer to manager for safety checks
   
   // Button state
   bool lastButtonState;
@@ -38,7 +40,7 @@ private:
   int getCurrentAngle() const;
 
 public:
-  DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt);
+  DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt, DamperManager* damperMgr = nullptr);
   
   // Initialization
   void begin();

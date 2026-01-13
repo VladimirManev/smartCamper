@@ -16,6 +16,10 @@ private:
   
   // Static pointer for MQTT callback
   static DamperManager* currentInstance;
+  
+  // Safety check: verifies that after changing a damper, there will be at least
+  // 1 damper at 90° OR at least 2 dampers at 45° or more
+  bool canChangeDamper(int index, int newAngle) const;
 
 public:
   DamperManager(ModuleManager* moduleMgr);
@@ -43,6 +47,11 @@ public:
       return dampers[index];
     }
     return nullptr;
+  }
+  
+  // Safety check for external use (e.g., from DamperController)
+  bool checkCanChangeDamper(int index, int newAngle) const {
+    return canChangeDamper(index, newAngle);
   }
 };
 

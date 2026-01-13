@@ -2,6 +2,7 @@
 // Controls a single damper with servo motor and button
 
 #include "DamperController.h"
+#include "DamperManager.h"
 #include "MQTTManager.h"
 #include <ArduinoJson.h>
 #include <Arduino.h>
@@ -9,8 +10,8 @@
 // Position definitions
 const int DamperController::POSITIONS[NUM_POSITIONS] = {0, 45, 90};
 
-DamperController::DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt)
-  : servo(servoPin), buttonPin(btnPin), damperIndex(index), mqttManager(mqtt),
+DamperController::DamperController(int index, int servoPin, int btnPin, MQTTManager* mqtt, DamperManager* damperMgr)
+  : servo(servoPin), buttonPin(btnPin), damperIndex(index), mqttManager(mqtt), damperManager(damperMgr),
     lastButtonState(false), debouncedButtonState(false), lastDebouncedState(false), lastDebounceTime(0),
     currentPositionIndex(2), lastPublishedAngle(-1) {  // Start at position 2 (90° - open)
 }
@@ -44,6 +45,19 @@ void DamperController::setAngle(int angle) {
   // Get current angle before setting new target
   int previousAngle = getCurrentAngle();
   
+  // Safety check: verify that the change is allowed
+  // Only check if damperManager is available and angle is actually changing
+  if (damperManager != nullptr && angle != previousAngle) {
+    if (!damperManager->checkCanChangeDamper(damperIndex, angle)) {
+      // Safety check failed - block the change
+      if (DEBUG_SERIAL) {
+        Serial.println("🛡️ Safety check failed: Cannot change damper " + String(damperIndex) + 
+                       " to " + String(angle) + "° (would leave insufficient dampers open)");
+      }
+      return;  // Block the change silently
+    }
+  }
+  
   // Validate and set angle
   servo.setAngle(angle);
   
@@ -64,8 +78,18 @@ void DamperController::setAngle(int angle) {
 }
 
 void DamperController::togglePosition() {
-  // Cycle through positions: 0 → 1 → 2 → 0
-  currentPositionIndex = (currentPositionIndex + 1) % NUM_POSITIONS;
+  // Cycle through positions: 90° → 45° → 0° → 90°
+  // Position indices: 2 (90°) → 1 (45°) → 0 (0°) → 2 (90°)
+  int nextPositionIndex;
+  if (currentPositionIndex == 2) {  // 90° -> 45°
+    nextPositionIndex = 1;
+  } else if (currentPositionIndex == 1) {  // 45° -> 0°
+    nextPositionIndex = 0;
+  } else {  // 0° -> 90°
+    nextPositionIndex = 2;
+  }
+  
+  currentPositionIndex = nextPositionIndex;
   int newAngle = POSITIONS[currentPositionIndex];
   
   if (DEBUG_SERIAL) {

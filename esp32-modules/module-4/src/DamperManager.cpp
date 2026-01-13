@@ -23,25 +23,26 @@ DamperManager::DamperManager(ModuleManager* moduleMgr)
   // Allocate array of pointers
   dampers = new DamperController*[numDampers];
   
+  // Set current instance for static methods (needed before creating dampers)
+  currentInstance = this;
+  
   // Initialize each damper with its pins
+  // Pass pointer to this DamperManager for safety checks
   if (numDampers >= 1) {
-    dampers[0] = new DamperController(0, DAMPER_0_SERVO_PIN, DAMPER_0_BUTTON_PIN, &moduleMgr->getMQTTManager());
+    dampers[0] = new DamperController(0, DAMPER_0_SERVO_PIN, DAMPER_0_BUTTON_PIN, &moduleMgr->getMQTTManager(), this);
   }
   if (numDampers >= 2) {
-    dampers[1] = new DamperController(1, DAMPER_1_SERVO_PIN, DAMPER_1_BUTTON_PIN, &moduleMgr->getMQTTManager());
+    dampers[1] = new DamperController(1, DAMPER_1_SERVO_PIN, DAMPER_1_BUTTON_PIN, &moduleMgr->getMQTTManager(), this);
   }
   if (numDampers >= 3) {
-    dampers[2] = new DamperController(2, DAMPER_2_SERVO_PIN, DAMPER_2_BUTTON_PIN, &moduleMgr->getMQTTManager());
+    dampers[2] = new DamperController(2, DAMPER_2_SERVO_PIN, DAMPER_2_BUTTON_PIN, &moduleMgr->getMQTTManager(), this);
   }
   if (numDampers >= 4) {
-    dampers[3] = new DamperController(3, DAMPER_3_SERVO_PIN, DAMPER_3_BUTTON_PIN, &moduleMgr->getMQTTManager());
+    dampers[3] = new DamperController(3, DAMPER_3_SERVO_PIN, DAMPER_3_BUTTON_PIN, &moduleMgr->getMQTTManager(), this);
   }
   if (numDampers >= 5) {
-    dampers[4] = new DamperController(4, DAMPER_4_SERVO_PIN, DAMPER_4_BUTTON_PIN, &moduleMgr->getMQTTManager());
+    dampers[4] = new DamperController(4, DAMPER_4_SERVO_PIN, DAMPER_4_BUTTON_PIN, &moduleMgr->getMQTTManager(), this);
   }
-  
-  // Set current instance for static methods
-  currentInstance = this;
 }
 
 DamperManager::~DamperManager() {
@@ -82,6 +83,39 @@ void DamperManager::loop() {
       dampers[i]->loop();
     }
   }
+}
+
+bool DamperManager::canChangeDamper(int index, int newAngle) const {
+  // Validate index
+  if (index < 0 || index >= numDampers || !dampers) {
+    return false;
+  }
+  
+  // Get current state of all dampers
+  int count90 = 0;  // Count of dampers at 90° (fully open)
+  int count45Plus = 0;  // Count of dampers at 45° or more (half open or fully open)
+  
+  for (int i = 0; i < numDampers; i++) {
+    if (dampers[i]) {
+      int currentAngle = dampers[i]->getAngle();
+      
+      // Simulate the change: if this is the damper being changed, use newAngle
+      int angle = (i == index) ? newAngle : currentAngle;
+      
+      // Count dampers at 90°
+      if (angle == 90) {
+        count90++;
+      }
+      
+      // Count dampers at 45° or more (45° or 90°)
+      if (angle >= 45) {
+        count45Plus++;
+      }
+    }
+  }
+  
+  // Safety rule: must have at least 1 damper at 90° OR at least 2 dampers at 45° or more
+  return (count90 >= 1) || (count45Plus >= 2);
 }
 
 void DamperManager::handleMQTTCommand(const String& commandJson) {
@@ -132,6 +166,15 @@ void DamperManager::handleMQTTCommand(const String& commandJson) {
     int angle = doc["angle"].as<int>();
     if (DEBUG_SERIAL) {
       Serial.println("📨 Received damper command: index=" + String(index) + ", angle=" + String(angle) + "°");
+    }
+    
+    // Safety check: verify that the change is allowed before executing
+    if (!canChangeDamper(index, angle)) {
+      if (DEBUG_SERIAL) {
+        Serial.println("🛡️ Safety check failed: Cannot change damper " + String(index) + 
+                       " to " + String(angle) + "° (would leave insufficient dampers open)");
+      }
+      return;  // Block the command silently
     }
     
     if (dampers[index]) {
