@@ -98,12 +98,12 @@ function App() {
   // Table controller
   const { tableState, sendTableCommand } = useTableController(socket);
 
+  // Modal state - stack of modals (must be defined before useLeveling)
+  const [modalStack, setModalStack] = useState([]);
+
   // Leveling controller - check if leveling modal is open
   const isLevelingModalOpen = modalStack.some(modal => modal.cardType === "leveling");
   const { pitch, roll } = useLeveling(socket, isLevelingModalOpen);
-
-  // Modal state - stack of modals
-  const [modalStack, setModalStack] = useState([]);
   
   // Damper preset selection state
   const [selectedPreset, setSelectedPreset] = useState("Manual");

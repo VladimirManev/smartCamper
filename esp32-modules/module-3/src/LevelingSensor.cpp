@@ -30,12 +30,14 @@ void LevelingSensor::begin() {
     return;
   }
   
-  // Calibrate sensor (required for accurate measurements)
+  // Calibrate sensor - only calibrate gyro (for drift correction)
+  // Do NOT calibrate accelerometer - we need gravity as absolute reference for leveling
+  // Accelerometer should measure gravity directly, not relative to current position
   if (DEBUG_SERIAL) {
-    Serial.println("   Calibrating MPU6050 - do not move sensor...");
+    Serial.println("   Calibrating MPU6050 gyro only (accelerometer uses gravity reference)...");
   }
   delay(1000);  // Give time for sensor to stabilize
-  mpu.calcOffsets(true, true);  // Calibrate gyro and accelerometer
+  mpu.calcOffsets(true, false);  // Calibrate gyro only, NOT accelerometer (gravity reference)
   
   initialized = true;
   
