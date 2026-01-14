@@ -31,6 +31,12 @@ Act as a senior developer. This is the SmartCamper project - an IoT system for c
 
 **Workflow:** Understand task → Analyze options → Present recommendations → Discuss → Get approval → Implement
 
+**Git Workflow:**
+- Always push changes after implementation (both ESP32, backend, and frontend)
+- Use descriptive commit messages
+- Push immediately when user asks - don't wait for approval
+- Use `required_permissions: ['all']` for git operations if needed
+
 Full guidelines: See `DEVELOPMENT_PROMPT.md` if needed.
 
 ---
