@@ -120,7 +120,7 @@ void TableController::stopMovement() {
   stop();
 }
 
-void TableController::moveUpAuto(int durationMs) {
+void TableController::moveUpAuto() {
   // Safety: if down relay is active, ignore up command
   if (relayDownActive) {
     if (DEBUG_SERIAL) {
@@ -137,11 +137,11 @@ void TableController::moveUpAuto(int durationMs) {
   publishStatus();
   
   if (DEBUG_SERIAL) {
-    Serial.println("⬆️ TableController: Auto moving up for " + String(durationMs) + "ms");
+    Serial.println("⬆️ TableController: Auto moving up for " + String(TABLE_AUTO_MOVE_DURATION) + "ms");
   }
 }
 
-void TableController::moveDownAuto(int durationMs) {
+void TableController::moveDownAuto() {
   // Safety: if up relay is active, ignore down command
   if (relayUpActive) {
     if (DEBUG_SERIAL) {
@@ -158,7 +158,7 @@ void TableController::moveDownAuto(int durationMs) {
   publishStatus();
   
   if (DEBUG_SERIAL) {
-    Serial.println("⬇️ TableController: Auto moving down for " + String(durationMs) + "ms");
+    Serial.println("⬇️ TableController: Auto moving down for " + String(TABLE_AUTO_MOVE_DURATION) + "ms");
   }
 }
 
@@ -234,7 +234,8 @@ void TableController::processButtons() {
       // If pending move not started yet, cancel it
       if (pendingMoveUp && !relayUpActive) {
         pendingMoveUp = false;
-        waitingForDoubleClickUp = false;
+        // НЕ нулираме waitingForDoubleClickUp тук - оставяме го за timeout логиката в loop()
+        // Това позволява детекция на двойно натискане дори при бързо освобождаване
       }
     }
   }
@@ -304,7 +305,8 @@ void TableController::processButtons() {
       // If pending move not started yet, cancel it
       if (pendingMoveDown && !relayDownActive) {
         pendingMoveDown = false;
-        waitingForDoubleClickDown = false;
+        // НЕ нулираме waitingForDoubleClickDown тук - оставяме го за timeout логиката в loop()
+        // Това позволява детекция на двойно натискане дори при бързо освобождаване
       }
     }
   }
@@ -383,7 +385,8 @@ void TableController::loop() {
     } else if (!debouncedButtonUpState) {
       // Button released before delay - cancel pending move
       pendingMoveUp = false;
-      waitingForDoubleClickUp = false;
+      // НЕ нулираме waitingForDoubleClickUp тук - оставяме го за timeout логиката
+      // Това позволява детекция на двойно натискане дори при бързо освобождаване
     }
   }
   
@@ -401,7 +404,8 @@ void TableController::loop() {
     } else if (!debouncedButtonDownState) {
       // Button released before delay - cancel pending move
       pendingMoveDown = false;
-      waitingForDoubleClickDown = false;
+      // НЕ нулираме waitingForDoubleClickDown тук - оставяме го за timeout логиката
+      // Това позволява детекция на двойно натискане дори при бързо освобождаване
     }
   }
   

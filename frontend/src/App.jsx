@@ -605,11 +605,13 @@ function App() {
     
     // Start auto movement in the specified direction
     const arrow = direction === "up" ? "⬆️" : "⬇️";
-    console.log(`${arrow} Table: Auto moving ${direction} for 5 seconds`);
+    console.log(
+      `${arrow} Table: Auto moving ${direction} (duration controlled by ESP32)`
+    );
     sendTableCommand({
       type: "table",
       action: direction === "up" ? "move_up_auto" : "move_down_auto",
-      duration: 5000,
+      // duration премахнато - ESP32 използва своята константа TABLE_AUTO_MOVE_DURATION
     });
     
     // Track last command

@@ -69,8 +69,8 @@ public:
   void moveUp();           // Start moving up (manual hold)
   void moveDown();         // Start moving down (manual hold)
   void stop();             // Stop movement
-  void moveUpAuto(int durationMs = TABLE_AUTO_MOVE_DURATION);   // Auto move up for duration
-  void moveDownAuto(int durationMs = TABLE_AUTO_MOVE_DURATION); // Auto move down for duration
+  void moveUpAuto();   // Auto move up - uses TABLE_AUTO_MOVE_DURATION from Config.h
+  void moveDownAuto(); // Auto move down - uses TABLE_AUTO_MOVE_DURATION from Config.h
   
   // Status
   bool isMovingUp() const { return relayUpActive; }

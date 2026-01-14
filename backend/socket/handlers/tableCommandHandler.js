@@ -45,19 +45,17 @@ const tableCommandHandler = (socket, aedes, data) => {
     });
   } else if (data.action === "move_up_auto") {
     mqttTopic = `smartcamper/commands/${moduleId}/table/move_up_auto`;
-    const duration = typeof data.duration === "number" ? data.duration : 5000;
     mqttPayload = JSON.stringify({
       type: "table",
       action: "move_up_auto",
-      duration: duration,
+      // duration премахнато - ESP32 използва своята константа TABLE_AUTO_MOVE_DURATION
     });
   } else if (data.action === "move_down_auto") {
     mqttTopic = `smartcamper/commands/${moduleId}/table/move_down_auto`;
-    const duration = typeof data.duration === "number" ? data.duration : 5000;
     mqttPayload = JSON.stringify({
       type: "table",
       action: "move_down_auto",
-      duration: duration,
+      // duration премахнато - ESP32 използва своята константа TABLE_AUTO_MOVE_DURATION
     });
   } else {
     console.log("❌ Invalid table command action:", data.action);

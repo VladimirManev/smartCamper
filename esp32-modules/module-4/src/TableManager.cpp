@@ -112,16 +112,14 @@ void TableManager::handleMQTTCommand(const String& commandJson) {
       Serial.println("📨 Received table command: stop");
     }
   } else if (action == "move_up_auto") {
-    int duration = doc.containsKey("duration") ? doc["duration"].as<int>() : TABLE_AUTO_MOVE_DURATION;
-    tableController->moveUpAuto(duration);
+    tableController->moveUpAuto();  // Използва TABLE_AUTO_MOVE_DURATION от Config.h
     if (DEBUG_SERIAL) {
-      Serial.println("📨 Received table command: move_up_auto (duration: " + String(duration) + "ms)");
+      Serial.println("📨 Received table command: move_up_auto");
     }
   } else if (action == "move_down_auto") {
-    int duration = doc.containsKey("duration") ? doc["duration"].as<int>() : TABLE_AUTO_MOVE_DURATION;
-    tableController->moveDownAuto(duration);
+    tableController->moveDownAuto();  // Използва TABLE_AUTO_MOVE_DURATION от Config.h
     if (DEBUG_SERIAL) {
-      Serial.println("📨 Received table command: move_down_auto (duration: " + String(duration) + "ms)");
+      Serial.println("📨 Received table command: move_down_auto");
     }
   } else {
     if (DEBUG_SERIAL) {
