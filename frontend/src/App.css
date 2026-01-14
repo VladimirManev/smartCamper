@@ -1574,30 +1574,127 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding: 2rem;
+  padding: 1.5rem;
   align-items: center;
   justify-content: center;
   min-height: 200px;
+  width: 100%;
 }
 
-.leveling-value {
+.leveling-gauges-container {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap !important;
+  width: 100%;
+  max-width: 100%;
+}
+
+.leveling-gauge-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-.leveling-label {
-  font-size: 1.2rem;
-  color: #94a3b8;
-  font-weight: 500;
+.leveling-gauge {
+  width: 125px;
+  height: 125px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1e293b;
+  /* Neumorphic effect - similar to clock button */
+  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.03),
+    0 0 1px rgba(59, 130, 246, 1), 
+    0 0 2px rgba(59, 130, 246, 1),
+    0 0 4px rgba(59, 130, 246, 0.9), 
+    0 0 6px rgba(59, 130, 246, 0.8),
+    0 0 3px rgba(37, 99, 235, 1);
+  overflow: hidden;  /* Ensure line doesn't go outside circle */
 }
 
-.leveling-number {
-  font-size: 2.5rem;
+.leveling-gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+  position: relative;
+  z-index: 1;
+}
+
+.leveling-line-rotator {
+  transition: transform 0.3s ease;
+}
+
+.leveling-gauge-value {
+  font-size: 1.5rem;
   color: #3b82f6;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.leveling-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.leveling-activity {
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.3s ease;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .leveling-activities {
+    gap: 1rem;
+    margin-top: 1rem;
+    max-width: 250px;
+  }
+  
+  .leveling-activity {
+    font-size: 1.3rem;
+  }
+  
+  .leveling-activity i {
+    font-size: 1.2rem;
+  }
+}
+
+/* Keep gauges side by side even on mobile */
+@media (max-width: 768px) {
+  .leveling-modal-content {
+    padding: 1rem;
+  }
+  
+  .leveling-gauges-container {
+    flex-direction: row !important;
+    gap: 2rem;
+    width: 100%;
+  }
+  
+  .leveling-gauge {
+    width: 125px;
+    height: 125px;
+    flex-shrink: 0;
+  }
+  
+  .leveling-gauge-value {
+    font-size: 1.1rem;
+  }
 }
 
 /* Clock and Date Card */

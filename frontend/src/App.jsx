@@ -25,6 +25,7 @@ import { FloorHeatingGroupCard } from "./components/FloorHeatingGroupCard";
 import { DamperGroupCard } from "./components/DamperGroupCard";
 import { TableGroupCard } from "./components/TableGroupCard";
 import { LevelingGroupCard } from "./components/LevelingGroupCard";
+import { LevelingGauge } from "./components/LevelingGauge";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { CardModal } from "./components/CardModal";
 import { CustomDropdown } from "./components/CustomDropdown";
@@ -374,20 +375,46 @@ function App() {
     }
 
     if (cardType === "leveling") {
-      // Render leveling modal content
+      // Calculate maximum angle (absolute value of pitch or roll, whichever is larger)
+      const maxAngle = pitch !== null && roll !== null
+        ? Math.max(Math.abs(pitch), Math.abs(roll))
+        : null;
+      
+      // Determine color for each activity based on thresholds
+      const getActivityColor = (threshold) => {
+        if (maxAngle === null) return "#94a3b8"; // Gray if no data
+        return maxAngle <= threshold ? "#3b82f6" : "#ef4444"; // Blue if OK, red if exceeded
+      };
+      
+      const sleepColor = getActivityColor(1.0);    // Sleep: up to 1° blue
+      const cookingColor = getActivityColor(0.5);   // Cooking: up to 0.5° blue
+      const bathingColor = getActivityColor(0.2);   // Bathing: up to 0.2° blue
+      
+      // Render leveling modal content with circular gauges
       return (
         <div className="leveling-modal-content">
-          <div className="leveling-value">
-            <span className="leveling-label">Pitch (X):</span>
-            <span className="leveling-number">
-              {pitch !== null ? `${pitch.toFixed(1)}°` : "--°"}
-            </span>
+          <div className="leveling-gauges-container">
+            <LevelingGauge 
+              label="Pitch (X)" 
+              angle={pitch} 
+              axis="X"
+            />
+            <LevelingGauge 
+              label="Roll (Y)" 
+              angle={roll} 
+              axis="Y"
+            />
           </div>
-          <div className="leveling-value">
-            <span className="leveling-label">Roll (Y):</span>
-            <span className="leveling-number">
-              {roll !== null ? `${roll.toFixed(1)}°` : "--°"}
-            </span>
+          <div className="leveling-activities">
+            <div className="leveling-activity" style={{ color: sleepColor }}>
+              Sleep
+            </div>
+            <div className="leveling-activity" style={{ color: cookingColor }}>
+              Cook
+            </div>
+            <div className="leveling-activity" style={{ color: bathingColor }}>
+              Shower
+            </div>
           </div>
         </div>
       );
