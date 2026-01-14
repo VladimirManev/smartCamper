@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * ClockDateCard component
@@ -16,6 +17,17 @@ import { useState, useEffect } from "react";
 export const ClockDateCard = ({ indoorTemp, outdoorTemp, humidity }) => {
   const [time, setTime] = useState(new Date());
   const [date, setDate] = useState(new Date());
+  
+  // Get theme colors
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  const [accentBlue10, setAccentBlue10] = useState("rgba(59, 130, 246, 0.1)");
+  
+  useEffect(() => {
+    setAccentBlue(getThemeColor("--color-accent-blue"));
+    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    setAccentBlue10(getThemeColor("--color-accent-blue-10"));
+  }, []);
 
   // Update time every second
   useEffect(() => {
@@ -77,8 +89,8 @@ export const ClockDateCard = ({ indoorTemp, outdoorTemp, humidity }) => {
           <svg className="clock-seconds-arc" viewBox="0 0 200 200">
             <defs>
               <linearGradient id="seconds-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#2563eb" />
+                <stop offset="0%" stopColor={accentBlue} />
+                <stop offset="100%" stopColor={accentBlueDark} />
               </linearGradient>
             </defs>
             {/* Background circle (subtle) */}
@@ -87,7 +99,7 @@ export const ClockDateCard = ({ indoorTemp, outdoorTemp, humidity }) => {
               cy="100"
               r={radius}
               fill="none"
-              stroke="rgba(59, 130, 246, 0.1)"
+              stroke={accentBlue10}
               strokeWidth="2"
             />
             {/* Seconds progress arc (full circle, starting from top - 12 o'clock) */}

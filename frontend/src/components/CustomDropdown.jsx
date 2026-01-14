@@ -111,8 +111,8 @@ export const CustomDropdown = ({
         >
           <path
             d="M6 9L1 4h10z"
-            fill="#3b82f6"
-            stroke="#3b82f6"
+            fill="var(--color-accent-blue)"
+            stroke="var(--color-accent-blue)"
             strokeWidth="0.5"
           />
         </svg>

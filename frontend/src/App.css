@@ -1,3 +1,55 @@
+/* Color Theme Variables */
+:root {
+  /* Background colors */
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  
+  /* Accent colors */
+  --color-accent-blue: #3b82f6;
+  --color-accent-blue-dark: #2563eb;
+  --color-accent-red: #ef4444;
+  --color-accent-gray: #94a3b8;
+  
+  /* Text colors */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #94a3b8;
+  
+  /* Transparent variations - using opacity in rgba format for better browser support */
+  --color-bg-primary-85: rgba(15, 23, 42, 0.85);
+  --color-bg-primary-95: rgba(15, 23, 42, 0.95);
+  --color-bg-secondary-50: rgba(30, 41, 59, 0.5);
+  --color-bg-secondary-80: rgba(30, 41, 59, 0.8);
+  
+  --color-accent-blue-10: rgba(59, 130, 246, 0.1);
+  --color-accent-blue-15: rgba(59, 130, 246, 0.15);
+  --color-accent-blue-20: rgba(59, 130, 246, 0.2);
+  --color-accent-blue-30: rgba(59, 130, 246, 0.3);
+  --color-accent-blue-40: rgba(59, 130, 246, 0.4);
+  --color-accent-blue-50: rgba(59, 130, 246, 0.5);
+  --color-accent-blue-60: rgba(59, 130, 246, 0.6);
+  --color-accent-blue-70: rgba(59, 130, 246, 0.7);
+  --color-accent-blue-80: rgba(59, 130, 246, 0.8);
+  --color-accent-blue-85: rgba(59, 130, 246, 0.85);
+  --color-accent-blue-90: rgba(59, 130, 246, 0.9);
+  --color-accent-blue-95: rgba(59, 130, 246, 0.95);
+  
+  --color-accent-red-30: rgba(239, 68, 68, 0.3);
+  --color-accent-red-40: rgba(239, 68, 68, 0.4);
+  --color-accent-red-50: rgba(239, 68, 68, 0.5);
+  --color-accent-red-60: rgba(239, 68, 68, 0.6);
+  --color-accent-red-80: rgba(239, 68, 68, 0.8);
+  
+  --color-accent-gray-30: rgba(148, 163, 184, 0.3);
+  
+  --color-black-20: rgba(0, 0, 0, 0.2);
+  --color-black-30: rgba(0, 0, 0, 0.3);
+  --color-black-50: rgba(0, 0, 0, 0.5);
+  
+  --color-white-3: rgba(255, 255, 255, 0.03);
+  --color-white-5: rgba(255, 255, 255, 0.05);
+  --color-white-10: rgba(255, 255, 255, 0.1);
+}
+
 /* Reset and base styles */
 * {
   margin: 0;
@@ -7,9 +59,9 @@
 
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: #0f172a;
+  background: var(--color-bg-primary);
   min-height: 100vh;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Prevent zoom on double tap on mobile */
@@ -66,7 +118,7 @@ body {
   font-weight: 700;
   font-size: 0.35rem;
   border: 1.5px solid;
-  background: rgba(30, 41, 59, 0.8);
+  background: var(--color-bg-secondary-80);
   backdrop-filter: blur(10px);
 }
 
@@ -75,17 +127,17 @@ body {
 }
 
 .status-number.online {
-  color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
-  text-shadow: 0 0 6px rgba(59, 130, 246, 0.6) !important;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4) !important;
+  color: var(--color-accent-blue) !important;
+  border-color: var(--color-accent-blue) !important;
+  text-shadow: 0 0 6px var(--color-accent-blue-60) !important;
+  box-shadow: 0 0 10px var(--color-accent-blue-40) !important;
 }
 
 .status-number.offline {
-  color: #ef4444 !important;
-  border-color: #ef4444 !important;
-  text-shadow: 0 0 6px rgba(239, 68, 68, 0.6) !important;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important;
+  color: var(--color-accent-red) !important;
+  border-color: var(--color-accent-red) !important;
+  text-shadow: 0 0 6px var(--color-accent-red-60) !important;
+  box-shadow: 0 0 10px var(--color-accent-red-40) !important;
 }
 
 /* Signal Indicator - WiFi signal strength indicator */
@@ -94,7 +146,7 @@ body {
   align-items: center;
   gap: 0.15rem;
   padding: 0.15rem 0.35rem;
-  background: rgba(30, 41, 59, 0.8);
+  background: var(--color-bg-secondary-80);
   backdrop-filter: blur(10px);
   border-radius: 0.35rem;
   border: 1px solid;
@@ -122,7 +174,7 @@ body {
 /* Individual signal bar */
 .signal-bar {
   width: 0.15rem;
-  background: rgba(100, 116, 139, 0.3);
+  background: var(--color-accent-gray-30);
   border-radius: 0.08rem 0.08rem 0 0;
   transition: all 0.3s ease;
 }
@@ -151,17 +203,17 @@ body {
 
 /* Color classes - only online (blue) and offline (red) */
 .signal-indicator.online {
-  color: #3b82f6; /* Blue */
-  border-color: #3b82f6;
-  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+  color: var(--color-accent-blue); /* Blue */
+  border-color: var(--color-accent-blue);
+  text-shadow: 0 0 8px var(--color-accent-blue-50);
+  box-shadow: 0 0 12px var(--color-accent-blue-30);
 }
 
 .signal-indicator.offline {
-  color: #ef4444; /* Red */
-  border-color: #ef4444;
-  text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  color: var(--color-accent-red); /* Red */
+  border-color: var(--color-accent-red);
+  text-shadow: 0 0 8px var(--color-accent-red-50);
+  box-shadow: 0 0 12px var(--color-accent-red-30);
 }
 
 /* Status item hover moved to @media (hover: hover) below */
@@ -238,7 +290,7 @@ body {
 
 .sensor-icon {
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
 }
 
 .sensor-text-content {
@@ -252,7 +304,7 @@ body {
 .sensor-label {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -261,8 +313,8 @@ body {
 .sensor-value {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #f5f5f5;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: var(--color-text-primary);
+  text-shadow: 0 1px 2px var(--color-black-30);
   line-height: 1;
 }
 
@@ -277,7 +329,7 @@ body {
 .date-label {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -286,10 +338,10 @@ body {
 .date-value {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px var(--color-black-30);
   line-height: 1;
 }
 
@@ -892,7 +944,7 @@ body {
 .card-label {
   font-size: 0.65rem;
   font-weight: 500;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   text-transform: none;
   letter-spacing: 0.2px;
   text-align: center;
@@ -907,8 +959,8 @@ body {
 /* Sensor cards - unified with LED cards */
 .sensor-card,
 .led-card {
-  background: #1e293b;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-accent-blue-30);
   border-radius: 16px;
   transition: all 0.3s ease;
   padding: 0.5rem;
@@ -918,8 +970,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px var(--color-accent-blue-20),
+    inset 0 1px 0 var(--color-white-5);
   position: relative;
   overflow: hidden;
   width: 70px;
@@ -939,13 +991,13 @@ body {
   .sensor-card:hover,
   .led-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px var(--color-accent-blue-30),
+      inset 0 1px 0 var(--color-white-10);
   }
 
   .toggle-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+    box-shadow: 0 6px 20px var(--color-accent-blue-60);
   }
 
   .status-item:hover {
@@ -964,7 +1016,7 @@ body {
 .sensor-card.disabled {
   opacity: 0.4;
   filter: grayscale(100%);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: var(--color-accent-red-30);
   cursor: not-allowed;
   pointer-events: none;
   /* Option: Uncomment to hide completely instead of showing as disabled */
@@ -982,7 +1034,7 @@ body {
   margin-bottom: 8px;
   font-size: 0.65rem;
   font-weight: 500;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   text-align: center;
 }
 
@@ -994,16 +1046,16 @@ body {
   padding-right: 2rem;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #f5f5f5;
-  background-color: #1e293b;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233b82f6' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid var(--color-accent-blue-30);
   border-radius: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px var(--color-accent-blue-20),
+    inset 0 1px 0 var(--color-white-5);
   transition: all 0.3s ease;
   appearance: none;
   -webkit-appearance: none;
@@ -1020,23 +1072,23 @@ body {
 }
 
 .damper-preset-select:focus {
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-accent-blue-60);
+  box-shadow: 0 4px 12px var(--color-accent-blue-30),
+    inset 0 1px 0 var(--color-white-10), 0 0 0 3px var(--color-accent-blue-10);
   transform: scale(1); /* Prevent iOS Safari zoom on focus */
 }
 
 .damper-preset-select option {
-  background-color: #1e293b;
-  color: #f5f5f5;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   padding: 0.5rem;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .damper-preset-select:hover {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: var(--color-accent-blue-50);
+    box-shadow: 0 6px 20px var(--color-accent-blue-30),
+      inset 0 1px 0 var(--color-white-10);
   }
 }
 
@@ -1052,13 +1104,13 @@ body {
   padding-right: 2.5rem;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #f5f5f5;
-  background-color: #1e293b;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-accent-blue-30);
   border-radius: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px var(--color-accent-blue-20),
+    inset 0 1px 0 var(--color-white-5);
   transition: all 0.3s ease;
   outline: none;
   display: flex;
@@ -1070,15 +1122,15 @@ body {
 }
 
 .custom-dropdown-button:focus {
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-accent-blue-60);
+  box-shadow: 0 4px 12px var(--color-accent-blue-30),
+    inset 0 1px 0 var(--color-white-10), 0 0 0 3px var(--color-accent-blue-10);
 }
 
 .custom-dropdown-button.open {
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: var(--color-accent-blue-60);
+  box-shadow: 0 4px 12px var(--color-accent-blue-30),
+    inset 0 1px 0 var(--color-white-10);
 }
 
 .custom-dropdown-button.disabled {
@@ -1109,11 +1161,11 @@ body {
   top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  background-color: #1e293b;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-accent-blue-30);
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 24px var(--color-accent-blue-30),
+    inset 0 1px 0 var(--color-white-5);
   overflow: hidden;
   z-index: 1000;
   animation: dropdownFadeIn 0.2s ease-out;
@@ -1137,10 +1189,10 @@ body {
   padding: 0.9rem;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   background-color: transparent;
   border: none;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid var(--color-accent-blue-10);
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -1155,13 +1207,13 @@ body {
 
 .custom-dropdown-option:hover,
 .custom-dropdown-option:focus {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background-color: var(--color-accent-blue-10);
+  color: var(--color-accent-blue);
 }
 
 .custom-dropdown-option.selected {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background-color: var(--color-accent-blue-15);
+  color: var(--color-accent-blue);
   font-weight: 600;
 }
 
@@ -1190,24 +1242,24 @@ body {
 }
 
 .custom-dropdown-menu::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--color-bg-secondary-50);
   border-radius: 3px;
 }
 
 .custom-dropdown-menu::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.5);
+  background: var(--color-accent-blue-50);
   border-radius: 3px;
 }
 
 .custom-dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.7);
+  background: var(--color-accent-blue-70);
 }
 
 /* Disabled LED card (module offline) */
 .led-card.disabled {
   opacity: 0.4;
   filter: grayscale(100%);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: var(--color-accent-red-30);
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -1215,7 +1267,7 @@ body {
 /* Disabled cards already have pointer-events: none, so hover won't trigger anyway */
 
 .sensor-card i {
-  color: #3b82f6;
+  color: var(--color-accent-blue);
   font-size: 1.2rem;
   margin: 0;
 }
@@ -1223,9 +1275,9 @@ body {
 .value {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 2px 4px var(--color-black-20);
   transition: all 0.3s ease;
   text-align: center;
   width: 100%;
@@ -1267,8 +1319,8 @@ body {
 .water-tank-temperature {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  fill: #f5f5f5;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  fill: var(--color-text-primary);
+  text-shadow: 0 2px 4px var(--color-black-50);
   pointer-events: none;
   user-select: none;
   font-size: 32px;
@@ -1298,26 +1350,26 @@ body {
   transition: all 0.3s ease;
   flex-shrink: 0;
   /* Permanent blue glow effect around all buttons - inspired by hover effect */
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 15px var(--color-accent-blue-40), 0 0 30px var(--color-accent-blue-20);
 }
 
 /* OFF state - recessed */
 .neumorphic-button.off {
-  background: #1e293b;
-  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
-    inset -6px -6px 12px rgba(255, 255, 255, 0.03),
-    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
+  background: var(--color-bg-secondary);
+  box-shadow: inset 6px 6px 12px var(--color-black-50),
+    inset -6px -6px 12px var(--color-white-3),
+    0 0 15px var(--color-accent-blue-40), 0 0 30px var(--color-accent-blue-20);
 }
 
 /* ON state - raised with gradient ring */
 .neumorphic-button.on {
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   /* Very bright and saturated glow effect - extra bright inner ring */
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 2px rgba(59, 130, 246, 1),
-    0 0 5px rgba(59, 130, 246, 1), 0 0 10px rgba(59, 130, 246, 1),
-    0 0 15px rgba(59, 130, 246, 0.95), 0 0 20px rgba(59, 130, 246, 0.85),
-    0 0 8px rgba(37, 99, 235, 1);
+  box-shadow: inset 4px 4px 8px var(--color-black-30),
+    inset -4px -4px 8px var(--color-white-3), 0 0 2px var(--color-accent-blue),
+    0 0 5px var(--color-accent-blue), 0 0 10px var(--color-accent-blue),
+    0 0 15px var(--color-accent-blue-95), 0 0 20px var(--color-accent-blue-85),
+    0 0 8px var(--color-accent-blue-dark);
 }
 
 /* ::before effect removed for testing */
@@ -1329,7 +1381,7 @@ body {
   right: -3px;
   bottom: -3px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--color-accent-blue) 0%, var(--color-accent-blue-dark) 100%);
   z-index: -1;
   opacity: 1;
   filter: blur(3px);
@@ -1351,7 +1403,7 @@ body {
 
 .horseshoe-fill {
   transition: stroke-dasharray 0.5s ease, opacity 0.3s ease;
-  filter: drop-shadow(0 0 4px rgba(0, 198, 255, 0.6));
+  filter: drop-shadow(0 0 4px var(--color-accent-blue-60));
   stroke-linejoin: round;
 }
 
@@ -1364,15 +1416,20 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .neumorphic-button.off .button-text {
-  color: #94a3b8;
+  color: var(--color-text-secondary);
 }
 
 .neumorphic-button.on .button-text {
-  color: #3b82f6;
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  color: var(--color-accent-blue);
+  text-shadow: 0 0 10px var(--color-accent-blue-50);
 }
 
 /* Modal Styles */
@@ -1382,7 +1439,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.85);
+  background: var(--color-bg-primary-85);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -1405,7 +1462,7 @@ body {
 }
 
 .modal-overlay.nested {
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--color-bg-primary-95);
   pointer-events: none;
   animation: fadeInOverlay 0.3s ease-out;
 }
@@ -1424,7 +1481,7 @@ body {
 }
 
 .modal-container {
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   border-radius: 20px;
   width: 100%;
   max-width: 500px;
@@ -1432,10 +1489,10 @@ body {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2),
-    inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 30px var(--color-accent-blue-40), 0 0 60px var(--color-accent-blue-20),
+    inset 4px 4px 8px var(--color-black-30),
+    inset -4px -4px 8px var(--color-white-3);
+  border: 1px solid var(--color-accent-blue-30);
   animation: modalScaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
   transform-origin: center center;
@@ -1456,10 +1513,10 @@ body {
 
 .modal-container.nested {
   animation: modalScaleIn 0.3s ease-out;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2), 0 0 40px rgba(59, 130, 246, 0.1),
-    inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 20px var(--color-accent-blue-20), 0 0 40px var(--color-accent-blue-10),
+    inset 4px 4px 8px var(--color-black-30),
+    inset -4px -4px 8px var(--color-white-3);
+  border: 1px solid var(--color-accent-blue-20);
 }
 
 @keyframes modalScaleOut {
@@ -1476,21 +1533,21 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  border-bottom: 1px solid var(--color-accent-blue-20);
 }
 
 .modal-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   margin: 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px var(--color-black-30);
 }
 
 .modal-close-button {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 0.4rem;
   display: flex;
@@ -1503,9 +1560,9 @@ body {
 }
 
 .modal-close-button:hover {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  color: var(--color-accent-blue);
+  background: var(--color-accent-blue-10);
+  box-shadow: 0 0 10px var(--color-accent-blue-30);
 }
 
 .modal-close-button:active {
@@ -1516,7 +1573,7 @@ body {
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
 }
 
 /* Grid layout for modal content (same as main-content) */
@@ -1556,17 +1613,17 @@ body {
 }
 
 .modal-content::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
+  background: var(--color-bg-secondary-50);
   border-radius: 4px;
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.5);
+  background: var(--color-accent-blue-50);
   border-radius: 4px;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.7);
+  background: var(--color-accent-blue-70);
 }
 
 /* Leveling modal content */
@@ -1579,6 +1636,73 @@ body {
   justify-content: center;
   min-height: 200px;
   width: 100%;
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.settings-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-align: left;
+  flex-shrink: 0;
+  white-space: nowrap;
+  /* Match exact font styling from dropdown */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media screen and (max-width: 768px) {
+  .settings-label {
+    font-size: 16px; /* Match dropdown size to prevent iOS zoom */
+  }
+}
+
+.settings-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--color-accent-blue-30);
+  margin: 0;
+  margin-top: 1rem;
+}
+
+/* Settings dropdown - smaller size */
+.settings-dropdown {
+  width: auto;
+  max-width: 150px;
+  flex-shrink: 0;
+}
+
+.settings-dropdown .custom-dropdown-button {
+  padding: 0.6rem;
+  padding-right: 2rem;
+  font-size: 0.75rem;
+}
+
+.settings-dropdown .custom-dropdown-option {
+  padding: 0.6rem;
+  font-size: 0.75rem;
+}
+
+@media screen and (max-width: 768px) {
+  .settings-dropdown .custom-dropdown-button {
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 0.8rem;
+    padding-right: 2rem;
+  }
+
+  .settings-dropdown .custom-dropdown-option {
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 0.8rem;
+  }
 }
 
 .leveling-gauges-container {
@@ -1625,15 +1749,15 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   /* Neumorphic effect - similar to clock button */
-  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.5),
-    inset -6px -6px 12px rgba(255, 255, 255, 0.03),
-    0 0 1px rgba(59, 130, 246, 1), 
-    0 0 2px rgba(59, 130, 246, 1),
-    0 0 4px rgba(59, 130, 246, 0.9), 
-    0 0 6px rgba(59, 130, 246, 0.8),
-    0 0 3px rgba(37, 99, 235, 1);
+  box-shadow: inset 6px 6px 12px var(--color-black-50),
+    inset -6px -6px 12px var(--color-white-3),
+    0 0 1px var(--color-accent-blue),
+    0 0 2px var(--color-accent-blue),
+    0 0 4px var(--color-accent-blue-90),
+    0 0 6px var(--color-accent-blue-80),
+    0 0 3px var(--color-accent-blue-dark);
   overflow: hidden;  /* Ensure line doesn't go outside circle */
 }
 
@@ -1651,7 +1775,7 @@ body {
 
 .leveling-gauge-value {
   font-size: 1.5rem;
-  color: #3b82f6;
+  color: var(--color-accent-blue);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1874,14 +1998,14 @@ body {
 
 /* Tiny circles for temperature and humidity (smaller than date - 35px) */
 .tiny-circle {
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   border-radius: 50%;
   /* Similar glow effect but even smaller */
-  box-shadow: inset 0.9px 0.9px 1.8px rgba(0, 0, 0, 0.3),
-    inset -0.9px -0.9px 1.8px rgba(255, 255, 255, 0.03),
-    0 0 0.5px rgba(59, 130, 246, 1), 0 0 1.3px rgba(59, 130, 246, 1),
-    0 0 2.7px rgba(59, 130, 246, 0.9), 0 0 4.5px rgba(59, 130, 246, 0.8),
-    0 0 1.8px rgba(37, 99, 235, 1);
+  box-shadow: inset 0.9px 0.9px 1.8px var(--color-black-30),
+    inset -0.9px -0.9px 1.8px var(--color-white-3),
+    0 0 0.5px var(--color-accent-blue), 0 0 1.3px var(--color-accent-blue),
+    0 0 2.7px var(--color-accent-blue-90), 0 0 4.5px var(--color-accent-blue-80),
+    0 0 1.8px var(--color-accent-blue-dark);
   position: relative;
   display: flex;
   align-items: center;
@@ -1899,14 +2023,14 @@ body {
   height: 84px;
   min-width: 84px;
   min-height: 84px;
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   border-radius: 50%;
   /* Same glow effect as neumorphic-button.on */
-  box-shadow: inset 2.4px 2.4px 4.8px rgba(0, 0, 0, 0.3),
-    inset -2.4px -2.4px 4.8px rgba(255, 255, 255, 0.03),
-    0 0 1.2px rgba(59, 130, 246, 1), 0 0 3px rgba(59, 130, 246, 1),
-    0 0 6px rgba(59, 130, 246, 1), 0 0 9px rgba(59, 130, 246, 0.95),
-    0 0 12px rgba(59, 130, 246, 0.85), 0 0 4.8px rgba(37, 99, 235, 1);
+  box-shadow: inset 2.4px 2.4px 4.8px var(--color-black-30),
+    inset -2.4px -2.4px 4.8px var(--color-white-3),
+    0 0 1.2px var(--color-accent-blue), 0 0 3px var(--color-accent-blue),
+    0 0 6px var(--color-accent-blue), 0 0 9px var(--color-accent-blue-95),
+    0 0 12px var(--color-accent-blue-85), 0 0 4.8px var(--color-accent-blue-dark);
   position: relative;
   display: flex;
   align-items: center;
@@ -1927,9 +2051,9 @@ body {
   z-index: 2;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #3b82f6;
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.8),
-    0 0 18px rgba(59, 130, 246, 0.5);
+  color: var(--color-accent-blue);
+  text-shadow: 0 0 10px var(--color-accent-blue-80),
+    0 0 18px var(--color-accent-blue-50);
   font-family: "Segoe UI", "Roboto Mono", monospace;
   letter-spacing: 0.05em;
 }
@@ -1942,14 +2066,14 @@ body {
   height: 50px;
   min-width: 50px;
   min-height: 50px;
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   border-radius: 50%;
   /* Similar glow effect as clock-button but smaller */
-  box-shadow: inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.3),
-    inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.03),
-    0 0 1px rgba(59, 130, 246, 1), 0 0 2px rgba(59, 130, 246, 1),
-    0 0 4px rgba(59, 130, 246, 0.9), 0 0 6px rgba(59, 130, 246, 0.8),
-    0 0 3px rgba(37, 99, 235, 1);
+  box-shadow: inset 1.5px 1.5px 3px var(--color-black-30),
+    inset -1.5px -1.5px 3px var(--color-white-3),
+    0 0 1px var(--color-accent-blue), 0 0 2px var(--color-accent-blue),
+    0 0 4px var(--color-accent-blue-90), 0 0 6px var(--color-accent-blue-80),
+    0 0 3px var(--color-accent-blue-dark);
   position: relative;
   display: flex;
   align-items: center;
@@ -1969,7 +2093,7 @@ body {
 .date-text .day-name {
   font-size: 0.5rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   line-height: 1.2;
@@ -1978,10 +2102,10 @@ body {
 .date-text .date-value {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #f5f5f5;
+  color: var(--color-text-primary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px var(--color-black-30);
   line-height: 1.2;
 }
 
@@ -1994,14 +2118,14 @@ body {
   height: 45px;
   min-width: 45px;
   min-height: 45px;
-  background: #1e293b;
+  background: var(--color-bg-secondary);
   border-radius: 50%;
   /* Similar glow effect but smaller */
-  box-shadow: inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.3),
-    inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.03),
-    0 0 1px rgba(59, 130, 246, 1), 0 0 2px rgba(59, 130, 246, 1),
-    0 0 4px rgba(59, 130, 246, 0.9), 0 0 6px rgba(59, 130, 246, 0.8),
-    0 0 3px rgba(37, 99, 235, 1);
+  box-shadow: inset 1.5px 1.5px 3px var(--color-black-30),
+    inset -1.5px -1.5px 3px var(--color-white-3),
+    0 0 1px var(--color-accent-blue), 0 0 2px var(--color-accent-blue),
+    0 0 4px var(--color-accent-blue-90), 0 0 6px var(--color-accent-blue-80),
+    0 0 3px var(--color-accent-blue-dark);
   position: relative;
   display: flex;
   align-items: center;
@@ -2012,10 +2136,10 @@ body {
 
 /* AUTO state - orange/yellow gradient ring */
 .neumorphic-button.auto {
-  background: #1e293b;
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
-    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
+  background: var(--color-bg-secondary);
+  box-shadow: inset 4px 4px 8px var(--color-black-30),
+    inset -4px -4px 8px var(--color-white-3), 0 0 0 3px transparent,
+    0 0 15px var(--color-accent-blue-40), 0 0 30px var(--color-accent-blue-20);
 }
 
 .neumorphic-button.auto::before {
@@ -2026,14 +2150,14 @@ body {
   right: -3px;
   bottom: -3px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+  background: linear-gradient(135deg, var(--color-accent-blue) 0%, var(--color-accent-blue-dark) 100%);
   z-index: -1;
   opacity: 0.8;
 }
 
 .neumorphic-button.auto .button-text {
-  color: #f59e0b;
-  text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  color: var(--color-accent-blue);
+  text-shadow: 0 0 10px var(--color-accent-blue-50);
 }
 
 /* Floor heating specific styles */
@@ -2048,7 +2172,7 @@ body {
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
 }
 
 .heating-symbol svg {
@@ -2062,7 +2186,7 @@ body {
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
 }
 
 .bulb-icon svg {
@@ -2071,7 +2195,7 @@ body {
 }
 
 .bulb-icon.bulb-on {
-  color: #3b82f6; /* Blue color when bulb is ON */
+  color: var(--color-accent-blue); /* Blue color when bulb is ON */
 }
 
 .temperature-display {
@@ -2088,17 +2212,17 @@ body {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 50%;
-  background: #3b82f6;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
+  background: var(--color-accent-blue);
+  box-shadow: 0 0 6px var(--color-accent-blue-80);
   z-index: 1;
 }
 
 /* Error state - red glow */
 .neumorphic-button.error {
-  background: #1e293b;
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
-    0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.4);
+  background: var(--color-bg-secondary);
+  box-shadow: inset 4px 4px 8px var(--color-black-30),
+    inset -4px -4px 8px var(--color-white-3), 0 0 0 3px transparent,
+    0 0 20px var(--color-accent-red-60), 0 0 40px var(--color-accent-red-40);
 }
 
 .neumorphic-button.error::before {
@@ -2109,45 +2233,45 @@ body {
   right: -3px;
   bottom: -3px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--color-accent-red) 0%, var(--color-accent-red) 100%);
   z-index: -1;
   opacity: 1;
   filter: blur(3px);
 }
 
 .neumorphic-button.error .button-text {
-  color: #ef4444;
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  color: var(--color-accent-red);
+  text-shadow: 0 0 10px var(--color-accent-red-50);
 }
 
 .error-icon {
   font-size: 1.5rem;
   font-weight: 700;
   color: #ef4444;
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+  text-shadow: 0 0 10px var(--color-accent-red-80);
 }
 
 /* TEMP_CONTROL mode with relay OFF - blue temperature */
 .neumorphic-button.temp-control-off {
-  background: #1e293b;
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.03), 0 0 0 3px transparent,
-    0 0 15px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2);
+  background: var(--color-bg-secondary);
+  box-shadow: inset 4px 4px 8px var(--color-black-30),
+    inset -4px -4px 8px var(--color-white-3), 0 0 0 3px transparent,
+    0 0 15px var(--color-accent-blue-40), 0 0 30px var(--color-accent-blue-20);
 }
 
 .neumorphic-button.temp-control-off .button-text {
-  color: #3b82f6;
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  color: var(--color-accent-blue);
+  text-shadow: 0 0 10px var(--color-accent-blue-50);
 }
 
 /* TEMP_CONTROL mode with relay ON - red temperature (only for floor heating) */
 .floor-heating-card .neumorphic-button.on .button-text {
-  color: #ef4444;
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  color: var(--color-accent-red);
+  text-shadow: 0 0 10px var(--color-accent-red-50);
 }
 
 .toggle-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--color-accent-blue) 0%, var(--color-accent-blue-dark) 100%);
   border: none;
   border-radius: 10px;
   padding: 0.7rem 1.5rem;
@@ -2156,7 +2280,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 15px var(--color-accent-blue-40);
 }
 
 /* Toggle button hover moved to @media (hover: hover) above */

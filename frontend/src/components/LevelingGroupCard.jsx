@@ -5,6 +5,8 @@
  */
 
 import { useLongPress } from "../hooks/useLongPress";
+import { useEffect, useState } from "react";
+import { getThemeColor } from "../utils/getThemeColor";
 import spiritLevelIcon from "../assets/spirit-level-tool-svgrepo-com.svg";
 
 /**
@@ -15,6 +17,17 @@ import spiritLevelIcon from "../assets/spirit-level-tool-svgrepo-com.svg";
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
 export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
+  // Get theme colors
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  const [accentColor, setAccentColor] = useState("#3b82f6");
+  
+  useEffect(() => {
+    const blue = getThemeColor("--color-accent-blue");
+    setAccentBlue(blue);
+    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    setAccentColor(blue);
+  }, []);
   // Button class - always OFF state (no glow)
   const buttonClass = "neumorphic-button off";
 
@@ -49,8 +62,8 @@ export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
         <svg className="horseshoe-progress" viewBox="0 0 200 200">
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#2563eb" />
+              <stop offset="0%" stopColor={accentBlue} />
+              <stop offset="100%" stopColor={accentBlueDark} />
             </linearGradient>
           </defs>
         </svg>
@@ -59,7 +72,14 @@ export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
             <img 
               src={spiritLevelIcon} 
               alt="Level" 
-              style={{ width: '36px', height: '36px', filter: 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(210deg) brightness(1) contrast(1)' }}
+              className="leveling-icon-img"
+              style={{ 
+                width: '36px', 
+                height: '36px',
+                filter: accentColor === "#475569" 
+                  ? 'brightness(0) saturate(100%)' // Dark gray - no hue rotation needed
+                  : 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(210deg) brightness(1) contrast(1)' // Blue
+              }}
             />
           </span>
         </span>

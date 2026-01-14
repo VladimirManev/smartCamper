@@ -28,8 +28,10 @@ import { LevelingGroupCard } from "./components/LevelingGroupCard";
 import { LevelingGauge } from "./components/LevelingGauge";
 import { ECGIndicator } from "./components/ECGIndicator";
 import { ClockDateCard } from "./components/ClockDateCard";
+import { SettingsCard } from "./components/SettingsCard";
 import { CardModal } from "./components/CardModal";
 import { CustomDropdown } from "./components/CustomDropdown";
+import { themes, applyTheme, getThemeNames } from "./themes";
 import ducatoImage from "./assets/ducato.png";
 import "./App.css";
 
@@ -113,6 +115,17 @@ function App() {
   // Track expected angles when applying preset (to detect physical button changes)
   const expectedPresetAngles = useRef(null);
   const isApplyingPreset = useRef(false);
+
+  // Settings state
+  const [colorTheme, setColorTheme] = useState("Dark Blue");
+  
+  // Apply theme on mount and when theme changes
+  useEffect(() => {
+    applyTheme(colorTheme);
+  }, [colorTheme]);
+  
+  // Get available theme names for dropdown
+  const availableThemes = getThemeNames();
 
   const openModal = (cardType, cardName, cardData = null) => {
     setModalStack((prevStack) => [
@@ -385,19 +398,19 @@ function App() {
 
                   // Sleep: Pitch -2° to +2°, Roll -1° to +2°
                   const isSleepOK = isWithinRange(pitch, roll, -2, 2, -1, 2);
-                  const sleepColor = isSleepOK ? "#3b82f6" : "#ef4444";
+                  const sleepColor = isSleepOK ? "var(--color-accent-blue)" : "var(--color-accent-red)";
 
                   // Cook: Both axes -1° to +1°
                   const isCookOK = isWithinRange(pitch, roll, -1, 1, -1, 1);
-                  const cookingColor = isCookOK ? "#3b82f6" : "#ef4444";
+                  const cookingColor = isCookOK ? "var(--color-accent-blue)" : "var(--color-accent-red)";
 
                   // Shower: Pitch -1° to 0°, Roll 0° to +1°
                   const isShowerOK = isWithinRange(pitch, roll, -1, 0, 0, 1);
-                  const bathingColor = isShowerOK ? "#3b82f6" : "#ef4444";
+                  const bathingColor = isShowerOK ? "var(--color-accent-blue)" : "var(--color-accent-red)";
 
                   // Drain: Pitch >= 0°, Roll <= 0°
                   const isDrainOK = pitch !== null && roll !== null && pitch >= 0 && roll <= 0;
-                  const drainColor = isDrainOK ? "#3b82f6" : "#ef4444";
+                  const drainColor = isDrainOK ? "var(--color-accent-blue)" : "var(--color-accent-red)";
       
       // Render leveling modal content with circular gauges
       return (
@@ -430,6 +443,28 @@ function App() {
             </div>
           </div>
         </div>
+      );
+    }
+
+    if (cardType === "settings") {
+      // Settings modal content
+      return (
+        <>
+          <div className="settings-row">
+            <label className="settings-label">Color Theme</label>
+            <CustomDropdown
+              value={colorTheme}
+              onChange={(theme) => setColorTheme(theme)}
+              options={availableThemes.map(themeName => ({
+                value: themeName,
+                label: themeName
+              }))}
+              disabled={false}
+              className="settings-dropdown"
+            />
+          </div>
+          <div className="settings-divider"></div>
+        </>
       );
     }
 
@@ -831,6 +866,16 @@ function App() {
             disabled={!isModule3Online}
           />
           <p className="card-label">Level</p>
+        </div>
+
+        {/* Settings Card */}
+        <div className="card-wrapper">
+          <SettingsCard
+            name="Settings"
+            onClick={() => openModal("settings", "Settings")}
+            onLongPress={() => console.log("Settings card long pressed")}
+          />
+          <p className="card-label">Settings</p>
         </div>
 
         {/* Gray Water Tank */}

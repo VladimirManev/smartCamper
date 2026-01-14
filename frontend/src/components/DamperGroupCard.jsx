@@ -20,7 +20,7 @@ export const DamperGroupCard = ({ name, onClick, disabled = false }) => {
 
   // Button class - always OFF state (no glow)
   const buttonClass = "neumorphic-button off";
-  const damperColor = "#3b82f6"; // Blue for group card (like active state)
+  const damperColor = "var(--color-accent-blue)"; // Blue for group card (like active state)
 
   // Handle click - opens modal
   const handleClick = (event) => {

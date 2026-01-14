@@ -5,6 +5,8 @@
 
 import { getArcProgress } from "../utils/arcProgress";
 import { useLongPress } from "../hooks/useLongPress";
+import { useEffect, useState } from "react";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * LEDCard component
@@ -20,6 +22,15 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
   const isOn = strip?.state === "ON";
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
+  
+  // Get theme colors for gradients
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  
+  useEffect(() => {
+    setAccentBlue(getThemeColor("--color-accent-blue"));
+    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+  }, []);
 
   // Calculate arc progress for strips
   const arcLength = Math.PI * 80 * (270 / 180);
@@ -72,8 +83,8 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
           <svg className="horseshoe-progress" viewBox="0 0 200 200">
             <defs>
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#2563eb" />
+                <stop offset="0%" stopColor={accentBlue} />
+                <stop offset="100%" stopColor={accentBlueDark} />
               </linearGradient>
             </defs>
             {/* Arc from 135° (start) to 45° (end) - fills according to brightness */}
@@ -93,8 +104,8 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
           <svg className="horseshoe-progress" viewBox="0 0 200 200">
             <defs>
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#2563eb" />
+                <stop offset="0%" stopColor={accentBlue} />
+                <stop offset="100%" stopColor={accentBlueDark} />
               </linearGradient>
             </defs>
             {/* Closed circle - if ON it exists, if OFF it doesn't */}

@@ -16,7 +16,7 @@ import { useLongPress } from "../hooks/useLongPress";
 export const TableGroupCard = ({ name, onClick, disabled = false }) => {
   // Always show as OFF state for group card
   const buttonClass = "neumorphic-button off";
-  const iconColor = "#3b82f6"; // Blue for group card (like active state)
+  const iconColor = "var(--color-accent-blue)"; // Blue for group card (like active state)
 
   // Handle click - opens modal
   const handleClick = (event) => {

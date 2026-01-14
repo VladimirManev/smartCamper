@@ -5,6 +5,8 @@
  */
 
 import { useLongPress } from "../hooks/useLongPress";
+import { useEffect, useState } from "react";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * FloorHeatingGroupCard component
@@ -14,6 +16,14 @@ import { useLongPress } from "../hooks/useLongPress";
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
 export const FloorHeatingGroupCard = ({ name, onClick, disabled = false }) => {
+  // Get theme colors
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  
+  useEffect(() => {
+    setAccentBlue(getThemeColor("--color-accent-blue"));
+    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+  }, []);
   // Always show as OFF state for group card
   const isOff = true;
   const isTempControl = false;
@@ -52,8 +62,8 @@ export const FloorHeatingGroupCard = ({ name, onClick, disabled = false }) => {
         <svg className="horseshoe-progress" viewBox="0 0 200 200">
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#2563eb" />
+              <stop offset="0%" stopColor={accentBlue} />
+              <stop offset="100%" stopColor={accentBlueDark} />
             </linearGradient>
           </defs>
           {/* No circle shown in OFF state */}
@@ -62,11 +72,11 @@ export const FloorHeatingGroupCard = ({ name, onClick, disabled = false }) => {
           <span className="heating-symbol">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Three vertical wavy lines pointing up - heating symbol (shorter) */}
-              <path d="M 8 18 Q 6 15, 8 12 T 8 6" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-              <path d="M 12 18 Q 10 15, 12 12 T 12 6" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-              <path d="M 16 18 Q 14 15, 16 12 T 16 6" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+              <path d="M 8 18 Q 6 15, 8 12 T 8 6" stroke={accentBlue} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+              <path d="M 12 18 Q 10 15, 12 12 T 12 6" stroke={accentBlue} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+              <path d="M 16 18 Q 14 15, 16 12 T 16 6" stroke={accentBlue} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
               {/* Horizontal line below wavy lines */}
-              <line x1="2" y1="21.5" x2="22" y2="21.5" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round"/>
+              <line x1="2" y1="21.5" x2="22" y2="21.5" stroke={accentBlue} strokeWidth="2.5" strokeLinecap="round"/>
             </svg>
           </span>
         </span>

@@ -24,11 +24,11 @@ export const DamperCard = ({ name, damper, onClick, onLongPress, disabled = fals
   
   // Determine button class and color
   let buttonClass = "neumorphic-button";
-  let damperColor = "#9ca3af"; // Gray for closed
+  let damperColor = "var(--color-accent-gray)"; // Gray for closed
   
   if (isOpen || isHalfOpen) {
     buttonClass += " on";
-    damperColor = "#3b82f6"; // Blue for open/half-open
+    damperColor = "var(--color-accent-blue)"; // Blue for open/half-open
   } else {
     buttonClass += " off";
   }

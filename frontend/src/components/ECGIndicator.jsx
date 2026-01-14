@@ -35,7 +35,7 @@ export const ECGIndicator = ({ lastDataTimestamp }) => {
   }, [lastDataTimestamp]);
 
   // Color based on data freshness
-  const color = isActive ? "#3b82f6" : "#ef4444"; // Blue if active, red if inactive
+  const color = isActive ? "var(--color-accent-blue)" : "var(--color-accent-red)"; // Blue if active, red if inactive
 
   // ECG waveform path - represents one heartbeat
   // Path: flat line -> spike up -> down -> small bump -> flat line

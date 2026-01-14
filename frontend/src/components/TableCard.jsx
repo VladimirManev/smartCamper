@@ -48,11 +48,11 @@ export const TableCard = ({
   
   // Determine button class and color
   let buttonClass = "neumorphic-button";
-  let iconColor = "#9ca3af"; // Gray when inactive
+  let iconColor = "var(--color-accent-gray)"; // Gray when inactive
   
   if (isActive) {
     buttonClass += " on";
-    iconColor = "#3b82f6"; // Blue when active
+    iconColor = "var(--color-accent-blue)"; // Blue when active
   } else {
     buttonClass += " off";
   }

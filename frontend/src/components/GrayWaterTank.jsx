@@ -3,6 +3,9 @@
  * Displays gray water level visualization
  */
 
+import { useEffect, useState } from "react";
+import { getThemeColor } from "../utils/getThemeColor";
+
 /**
  * GrayWaterTank component
  * @param {Object} props - Component props
@@ -13,6 +16,17 @@
 export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
   // When disabled, don't show water (empty tank)
   const displayLevel = disabled ? null : level;
+  
+  // Get theme colors
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  const [textPrimary, setTextPrimary] = useState("#f5f5f5");
+  
+  useEffect(() => {
+    setAccentBlue(getThemeColor("--color-accent-blue"));
+    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    setTextPrimary(getThemeColor("--color-text-primary"));
+  }, []);
 
   return (
     <div className={`sensor-card water-tank-card ${disabled ? "disabled" : ""}`}>
@@ -30,7 +44,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             width="110"
             height="160"
             fill="none"
-            stroke="#3b82f6"
+            stroke={accentBlue}
             strokeWidth="8"
             rx="12"
           />
@@ -59,9 +73,9 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
               x2="0%"
               y2="100%"
             >
-              <stop offset="0%" stopColor="#64748b" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#475569" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#334155" stopOpacity="1" />
+              <stop offset="0%" stopColor={accentBlue} stopOpacity="0.6" />
+              <stop offset="50%" stopColor={accentBlue} stopOpacity="0.7" />
+              <stop offset="100%" stopColor={accentBlueDark} stopOpacity="0.8" />
             </linearGradient>
           </defs>
 
@@ -71,7 +85,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             y1="60"
             x2="50"
             y2="60"
-            stroke="#3b82f6"
+            stroke={accentBlue}
             strokeWidth="3"
             opacity="0.5"
           />
@@ -80,7 +94,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             y1="100"
             x2="50"
             y2="100"
-            stroke="#3b82f6"
+            stroke={accentBlue}
             strokeWidth="3"
             opacity="0.5"
           />
@@ -89,7 +103,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
             y1="140"
             x2="50"
             y2="140"
-            stroke="#3b82f6"
+            stroke={accentBlue}
             strokeWidth="3"
             opacity="0.5"
           />
@@ -102,7 +116,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
               textAnchor="middle"
               dominantBaseline="middle"
               className="water-tank-temperature"
-              fill="#f5f5f5"
+              fill={textPrimary}
               fontWeight="600"
             >
               {temperature.toFixed(1)}°

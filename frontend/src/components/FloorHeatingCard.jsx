@@ -15,6 +15,14 @@ import { useLongPress } from "../hooks/useLongPress";
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
 export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled = false }) => {
+  // Get theme colors
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  
+  useEffect(() => {
+    setAccentBlue(getThemeColor("--color-accent-blue"));
+    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+  }, []);
   const mode = circle?.mode || "OFF";
   const relay = circle?.relay || "OFF";
   const temperature = circle?.temperature;
@@ -63,8 +71,8 @@ export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled 
         <svg className="horseshoe-progress" viewBox="0 0 200 200">
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#2563eb" />
+              <stop offset="0%" stopColor={accentBlue} />
+              <stop offset="100%" stopColor={accentBlueDark} />
             </linearGradient>
           </defs>
           {/* Closed circle - show if in TEMP_CONTROL mode (relay ON or OFF) */}

@@ -97,8 +97,8 @@ export const LevelingGauge = ({ label, angle, axis }) => {
         <svg className="leveling-gauge-svg" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
           <defs>
             <linearGradient id={`leveling-gradient-${axis}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#2563eb" />
+              <stop offset="0%" stopColor={accentBlue} />
+              <stop offset="100%" stopColor={accentBlueDark} />
             </linearGradient>
             <clipPath id={`leveling-clip-${axis}`}>
               <circle cx={center} cy={center} r={axis === "X" ? innerRadiusX : innerRadiusY} />
@@ -111,7 +111,7 @@ export const LevelingGauge = ({ label, angle, axis }) => {
             cy={center}
             r={outerRadius}
             fill="none"
-            stroke="rgba(59, 130, 246, 0.2)"
+            stroke={getThemeColor("--color-accent-blue-20")}
             strokeWidth="2"
           />
           
@@ -133,7 +133,7 @@ export const LevelingGauge = ({ label, angle, axis }) => {
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="#3b82f6"
+                stroke={accentBlue}
                 strokeWidth="2"
                 strokeLinecap="round"
                 opacity="0.6"
@@ -161,7 +161,7 @@ export const LevelingGauge = ({ label, angle, axis }) => {
               y1={center}
               x2={center - outerRadius + segmentLength}
               y2={center}
-              stroke="#3b82f6"
+              stroke={accentBlue}
               strokeWidth="2"
               strokeLinecap="round"
               opacity="1"
@@ -172,7 +172,7 @@ export const LevelingGauge = ({ label, angle, axis }) => {
               y1={center}
               x2={center + outerRadius}
               y2={center}
-              stroke="#3b82f6"
+              stroke={accentBlue}
               strokeWidth="2"
               strokeLinecap="round"
               opacity="1"
