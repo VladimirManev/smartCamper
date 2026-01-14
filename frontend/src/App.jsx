@@ -12,6 +12,7 @@ import { useLEDController } from "./hooks/useLEDController";
 import { useFloorHeating } from "./hooks/useFloorHeating";
 import { useDamperController } from "./hooks/useDamperController";
 import { useTableController } from "./hooks/useTableController";
+import { useLeveling } from "./hooks/useLeveling";
 import { StatusIcons } from "./components/StatusIcons";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
@@ -23,6 +24,7 @@ import { LEDGroupCard } from "./components/LEDGroupCard";
 import { FloorHeatingGroupCard } from "./components/FloorHeatingGroupCard";
 import { DamperGroupCard } from "./components/DamperGroupCard";
 import { TableGroupCard } from "./components/TableGroupCard";
+import { LevelingGroupCard } from "./components/LevelingGroupCard";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { CardModal } from "./components/CardModal";
 import { CustomDropdown } from "./components/CustomDropdown";
@@ -95,6 +97,10 @@ function App() {
 
   // Table controller
   const { tableState, sendTableCommand } = useTableController(socket);
+
+  // Leveling controller - check if leveling modal is open
+  const isLevelingModalOpen = modalStack.some(modal => modal.cardType === "leveling");
+  const { pitch, roll } = useLeveling(socket, isLevelingModalOpen);
 
   // Modal state - stack of modals
   const [modalStack, setModalStack] = useState([]);
@@ -362,6 +368,26 @@ function App() {
               isAuto={true}
               disabled={!isModule4Online}
             />
+          </div>
+        </div>
+      );
+    }
+
+    if (cardType === "leveling") {
+      // Render leveling modal content
+      return (
+        <div className="leveling-modal-content">
+          <div className="leveling-value">
+            <span className="leveling-label">Pitch (X):</span>
+            <span className="leveling-number">
+              {pitch !== null ? `${pitch.toFixed(1)}°` : "--°"}
+            </span>
+          </div>
+          <div className="leveling-value">
+            <span className="leveling-label">Roll (Y):</span>
+            <span className="leveling-number">
+              {roll !== null ? `${roll.toFixed(1)}°` : "--°"}
+            </span>
           </div>
         </div>
       );
@@ -755,6 +781,16 @@ function App() {
             disabled={!isModule4Online}
           />
           <p className="card-label">Table</p>
+        </div>
+
+        {/* Leveling Group Card */}
+        <div className="card-wrapper">
+          <LevelingGroupCard
+            name="Leveling"
+            onClick={() => openModal("leveling", "Leveling")}
+            disabled={!isModule3Online}
+          />
+          <p className="card-label">Leveling</p>
         </div>
 
         {/* Gray Water Tank */}

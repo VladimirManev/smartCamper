@@ -9,6 +9,7 @@ const heartbeatHandler = require("./handlers/heartbeatHandler");
 const sensorDataHandler = require("./handlers/sensorDataHandler");
 const ledCommandHandler = require("./handlers/ledCommandHandler");
 const floorHeatingCommandHandler = require("./handlers/floorHeatingCommandHandler");
+const levelingCommandHandler = require("./handlers/levelingCommandHandler");
 const damperCommandHandler = require("./handlers/damperCommandHandler");
 const tableCommandHandler = require("./handlers/tableCommandHandler");
 const { sendForceUpdateToAllOnline } = require("./handlers/moduleCommandHandler");
@@ -82,6 +83,11 @@ const setupSocketIO = (io, aedes) => {
     // Handle floor heating commands from frontend
     socket.on("floorHeatingCommand", (data) => {
       floorHeatingCommandHandler(socket, aedes, data);
+    });
+
+    // Handle leveling commands from frontend
+    socket.on("levelingCommand", (data) => {
+      levelingCommandHandler(socket, aedes, data);
     });
 
     // Handle damper commands from frontend

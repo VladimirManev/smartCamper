@@ -1569,6 +1569,37 @@ body {
   background: rgba(59, 130, 246, 0.7);
 }
 
+/* Leveling modal content */
+.leveling-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.leveling-value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.leveling-label {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.leveling-number {
+  font-size: 2.5rem;
+  color: #3b82f6;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Clock and Date Card */
 .clock-date-card {
   display: flex;

@@ -9,6 +9,7 @@
 #include "FloorHeatingController.h"
 #include "FloorHeatingSensor.h"
 #include "FloorHeatingButtonHandler.h"
+#include "LevelingSensor.h"
 #include "CommandHandler.h"
 #include "MQTTManager.h"
 #include <ArduinoJson.h>
@@ -19,6 +20,7 @@ private:
   FloorHeatingController controller;
   FloorHeatingSensor sensors[NUM_HEATING_CIRCLES];
   FloorHeatingButtonHandler buttonHandler;
+  LevelingSensor levelingSensor;
   CommandHandler commandHandler;
   
   bool pendingStatusUpdate;  // Flag for deferred status publishing
@@ -35,6 +37,9 @@ private:
   
 public:
   FloorHeatingManager(ModuleManager* moduleMgr);
+  
+  // Leveling sensor control
+  void handleLevelingStart();
   
   // Initialization
   void begin();

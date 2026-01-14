@@ -3,6 +3,7 @@
 
 #include "FloorHeatingManager.h"
 #include "FloorHeatingButtonHandler.h"  // Include here to avoid circular dependency
+#include "LevelingSensor.h"
 #include "Config.h"
 #include <ArduinoJson.h>
 
@@ -27,6 +28,7 @@ FloorHeatingManager::FloorHeatingManager(ModuleManager* moduleMgr)
       FloorHeatingSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, 3, tempPins[3])
     },
     buttonHandler(&controller),
+    levelingSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
     commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID),
     pendingStatusUpdate(false) {
   
@@ -71,6 +73,9 @@ void FloorHeatingManager::begin() {
   buttonHandler.setManager(this);
   buttonHandler.begin();
   
+  // Initialize leveling sensor
+  levelingSensor.begin();
+  
   // Set MQTT callback to FloorHeatingManager::handleMQTTMessage (handles both force_update and heating commands)
   if (moduleManager) {
     moduleManager->getMQTTManager().setCallback(FloorHeatingManager::handleMQTTMessageStatic);
@@ -112,6 +117,9 @@ void FloorHeatingManager::loop() {
   
   // Update button handler (toggle mode - works offline)
   buttonHandler.loop();
+  
+  // Update leveling sensor (read and log angles)
+  levelingSensor.loop();
   
   // Process pending status update (deferred from MQTT callback)
   // This prevents blocking PubSubClient which can cause publish failures
@@ -176,8 +184,14 @@ void FloorHeatingManager::processMQTTMessage(char* topic, byte* payload, unsigne
     Serial.println("  Command path: " + commandPath);
   }
   
-  // Handle circle commands: circle/{index}/{action}
-  if (commandPath.startsWith("circle/")) {
+    // Handle leveling commands: leveling/start
+    if (commandPath == "leveling/start") {
+      handleLevelingStart();
+      return;
+    }
+    
+    // Handle circle commands: circle/{index}/{action}
+    if (commandPath.startsWith("circle/")) {
     String circleCommand = commandPath.substring(7);  // Remove "circle/"
     
     // Extract circle index (first number)
@@ -351,6 +365,10 @@ void FloorHeatingManager::publishCircleStatus(uint8_t circleIndex, bool forcePub
   }
 }
 
+void FloorHeatingManager::handleLevelingStart() {
+  levelingSensor.start();
+}
+
 void FloorHeatingManager::printStatus() const {
   if (DEBUG_SERIAL) {
     Serial.println("📊 Floor Heating Manager Status:");
@@ -359,6 +377,7 @@ void FloorHeatingManager::printStatus() const {
       sensors[i].printStatus();
     }
     buttonHandler.printStatus();
+    levelingSensor.printStatus();
   }
 }
 

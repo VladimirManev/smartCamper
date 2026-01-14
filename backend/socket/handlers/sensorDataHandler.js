@@ -38,6 +38,10 @@ const sensorDataHandler = (io, topic, message) => {
     
     case "module-3":
       // Module-3 is the floor heating module
+      // Check for leveling data first, then floor heating status
+      if (handleLeveling(io, topicParts, message)) {
+        return true;
+      }
       return handleFloorHeating(io, topicParts, message);
     
     case "module-4":
@@ -217,6 +221,39 @@ function handleLEDController(io, topicParts, message) {
       });
       
       return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Handle leveling sensor data
+ * Format: smartcamper/sensors/module-3/leveling (JSON)
+ */
+function handleLeveling(io, topicParts, message) {
+  // Format: smartcamper/sensors/module-3/leveling (JSON)
+  if (topicParts.length >= 4 && topicParts[3] === "leveling") {
+    try {
+      const levelingData = JSON.parse(message);
+      
+      // Validate data structure
+      if (levelingData.pitch === undefined || levelingData.roll === undefined) {
+        console.log(`⚠️ Invalid leveling data format: ${message}`);
+        return true; // Handled, but invalid
+      }
+      
+      // Emit leveling data to frontend
+      io.emit("levelingData", {
+        pitch: levelingData.pitch,
+        roll: levelingData.roll,
+        timestamp: new Date().toISOString(),
+      });
+      
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse leveling JSON: ${error.message}`);
+      return true; // Handled, but error
     }
   }
   

@@ -68,6 +68,12 @@
 #define HEATING_TEMP_THRESHOLD 0.1         // 0.1°C change threshold for publishing
 #define HEATING_TEMP_AVERAGE_COUNT 6       // Number of measurements to average (6 measurements = 30 seconds)
 
+// Leveling Sensor Configuration (Module 3 specific - GY-521 MPU6050)
+#define LEVELING_I2C_SDA 21      // GPIO pin for I²C SDA (Wire interface)
+#define LEVELING_I2C_SCL 22      // GPIO pin for I²C SCL (Wire interface)
+#define LEVELING_READ_INTERVAL 500  // 500ms (0.5 seconds) - measurement and publish interval when active
+#define LEVELING_TIMEOUT 60000   // 60 seconds (1 minute) - timeout to stop publishing and measuring
+
 // Circle modes (used by FloorHeatingController and FloorHeatingSensor)
 enum CircleMode
 {
