@@ -1597,6 +1597,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+  position: relative;
 }
 
 .leveling-gauge {
@@ -1628,7 +1629,7 @@ body {
 }
 
 .leveling-line-rotator {
-  transition: transform 0.3s ease;
+  transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .leveling-gauge-value {
@@ -1636,6 +1637,19 @@ body {
   color: #3b82f6;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 80px; /* Fixed width to prevent layout shift when minus appears */
+  justify-content: center;
+}
+
+.leveling-gauge-degrees,
+.leveling-gauge-percentage {
+  display: inline-block;
+  text-align: center;
 }
 
 .leveling-activities {
@@ -1694,6 +1708,77 @@ body {
   
   .leveling-gauge-value {
     font-size: 1.1rem;
+  }
+}
+
+/* Landscape orientation (phone lying down) */
+@media (max-width: 768px) and (orientation: landscape) {
+  .leveling-modal-content {
+    padding: 0.75rem;
+    gap: 0.2rem;
+    min-height: auto;
+  }
+  
+  .leveling-gauges-container {
+    gap: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .leveling-gauge-container {
+    flex-direction: row;
+  }
+  
+  .leveling-gauge {
+    width: 110px;
+    height: 110px;
+  }
+  
+  .leveling-gauge-value {
+    font-size: 1rem;
+    flex-direction: column;
+    gap: 0.1rem;
+    align-items: flex-start;
+    min-width: 60px; /* Fixed width for landscape to prevent layout shift */
+    justify-content: center;
+  }
+  
+  .leveling-gauge-degrees,
+  .leveling-gauge-percentage {
+    font-size: 0.9rem;
+    width: 100%;
+    text-align: left;
+  }
+  
+  /* Position values on sides in landscape: left gauge (X) - left side, right gauge (Y) - right side */
+  .leveling-gauge-x .leveling-gauge-value {
+    order: -1; /* Value appears before gauge (on left) */
+    align-items: flex-start;
+  }
+  
+  .leveling-gauge-x .leveling-gauge-degrees,
+  .leveling-gauge-x .leveling-gauge-percentage {
+    text-align: left;
+  }
+  
+  .leveling-gauge-y .leveling-gauge-value {
+    order: 1; /* Value appears after gauge (on right) */
+    align-items: flex-end;
+  }
+  
+  .leveling-gauge-y .leveling-gauge-degrees,
+  .leveling-gauge-y .leveling-gauge-percentage {
+    text-align: right;
+  }
+  
+  .leveling-activities {
+    flex-direction: row !important;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: nowrap;
+  }
+  
+  .leveling-activity {
+    font-size: 1.2rem;
   }
 }
 
