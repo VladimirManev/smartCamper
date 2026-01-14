@@ -23,10 +23,20 @@ export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
   const [accentColor, setAccentColor] = useState("#3b82f6");
   
   useEffect(() => {
-    const blue = getThemeColor("--color-accent-blue");
-    setAccentBlue(blue);
-    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
-    setAccentColor(blue);
+    const updateColors = () => {
+      const blue = getThemeColor("--color-accent-blue");
+      setAccentBlue(blue);
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+      setAccentColor(blue);
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
   }, []);
   // Button class - always OFF state (no glow)
   const buttonClass = "neumorphic-button off";
@@ -76,9 +86,9 @@ export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
               style={{ 
                 width: '36px', 
                 height: '36px',
-                filter: accentColor === "#475569" 
-                  ? 'brightness(0) saturate(100%)' // Dark gray - no hue rotation needed
-                  : 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(210deg) brightness(1) contrast(1)' // Blue
+                filter: accentColor === "#3b82f6" || accentColor === "#2563eb"
+                  ? 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(210deg) brightness(1) contrast(1)' // Blue
+                  : 'brightness(0) saturate(100%)' // Dark gray or other non-blue colors - no hue rotation needed
               }}
             />
           </span>

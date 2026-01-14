@@ -25,8 +25,18 @@ export const LEDGroupCard = ({ name, onClick, disabled = false }) => {
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
   
   useEffect(() => {
-    setAccentBlue(getThemeColor("--color-accent-blue"));
-    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue"));
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Calculate arc progress (will be 0 since brightness is 0)

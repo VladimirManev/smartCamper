@@ -28,8 +28,18 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
   
   useEffect(() => {
-    setAccentBlue(getThemeColor("--color-accent-blue"));
-    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue"));
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Calculate arc progress for strips
@@ -125,7 +135,7 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
         )}
         <span className="button-text">
           {showBulbIcon ? (
-            <span className={`bulb-icon ${isBulbOn ? "bulb-on" : ""}`}>
+            <span className={`bulb-icon ${isBulbOn ? "bulb-on" : ""}`} style={{ color: isBulbOn ? accentBlue : "var(--color-text-secondary)" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Light bulb icon - simple and clean */}
                 <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill={isBulbOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>

@@ -4,7 +4,9 @@
  * Opens a modal with all damper cards when long pressed
  */
 
+import { useState, useEffect } from "react";
 import { useLongPress } from "../hooks/useLongPress";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * DamperGroupCard component
@@ -14,13 +16,29 @@ import { useLongPress } from "../hooks/useLongPress";
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
 export const DamperGroupCard = ({ name, onClick, disabled = false }) => {
+  // Get theme color for icon
+  const [damperColor, setDamperColor] = useState("#3b82f6");
+  
+  useEffect(() => {
+    const updateColor = () => {
+      setDamperColor(getThemeColor("--color-accent-blue"));
+    };
+    
+    // Update on mount
+    updateColor();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColor, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Always show as closed (OFF) state for group card
   const angle = 0;
   const isClosed = true;
 
   // Button class - always OFF state (no glow)
   const buttonClass = "neumorphic-button off";
-  const damperColor = "var(--color-accent-blue)"; // Blue for group card (like active state)
 
   // Handle click - opens modal
   const handleClick = (event) => {

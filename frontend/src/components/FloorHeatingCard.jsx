@@ -3,7 +3,9 @@
  * Displays and controls a single floor heating circle
  */
 
+import { useState, useEffect } from "react";
 import { useLongPress } from "../hooks/useLongPress";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * FloorHeatingCard component
@@ -20,8 +22,18 @@ export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled 
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
   
   useEffect(() => {
-    setAccentBlue(getThemeColor("--color-accent-blue"));
-    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue"));
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
   }, []);
   const mode = circle?.mode || "OFF";
   const relay = circle?.relay || "OFF";

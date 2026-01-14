@@ -23,9 +23,19 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
   const [textPrimary, setTextPrimary] = useState("#f5f5f5");
   
   useEffect(() => {
-    setAccentBlue(getThemeColor("--color-accent-blue"));
-    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
-    setTextPrimary(getThemeColor("--color-text-primary"));
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue"));
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+      setTextPrimary(getThemeColor("--color-text-primary"));
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
   }, []);
 
   return (

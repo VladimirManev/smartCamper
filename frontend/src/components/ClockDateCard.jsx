@@ -24,9 +24,19 @@ export const ClockDateCard = ({ indoorTemp, outdoorTemp, humidity }) => {
   const [accentBlue10, setAccentBlue10] = useState("rgba(59, 130, 246, 0.1)");
   
   useEffect(() => {
-    setAccentBlue(getThemeColor("--color-accent-blue"));
-    setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
-    setAccentBlue10(getThemeColor("--color-accent-blue-10"));
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue"));
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+      setAccentBlue10(getThemeColor("--color-accent-blue-10"));
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Update time every second

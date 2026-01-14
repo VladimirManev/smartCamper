@@ -4,7 +4,9 @@
  * Opens a modal with all table cards when long pressed
  */
 
+import { useState, useEffect } from "react";
 import { useLongPress } from "../hooks/useLongPress";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * TableGroupCard component
@@ -14,9 +16,25 @@ import { useLongPress } from "../hooks/useLongPress";
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
 export const TableGroupCard = ({ name, onClick, disabled = false }) => {
+  // Get theme color for icon
+  const [iconColor, setIconColor] = useState("#3b82f6");
+  
+  useEffect(() => {
+    const updateColor = () => {
+      setIconColor(getThemeColor("--color-accent-blue"));
+    };
+    
+    // Update on mount
+    updateColor();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColor, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Always show as OFF state for group card
   const buttonClass = "neumorphic-button off";
-  const iconColor = "var(--color-accent-blue)"; // Blue for group card (like active state)
 
   // Handle click - opens modal
   const handleClick = (event) => {

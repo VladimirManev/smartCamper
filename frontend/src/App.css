@@ -2194,9 +2194,7 @@ body {
   height: 100%;
 }
 
-.bulb-icon.bulb-on {
-  color: var(--color-accent-blue); /* Blue color when bulb is ON */
-}
+/* .bulb-icon.bulb-on color is set inline in component to use dynamic theme color */
 
 .temperature-display {
   position: relative;

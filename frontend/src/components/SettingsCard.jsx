@@ -4,7 +4,9 @@
  * Opens a modal when clicked, logs to console on long press
  */
 
+import { useState, useEffect } from "react";
 import { useLongPress } from "../hooks/useLongPress";
+import { getThemeColor } from "../utils/getThemeColor";
 
 /**
  * SettingsCard component
@@ -15,6 +17,23 @@ import { useLongPress } from "../hooks/useLongPress";
  * @param {boolean} props.disabled - Whether the control is disabled
  */
 export const SettingsCard = ({ name, onClick, onLongPress, disabled = false }) => {
+  // Get theme color for icon
+  const [accentColor, setAccentColor] = useState("#3b82f6");
+  
+  useEffect(() => {
+    const updateColor = () => {
+      setAccentColor(getThemeColor("--color-accent-blue"));
+    };
+    
+    // Update on mount
+    updateColor();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColor, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Handle click - opens modal
   const handleClick = (event) => {
     if (!disabled && onClick) {
@@ -44,7 +63,7 @@ export const SettingsCard = ({ name, onClick, onLongPress, disabled = false }) =
           {/* Empty SVG for structure consistency */}
         </svg>
         <span className="button-text" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }}>
-          <i className="fas fa-cog" style={{ color: "var(--color-accent-blue)", fontSize: "28px", display: "flex", alignItems: "center", justifyContent: "center" }}></i>
+          <i className="fas fa-cog" style={{ color: accentColor, fontSize: "28px", display: "flex", alignItems: "center", justifyContent: "center" }}></i>
         </span>
       </div>
     </div>

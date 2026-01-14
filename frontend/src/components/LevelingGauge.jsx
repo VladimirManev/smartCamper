@@ -4,6 +4,8 @@
  * Similar to clock design on main page
  */
 
+import { useState, useEffect } from "react";
+import { getThemeColor } from "../utils/getThemeColor";
 import IMG_3605 from "../assets/IMG_3605.png";
 import IMG_3606 from "../assets/IMG_3606.png";
 
@@ -15,6 +17,25 @@ import IMG_3606 from "../assets/IMG_3606.png";
  * @param {string} props.axis - Axis name ("X" for pitch, "Y" for roll)
  */
 export const LevelingGauge = ({ label, angle, axis }) => {
+  // Get theme colors
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  
+  useEffect(() => {
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue"));
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
+    };
+    
+    // Update on mount
+    updateColors();
+    
+    // Update periodically to catch theme changes
+    const interval = setInterval(updateColors, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Select image based on axis (swapped due to sensor mounting)
   const imageSrc = axis === "X" ? IMG_3606 : IMG_3605;
   
