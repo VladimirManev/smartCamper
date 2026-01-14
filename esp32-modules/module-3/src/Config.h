@@ -72,7 +72,10 @@
 #define LEVELING_I2C_SDA 21      // GPIO pin for I²C SDA (Wire interface)
 #define LEVELING_I2C_SCL 22      // GPIO pin for I²C SCL (Wire interface)
 #define LEVELING_READ_INTERVAL 500  // 500ms (0.5 seconds) - measurement and publish interval when active
-#define LEVELING_TIMEOUT 60000   // 60 seconds (1 minute) - timeout to stop publishing and measuring
+#define LEVELING_TIMEOUT 22000   // 22 seconds - timeout to stop publishing and measuring
+#define LEVELING_ZERO_BUTTON_PIN 0  // GPIO 0 - BOOT button for zeroing leveling
+#define LEVELING_ZERO_BUTTON_HOLD_TIME 3000  // 3 seconds - hold time to zero leveling
+#define LEVELING_LED_PIN 2       // GPIO 2 - Built-in LED for visual feedback
 
 // Circle modes (used by FloorHeatingController and FloorHeatingSensor)
 enum CircleMode

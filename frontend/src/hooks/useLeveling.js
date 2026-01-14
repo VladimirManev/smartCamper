@@ -31,10 +31,10 @@ export const useLeveling = (socket, isModalOpen) => {
     // Send initial start command immediately
     socket.emit("levelingCommand", { type: "start" });
 
-    // Send start command every 20 seconds
+    // Send start command every 10 seconds
     intervalRef.current = setInterval(() => {
       socket.emit("levelingCommand", { type: "start" });
-    }, 20000); // 20 seconds
+    }, 10000); // 10 seconds
 
     // Cleanup on unmount or when modal closes
     return () => {

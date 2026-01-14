@@ -6,7 +6,8 @@
 #include <ArduinoJson.h>
 
 LevelingSensor::LevelingSensor(MQTTManager* mqtt) 
-  : mpu(Wire), mqttManager(mqtt), lastReadTime(0), timeoutExpiresAt(0), initialized(false), isActive(false) {
+  : mpu(Wire), mqttManager(mqtt), lastReadTime(0), timeoutExpiresAt(0), initialized(false), isActive(false),
+    pitchOffset(0.0), rollOffset(0.0), buttonPressed(false), buttonPressStartTime(0), zeroingInProgress(false) {
 }
 
 void LevelingSensor::begin() {
@@ -39,12 +40,27 @@ void LevelingSensor::begin() {
   delay(1000);  // Give time for sensor to stabilize
   mpu.calcOffsets(true, false);  // Calibrate gyro only, NOT accelerometer (gravity reference)
   
+  // Initialize Preferences for storing zero offsets
+  preferences.begin("leveling", false);  // false = read-write mode
+  
+  // Load zero offsets from flash
+  loadZeroOffsets();
+  
+  // Initialize BOOT button (GPIO 0) for zeroing
+  pinMode(LEVELING_ZERO_BUTTON_PIN, INPUT_PULLUP);
+  
+  // Initialize LED (GPIO 2) for visual feedback
+  pinMode(LEVELING_LED_PIN, OUTPUT);
+  digitalWrite(LEVELING_LED_PIN, LOW);
+  
   initialized = true;
   
   if (DEBUG_SERIAL) {
     Serial.println("✅ Leveling Sensor Ready!");
     Serial.println("   I²C SDA: GPIO " + String(LEVELING_I2C_SDA));
     Serial.println("   I²C SCL: GPIO " + String(LEVELING_I2C_SCL));
+    Serial.println("   Zero button: GPIO " + String(LEVELING_ZERO_BUTTON_PIN) + " (BOOT)");
+    Serial.println("   Zero offsets: Pitch=" + String(pitchOffset, 2) + "°, Roll=" + String(rollOffset, 2) + "°");
     Serial.println("   Read interval: " + String(LEVELING_READ_INTERVAL) + "ms");
   }
 }
@@ -55,6 +71,9 @@ void LevelingSensor::loop() {
   }
   
   unsigned long currentTime = millis();
+  
+  // Handle zero button (BOOT button)
+  handleZeroButton();
   
   // Check if timeout expired (stop publishing and measuring)
   if (isActive && timeoutExpiresAt > 0 && currentTime >= timeoutExpiresAt) {
@@ -94,6 +113,10 @@ void LevelingSensor::readAndPublishSensor() {
   // Get angles from MPU6050 (pitch and roll)
   float pitch = mpu.getAngleX();  // Pitch angle (forward/backward tilt)
   float roll = mpu.getAngleY();   // Roll angle (left/right tilt)
+  
+  // Apply zero offsets (subtract stored offsets to get relative to zero position)
+  pitch -= pitchOffset;
+  roll -= rollOffset;
   
   // Round to 0.2° precision for cleaner display
   float roundedPitch = round(pitch / 0.2) * 0.2;
@@ -137,11 +160,11 @@ void LevelingSensor::start() {
   if (!isActive) {
     isActive = true;
     if (DEBUG_SERIAL) {
-      Serial.println("▶️ Leveling Sensor: Started - will publish for 60 seconds");
+      Serial.println("▶️ Leveling Sensor: Started - will publish for " + String(LEVELING_TIMEOUT / 1000) + " seconds");
     }
   } else {
     if (DEBUG_SERIAL) {
-      Serial.println("🔄 Leveling Sensor: Timeout reset - continuing for 60 more seconds");
+      Serial.println("🔄 Leveling Sensor: Timeout reset - continuing for " + String(LEVELING_TIMEOUT / 1000) + " more seconds");
     }
   }
   
@@ -160,6 +183,86 @@ void LevelingSensor::start() {
   }
 }
 
+void LevelingSensor::loadZeroOffsets() {
+  // Load zero offsets from Preferences (flash memory)
+  pitchOffset = preferences.getFloat("pitchOffset", 0.0);
+  rollOffset = preferences.getFloat("rollOffset", 0.0);
+  
+  if (DEBUG_SERIAL) {
+    Serial.println("📐 Loaded zero offsets from flash:");
+    Serial.println("   Pitch offset: " + String(pitchOffset, 2) + "°");
+    Serial.println("   Roll offset: " + String(rollOffset, 2) + "°");
+  }
+}
+
+void LevelingSensor::saveZeroOffsets(float pitch, float roll) {
+  // Save zero offsets to Preferences (flash memory)
+  preferences.putFloat("pitchOffset", pitch);
+  preferences.putFloat("rollOffset", roll);
+  
+  // Update in-memory values
+  pitchOffset = pitch;
+  rollOffset = roll;
+  
+  if (DEBUG_SERIAL) {
+    Serial.println("💾 Saved zero offsets to flash:");
+    Serial.println("   Pitch offset: " + String(pitchOffset, 2) + "°");
+    Serial.println("   Roll offset: " + String(rollOffset, 2) + "°");
+  }
+}
+
+void LevelingSensor::handleZeroButton() {
+  // Read BOOT button state (GPIO 0, LOW when pressed due to pull-up)
+  bool buttonState = digitalRead(LEVELING_ZERO_BUTTON_PIN) == LOW;
+  unsigned long currentTime = millis();
+  
+  if (buttonState && !buttonPressed) {
+    // Button just pressed
+    buttonPressed = true;
+    buttonPressStartTime = currentTime;
+    zeroingInProgress = false;
+  } else if (buttonState && buttonPressed && !zeroingInProgress) {
+    // Button held - check if hold time reached
+    unsigned long holdTime = currentTime - buttonPressStartTime;
+    if (holdTime >= LEVELING_ZERO_BUTTON_HOLD_TIME) {
+      // Long press detected - zero the leveling
+      zeroingInProgress = true;
+      
+      // Get current angles (before applying offsets)
+      mpu.update();
+      float currentPitch = mpu.getAngleX();
+      float currentRoll = mpu.getAngleY();
+      
+      // Save as zero offsets
+      saveZeroOffsets(currentPitch, currentRoll);
+      
+      // Visual feedback: blink LED 3 times
+      blinkLED(3, 100);
+      
+      if (DEBUG_SERIAL) {
+        Serial.println("✅ Leveling zeroed! Current position saved as 0,0");
+        Serial.println("   Hold BOOT button for 3 seconds to zero again");
+      }
+    }
+  } else if (!buttonState && buttonPressed) {
+    // Button released
+    buttonPressed = false;
+    zeroingInProgress = false;
+  }
+}
+
+void LevelingSensor::blinkLED(int times, int duration) {
+  // Blink built-in LED (GPIO 2) for visual feedback
+  for (int i = 0; i < times; i++) {
+    digitalWrite(LEVELING_LED_PIN, HIGH);
+    delay(duration);
+    digitalWrite(LEVELING_LED_PIN, LOW);
+    if (i < times - 1) {
+      delay(duration);  // Pause between blinks
+    }
+  }
+}
+
 void LevelingSensor::printStatus() const {
   if (DEBUG_SERIAL) {
     Serial.println("📊 Leveling Sensor Status:");
@@ -168,6 +271,7 @@ void LevelingSensor::printStatus() const {
     if (initialized) {
       Serial.println("  I²C SDA: GPIO " + String(LEVELING_I2C_SDA));
       Serial.println("  I²C SCL: GPIO " + String(LEVELING_I2C_SCL));
+      Serial.println("  Zero offsets: Pitch=" + String(pitchOffset, 2) + "°, Roll=" + String(rollOffset, 2) + "°");
       Serial.println("  Read interval: " + String(LEVELING_READ_INTERVAL) + "ms");
       if (isActive && timeoutExpiresAt > 0) {
         unsigned long remaining = (timeoutExpiresAt > millis()) ? (timeoutExpiresAt - millis()) / 1000 : 0;
