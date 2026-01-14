@@ -84,12 +84,13 @@ function App() {
 
   // Damper presets - array of { name, angles: [angle0, angle1, angle2, angle3, angle4] }
   // Index: 0=Front, 1=Rear, 2=Bath, 3=Shoes, 4=Cockpit
+  // Order: Comfort first, then others
   const damperPresets = [
+    { name: "Comfort", angles: [45, 90, 45, 45, 0] },
     { name: "All Open", angles: [90, 90, 90, 90, 90] },
     { name: "Bath Only", angles: [0, 0, 90, 0, 0] },
     { name: "Cockpit Only", angles: [0, 0, 0, 0, 90] },
     { name: "Rear Only", angles: [0, 90, 0, 0, 0] },
-    { name: "Comfort", angles: [45, 90, 45, 45, 0] },
   ];
 
   // Table controller
@@ -250,14 +251,11 @@ function App() {
                   handleDamperPreset(preset);
                 }
               }}
-              options={[
-                { value: "Manual", label: "Manual" },
-                ...damperPresets.map(preset => ({
-                  value: preset.name,
-                  label: preset.name
-                }))
-              ]}
-              placeholder="Select preset..."
+              options={damperPresets.map(preset => ({
+                value: preset.name,
+                label: preset.name
+              }))}
+              placeholder="Manual"
               disabled={!isModule4Online}
             />
           </div>
