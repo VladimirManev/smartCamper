@@ -38,6 +38,13 @@ Act as a senior developer. This is the SmartCamper project - an IoT system for c
 - Push immediately when user asks - don't wait for approval
 - Use `required_permissions: ['all']` for git operations if needed
 
+**Target Device:**
+
+- Primary testing device: iPhone 7
+- Display specs: 4.7" Retina HD, 1334×750px resolution, 375×667px CSS viewport (portrait)
+- Use `@media (max-width: 400px)` for small phone optimizations
+- Ensure UI fits without scrolling on 375px width screens
+
 Full guidelines: See `DEVELOPMENT_PROMPT.md` if needed.
 
 ---

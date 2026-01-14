@@ -375,21 +375,29 @@ function App() {
       );
     }
 
-    if (cardType === "leveling") {
-      // Calculate maximum angle (absolute value of pitch or roll, whichever is larger)
-      const maxAngle = pitch !== null && roll !== null
-        ? Math.max(Math.abs(pitch), Math.abs(roll))
-        : null;
-      
-      // Determine color for each activity based on thresholds
-      const getActivityColor = (threshold) => {
-        if (maxAngle === null) return "#94a3b8"; // Gray if no data
-        return maxAngle <= threshold ? "#3b82f6" : "#ef4444"; // Blue if OK, red if exceeded
-      };
-      
-      const sleepColor = getActivityColor(1.0);    // Sleep: up to 1° blue
-      const cookingColor = getActivityColor(0.5);   // Cooking: up to 0.5° blue
-      const bathingColor = getActivityColor(0.2);   // Bathing: up to 0.2° blue
+                if (cardType === "leveling") {
+                  // Check if angles are within acceptable ranges for each activity
+                  const isWithinRange = (pitchValue, rollValue, pitchMin, pitchMax, rollMin, rollMax) => {
+                    if (pitchValue === null || rollValue === null) return false;
+                    return pitchValue >= pitchMin && pitchValue <= pitchMax && 
+                           rollValue >= rollMin && rollValue <= rollMax;
+                  };
+
+                  // Sleep: Pitch -2° to +2°, Roll -1° to +2°
+                  const isSleepOK = isWithinRange(pitch, roll, -2, 2, -1, 2);
+                  const sleepColor = isSleepOK ? "#3b82f6" : "#ef4444";
+
+                  // Cook: Both axes -1° to +1°
+                  const isCookOK = isWithinRange(pitch, roll, -1, 1, -1, 1);
+                  const cookingColor = isCookOK ? "#3b82f6" : "#ef4444";
+
+                  // Shower: Pitch -1° to 0°, Roll 0° to +1°
+                  const isShowerOK = isWithinRange(pitch, roll, -1, 0, 0, 1);
+                  const bathingColor = isShowerOK ? "#3b82f6" : "#ef4444";
+
+                  // Drain: Pitch >= 0°, Roll <= 0°
+                  const isDrainOK = pitch !== null && roll !== null && pitch >= 0 && roll <= 0;
+                  const drainColor = isDrainOK ? "#3b82f6" : "#ef4444";
       
       // Render leveling modal content with circular gauges
       return (
@@ -416,6 +424,9 @@ function App() {
             </div>
             <div className="leveling-activity" style={{ color: bathingColor }}>
               Shower
+            </div>
+            <div className="leveling-activity" style={{ color: drainColor }}>
+              Drain
             </div>
           </div>
         </div>

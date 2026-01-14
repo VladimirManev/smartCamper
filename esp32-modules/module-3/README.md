@@ -20,6 +20,10 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 | **Button 1** (Central 2) | 13 | Input (Pull-up) | Manual toggle for circle 1 |
 | **Button 2** (Bathroom) | 14 | Input (Pull-up) | Manual toggle for circle 2 |
 | **Button 3** (Podium) | 15 | Input (Pull-up) | Manual toggle for circle 3 |
+| **Leveling Sensor SDA** (MPU6050) | 21 | Input/Output | I²C SDA for leveling sensor (GY-521) |
+| **Leveling Sensor SCL** (MPU6050) | 22 | Input/Output | I²C SCL for leveling sensor (GY-521) |
+| **BOOT Button** (Zeroing) | 0 | Input (Pull-up) | Long press (3s) to zero leveling reference |
+| **Built-in LED** (Feedback) | 2 | Output | Visual feedback for zeroing (3 quick blinks) |
 
 ### Heating Circle Details
 
@@ -56,6 +60,73 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 - **MQTT Broker Port**: `1883`
 - **Module ID**: `module-3`
 
+## Leveling Sensor (MPU6050 / GY-521)
+
+### Hardware Configuration
+
+**Sensor:** GY-521 board with MPU6050 (6-DOF IMU)
+- **I²C SDA:** GPIO 21
+- **I²C SCL:** GPIO 22
+- **Power:** 3.3V (VCC), GND
+- **Communication:** I²C protocol
+
+**Zeroing Function:**
+- **Button:** BOOT button (GPIO 0)
+- **Action:** Long press for 3 seconds to save current position as zero reference
+- **Feedback:** Built-in LED (GPIO 2) blinks 3 times + serial message
+- **Storage:** Zero offsets stored in ESP32 Preferences (non-volatile flash)
+
+### Sensor Specifications
+
+- **Type:** MPU6050 (6-DOF: 3-axis accelerometer + 3-axis gyroscope)
+- **Range:** ±16g (accelerometer), ±2000°/s (gyroscope)
+- **Accuracy:** ±0.5° for leveling applications
+- **Calibration:** Gyroscope only (accelerometer uses gravity as absolute reference)
+- **Update Rate:** 0.5 seconds when active (on-demand)
+
+### Operation Mode
+
+**On-Demand Data Streaming:**
+- Sensor only measures and publishes when actively requested
+- Frontend sends `start` command every 10 seconds (keep-alive)
+- ESP32 publishes data every 0.5 seconds for 22 seconds after last `start` command
+- Automatically stops measuring and publishing after timeout
+- Saves power and reduces MQTT traffic when not in use
+
+### Zeroing Procedure
+
+1. Park camper in desired level position
+2. Ensure sensor is firmly mounted
+3. Press and hold BOOT button (GPIO 0) for 3 seconds
+4. LED blinks 3 times (visual confirmation)
+5. Serial message confirms zeroing
+6. Current pitch and roll angles saved as zero offsets in flash memory
+7. On next boot, sensor uses saved offsets as reference
+
+### Angle Measurement
+
+- **Pitch (X-axis):** Forward/backward tilt (positive = forward tilt)
+- **Roll (Y-axis):** Left/right tilt (positive = right tilt)
+- **Precision:** Rounded to 0.2° for display
+- **Range:** -15° to +15° (covers extreme cases up to 25% grade)
+
+### Activity Tolerance Ranges
+
+**Sleep:**
+- Pitch: -2° to +2°
+- Roll: -1° to +2°
+
+**Cook:**
+- Both axes: -1° to +1°
+
+**Shower:**
+- Pitch: -1° to 0°
+- Roll: 0° to +1°
+
+**Drain (Emptying/On Water):**
+- Pitch: 0° or greater (>= 0°)
+- Roll: 0° or less (<= 0°)
+
 ## MQTT Topics
 
 ### Published (Status & Sensor Data)
@@ -63,6 +134,7 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 | Topic | Message Format | Update Frequency |
 |-------|---------------|------------------|
 | `smartcamper/sensors/module-3/status` | `{"type": "full", "data": {"circles": {...}}}` or `{"type": "circle", "index": 0, "mode": "TEMP_CONTROL", "relay": "ON", "temperature": 32, "error": false}` | On change (button press, MQTT command, automatic control change, force_update) |
+| `smartcamper/sensors/module-3/leveling` | `{"pitch": 1.2, "roll": -0.8}` | Every 0.5 seconds when active (on-demand, timeout: 22 seconds) |
 | `smartcamper/errors/module-3/circle/{index}` | `{"error": true, "type": "sensor_disconnected", "message": "Temperature sensor disconnected", "timestamp": 1234567890}` | Once when error occurs |
 | `smartcamper/heartbeat/module-3` | `{"timestamp": 1234567890, "moduleId": "module-3", "uptime": 3600, "wifiRSSI": -65}` | Every 10 seconds |
 
@@ -72,6 +144,7 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 |-------|---------|--------|
 | `smartcamper/commands/module-3/circle/{index}/on` | `{}` | Enable TEMP_CONTROL mode (temperature-based control) |
 | `smartcamper/commands/module-3/circle/{index}/off` | `{}` | Disable circle (OFF mode) |
+| `smartcamper/commands/module-3/leveling/start` | `{}` | Start leveling sensor (activates for 22 seconds, resets timeout) |
 | `smartcamper/commands/module-3/force_update` | `{}` | Force status update |
 
 ## Features
@@ -217,6 +290,7 @@ Module operates completely independently:
 - **FloorHeatingController**: Manages relay control and automatic temperature control
 - **FloorHeatingSensor**: Temperature sensor reading and averaging (DS18B20) - uses async non-blocking state machine
 - **FloorHeatingButtonHandler**: Processes button inputs (debouncing, toggle) - non-blocking operation
+- **LevelingSensor**: MPU6050 sensor management, angle measurement, zeroing, on-demand data streaming
 
 ### Performance Optimizations
 

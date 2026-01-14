@@ -15,8 +15,8 @@ import IMG_3606 from "../assets/IMG_3606.png";
  * @param {string} props.axis - Axis name ("X" for pitch, "Y" for roll)
  */
 export const LevelingGauge = ({ label, angle, axis }) => {
-  // Select image based on axis
-  const imageSrc = axis === "X" ? IMG_3605 : IMG_3606;
+  // Select image based on axis (swapped due to sensor mounting)
+  const imageSrc = axis === "X" ? IMG_3606 : IMG_3605;
   
   // Clamp angle to realistic range for display (-15° to +15°)
   // Real-world scenarios:
@@ -70,19 +70,20 @@ export const LevelingGauge = ({ label, angle, axis }) => {
   const center = viewBoxSize / 2;
   const outerRadius = 85;  // Outer circle radius
   // Different sizes for left (X/Pitch) and right (Y/Roll) images
-  const innerRadiusX = 55;   // Smaller radius for left image (X/Pitch) - increased 10%
-  const innerRadiusY = 84;   // Base radius for right image (Y/Roll) - circular clipPath (increased 10%)
+  // Swapped visual styles: X now has Y's style, Y now has X's style
+  const innerRadiusX = 84;   // Larger radius for left image (X/Pitch) - swapped from Y
+  const innerRadiusY = 55;   // Smaller radius for right image (Y/Roll) - swapped from X
   const tickLength = 8;     // Length of tick marks extending outward
   const lineGap = 60;       // Gap in center of line (very small segments at edges)
   const segmentLength = 15;  // Length of line segments at edges
   
-  // Set image dimensions based on axis
-  // Left (X): smaller circle
-  // Right (Y): circular clip but image is narrower and taller
-  const imageWidth = axis === "X" ? innerRadiusX * 2 : innerRadiusY * 1.6;  // Narrower for Y
-  const imageHeight = axis === "X" ? innerRadiusX * 2 : innerRadiusY * 2.2; // Taller for Y
-  const imageX = axis === "X" ? center - innerRadiusX : center - imageWidth / 2;
-  const imageY = axis === "X" ? center - innerRadiusX : center - imageHeight / 2;
+  // Set image dimensions based on axis (swapped styles)
+  // Left (X): now has larger circle with narrower/taller image (was Y's style)
+  // Right (Y): now has smaller circle (was X's style)
+  const imageWidth = axis === "X" ? innerRadiusX * 1.6 : innerRadiusY * 2;  // Swapped
+  const imageHeight = axis === "X" ? innerRadiusX * 2.2 : innerRadiusY * 2; // Swapped
+  const imageX = axis === "X" ? center - imageWidth / 2 : center - innerRadiusY;
+  const imageY = axis === "X" ? center - imageHeight / 2 : center - innerRadiusY;
   
   // Generate tick marks every 10 degrees around full circle (0° to 350°)
   const tickMarks = [];
@@ -150,7 +151,7 @@ export const LevelingGauge = ({ label, angle, axis }) => {
               width={imageWidth}
               height={imageHeight}
               clipPath={`url(#leveling-clip-${axis})`}
-              opacity="0.7"
+              opacity="1"
             />
             
             {/* Horizontal line segments (broken in center) - very small segments at edges */}
