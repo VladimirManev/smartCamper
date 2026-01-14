@@ -25,6 +25,7 @@ import { DamperGroupCard } from "./components/DamperGroupCard";
 import { TableGroupCard } from "./components/TableGroupCard";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { CardModal } from "./components/CardModal";
+import { CustomDropdown } from "./components/CustomDropdown";
 import ducatoImage from "./assets/ducato.png";
 import "./App.css";
 
@@ -240,38 +241,25 @@ function App() {
       return (
         <div>
           <div className="damper-preset-container">
-            <select
+            <CustomDropdown
               value={selectedPreset}
-              onChange={(e) => {
-                const presetName = e.target.value;
+              onChange={(presetName) => {
                 setSelectedPreset(presetName);
                 const preset = damperPresets.find(p => p.name === presetName);
                 if (preset) {
                   handleDamperPreset(preset);
                 }
               }}
-              onBlur={(e) => {
-                // Reset zoom on iOS Safari after dropdown closes
-                // Force viewport reset by briefly changing scale
-                if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-                  const viewport = document.querySelector('meta[name="viewport"]');
-                  if (viewport) {
-                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-                    setTimeout(() => {
-                      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
-                    }, 100);
-                  }
-                }
-              }}
-              className="damper-preset-select"
-            >
-              <option value="Manual">Manual</option>
-              {damperPresets.map((preset) => (
-                <option key={preset.name} value={preset.name}>
-                  {preset.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "Manual", label: "Manual" },
+                ...damperPresets.map(preset => ({
+                  value: preset.name,
+                  label: preset.name
+                }))
+              ]}
+              placeholder="Select preset..."
+              disabled={!isModule4Online}
+            />
           </div>
           <div className="modal-grid">
           <div className="card-wrapper">
