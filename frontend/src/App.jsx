@@ -26,6 +26,7 @@ import { DamperGroupCard } from "./components/DamperGroupCard";
 import { TableGroupCard } from "./components/TableGroupCard";
 import { LevelingGroupCard } from "./components/LevelingGroupCard";
 import { LevelingGauge } from "./components/LevelingGauge";
+import { ECGIndicator } from "./components/ECGIndicator";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { CardModal } from "./components/CardModal";
 import { CustomDropdown } from "./components/CustomDropdown";
@@ -104,7 +105,7 @@ function App() {
 
   // Leveling controller - check if leveling modal is open
   const isLevelingModalOpen = modalStack.some(modal => modal.cardType === "leveling");
-  const { pitch, roll } = useLeveling(socket, isLevelingModalOpen);
+  const { pitch, roll, lastDataTimestamp } = useLeveling(socket, isLevelingModalOpen);
   
   // Damper preset selection state
   const [selectedPreset, setSelectedPreset] = useState("Manual");
@@ -399,6 +400,7 @@ function App() {
               angle={pitch} 
               axis="X"
             />
+            <ECGIndicator lastDataTimestamp={lastDataTimestamp} />
             <LevelingGauge 
               label="Roll (Y)" 
               angle={roll} 
@@ -773,21 +775,21 @@ function App() {
         {/* LED Group Card */}
         <div className="card-wrapper">
           <LEDGroupCard
-            name="Lighting"
-            onClick={() => openModal("lighting-group", "Lighting")}
+            name="Light"
+            onClick={() => openModal("lighting-group", "Light")}
             disabled={!isModule2Online}
           />
-          <p className="card-label">Lighting</p>
+          <p className="card-label">Light</p>
         </div>
 
         {/* Floor Heating Group Card */}
         <div className="card-wrapper">
           <FloorHeatingGroupCard
-            name="Floor Heating"
-            onClick={() => openModal("floor-heating-group", "Floor Heating")}
+            name="Radiant"
+            onClick={() => openModal("floor-heating-group", "Radiant")}
             disabled={!isModule3Online}
           />
-          <p className="card-label">Floor Heating</p>
+          <p className="card-label">Radiant</p>
         </div>
 
         {/* Dampers Group Card */}
@@ -810,14 +812,14 @@ function App() {
           <p className="card-label">Table</p>
         </div>
 
-        {/* Leveling Group Card */}
+        {/* Level Group Card */}
         <div className="card-wrapper">
           <LevelingGroupCard
-            name="Leveling"
-            onClick={() => openModal("leveling", "Leveling")}
+            name="Level"
+            onClick={() => openModal("leveling", "Level")}
             disabled={!isModule3Online}
           />
-          <p className="card-label">Leveling</p>
+          <p className="card-label">Level</p>
         </div>
 
         {/* Gray Water Tank */}

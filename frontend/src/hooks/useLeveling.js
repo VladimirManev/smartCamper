@@ -15,6 +15,7 @@ import { useState, useEffect, useRef } from "react";
 export const useLeveling = (socket, isModalOpen) => {
   const [pitch, setPitch] = useState(null);
   const [roll, setRoll] = useState(null);
+  const [lastDataTimestamp, setLastDataTimestamp] = useState(null);
   const intervalRef = useRef(null);
 
   // Send start command periodically when modal is open
@@ -53,6 +54,7 @@ export const useLeveling = (socket, isModalOpen) => {
       if (data.pitch !== undefined && data.roll !== undefined) {
         setPitch(data.pitch);
         setRoll(data.roll);
+        setLastDataTimestamp(Date.now());
       }
     };
 
@@ -66,5 +68,6 @@ export const useLeveling = (socket, isModalOpen) => {
   return {
     pitch,
     roll,
+    lastDataTimestamp,
   };
 };

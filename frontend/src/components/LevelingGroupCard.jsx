@@ -5,6 +5,7 @@
  */
 
 import { useLongPress } from "../hooks/useLongPress";
+import spiritLevelIcon from "../assets/spirit-level-tool-svgrepo-com.svg";
 
 /**
  * LevelingGroupCard component
@@ -55,18 +56,11 @@ export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
         </svg>
         <span className="button-text">
           <span className="leveling-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Leveling icon - horizontal lines with bubble in center */}
-              {/* Top line */}
-              <line x1="2" y1="6" x2="10" y2="6" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round"/>
-              {/* Bottom line */}
-              <line x1="2" y1="18" x2="10" y2="18" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round"/>
-              {/* Center bubble (level indicator) */}
-              <circle cx="14" cy="12" r="6" stroke="#3b82f6" strokeWidth="2.5" fill="none"/>
-              <circle cx="14" cy="12" r="2" fill="#3b82f6"/>
-              {/* Right line */}
-              <line x1="20" y1="12" x2="22" y2="12" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round"/>
-            </svg>
+            <img 
+              src={spiritLevelIcon} 
+              alt="Level" 
+              style={{ width: '36px', height: '36px', filter: 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(210deg) brightness(1) contrast(1)' }}
+            />
           </span>
         </span>
       </div>

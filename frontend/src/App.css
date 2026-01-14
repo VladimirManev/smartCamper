@@ -1592,6 +1592,23 @@ body {
   max-width: 100%;
 }
 
+/* ECG Indicator between gauges */
+.ecg-indicator {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: -100px; /* Move much much higher up */
+}
+
+.ecg-svg {
+  display: block;
+}
+
+.ecg-path {
+  transition: stroke 0.3s ease;
+}
+
 .leveling-gauge-container {
   display: flex;
   flex-direction: column;
@@ -1696,7 +1713,7 @@ body {
   
   .leveling-gauges-container {
     flex-direction: row !important;
-    gap: 2rem;
+    gap: 1rem;
     width: 100%;
   }
   
@@ -1720,8 +1737,18 @@ body {
   }
   
   .leveling-gauges-container {
-    gap: 1.5rem;
+    gap: 1rem;
     margin-bottom: 0.5rem;
+  }
+  
+  .ecg-indicator {
+    flex-shrink: 0;
+    margin-top: -80px; /* Move much much higher up in landscape */
+  }
+  
+  .ecg-svg {
+    width: 25px;
+    height: 33px;
   }
   
   .leveling-gauge-container {
