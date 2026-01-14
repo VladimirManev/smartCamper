@@ -250,6 +250,19 @@ function App() {
                   handleDamperPreset(preset);
                 }
               }}
+              onBlur={(e) => {
+                // Reset zoom on iOS Safari after dropdown closes
+                // Force viewport reset by briefly changing scale
+                if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                  const viewport = document.querySelector('meta[name="viewport"]');
+                  if (viewport) {
+                    viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                    setTimeout(() => {
+                      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+                    }, 100);
+                  }
+                }
+              }}
               className="damper-preset-select"
             >
               <option value="Manual">Manual</option>
