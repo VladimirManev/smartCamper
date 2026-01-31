@@ -29,6 +29,11 @@ LEDManager ledManager(&moduleManager);
  * 2. LED-related components (strips, buttons, relays, PIR sensor)
  */
 void setup() {
+  // Initialize power relay pin immediately to prevent floating state during boot
+  // This must be done before any other initialization to ensure relay is OFF at boot
+  pinMode(POWER_RELAY_PIN, OUTPUT);
+  digitalWrite(POWER_RELAY_PIN, LOW);  // OFF at boot
+  
   // Initialize module infrastructure (Network, MQTT, Heartbeat, Commands)
   // CommandHandler is passed to ModuleManager for MQTT command processing
   // Note: LEDManager will set its own MQTT callback in begin() for LED-specific commands

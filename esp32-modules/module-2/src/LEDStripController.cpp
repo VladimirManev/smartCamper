@@ -535,12 +535,7 @@ void LEDStripController::startTransition(uint8_t stripIndex, bool turningOn) {
   StripState& state = stripStates[stripIndex];
   TransitionState& trans = state.transition;
   
-  if (trans.active) {
-    if (DEBUG_SERIAL) {
-      Serial.println("⚠️ startTransition: Strip " + String(stripIndex) + " already has active transition, skipping");
-    }
-    return;
-  }
+  if (trans.active) return;
   
   trans.active = true;
   trans.startTime = millis();
@@ -800,14 +795,8 @@ void LEDStripController::loop() {
   const unsigned long SAFETY_CHECK_INTERVAL = 60000;  // 60 seconds
   if (millis() - lastSafetyCheckTime >= SAFETY_CHECK_INTERVAL) {
     lastSafetyCheckTime = millis();
-    if (DEBUG_SERIAL) {
-      Serial.println("🔍 Safety check: powerRelayOn=" + String(powerRelayOn ? "ON" : "OFF"));
-    }
     if (powerRelayOn) {
       // Only check if relay is ON (no need to check if already OFF)
-      if (DEBUG_SERIAL) {
-        Serial.println("🔍 Safety check: Calling checkAndTurnOffPowerRelay()...");
-      }
       checkAndTurnOffPowerRelay();
     }
   }
@@ -916,9 +905,6 @@ void LEDStripController::turnOffStrip(uint8_t stripIndex) {
   
   // If transition is already active, stop it first (force complete)
   if (state.transition.active) {
-    if (DEBUG_SERIAL) {
-      Serial.println("⚠️ turnOffStrip: Strip " + String(stripIndex) + " has active transition, forcing completion");
-    }
     // Force complete the transition
     state.transition.active = false;
     clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
@@ -931,9 +917,6 @@ void LEDStripController::turnOffStrip(uint8_t stripIndex) {
   }
   
   // Choose transition once and use it for both strips (if Kitchen)
-  if (DEBUG_SERIAL) {
-    Serial.println("🔍 turnOffStrip: Starting transition for strip " + String(stripIndex));
-  }
   startTransition(stripIndex, false);
   
   // Kitchen: copy the same transition to extension strip
@@ -1151,18 +1134,8 @@ void LEDStripController::checkAndTurnOffPowerRelay() {
         stripStates[i].dimmingActive || 
         stripStates[i].blinkActive) {
       allStripsOff = false;
-      if (DEBUG_SERIAL) {
-        Serial.println("🔌 Power relay check: Strip " + String(i) + " is still active (on=" + 
-                       String(stripStates[i].on) + ", transition=" + String(stripStates[i].transition.active) + 
-                       ", dimming=" + String(stripStates[i].dimmingActive) + ", blink=" + 
-                       String(stripStates[i].blinkActive) + ")");
-      }
       break;
     }
-  }
-  
-  if (DEBUG_SERIAL) {
-    Serial.println("🔌 Power relay check result: allStripsOff=" + String(allStripsOff) + ", powerRelayOn=" + String(powerRelayOn));
   }
   
   // If all are OFF and relay is ON → turn it off
@@ -1172,8 +1145,6 @@ void LEDStripController::checkAndTurnOffPowerRelay() {
     if (DEBUG_SERIAL) {
       Serial.println("🔌 Power relay OFF (all strips are OFF)");
     }
-  } else if (DEBUG_SERIAL && powerRelayOn) {
-    Serial.println("🔌 Power relay check: Not turning off (allStripsOff=" + String(allStripsOff) + ", powerRelayOn=" + String(powerRelayOn) + ")");
   }
 }
 

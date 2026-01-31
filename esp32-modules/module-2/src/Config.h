@@ -55,7 +55,7 @@
 #define RELAY_PIN_0 26 // Pin for relay 0 control (OUTPUT)
 
 // Power relay settings (for LED strips power management)
-#define POWER_RELAY_PIN 14              // Pin for power relay control (OUTPUT)
+#define POWER_RELAY_PIN 32              // Pin for power relay control (OUTPUT) - changed from 14 to avoid boot issues
 #define POWER_RELAY_ON_DELAY 100        // 100ms delay after turning on relay (for power stabilization)
 
 // PIR sensor settings (HC-SR501)

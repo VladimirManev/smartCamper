@@ -18,7 +18,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 | **Button 3** | 27 | Input (Pull-up) | Floor relay toggle |
 | **Button 4** | 13 | Input (Pull-up) | Bedroom control (Strip 4) |
 | **Relay 0** | 26 | Output | Floor lighting relay |
-| **Power Relay** | 14 | Output | LED strips power management (10A relay) |
+| **Power Relay** | 32 | Output | LED strips power management (10A relay) |
 | **PIR Sensor** | 2 | Input | Motion detection (Strip 3) |
 
 ### LED Strip Details
