@@ -24,7 +24,9 @@ static LedStrip3 strip3(STRIP_3_LED_COUNT, STRIP_3_PIN);
 static LedStrip4 strip4(STRIP_4_LED_COUNT, STRIP_4_PIN);
 
 LEDStripController::LEDStripController(ModuleManager* moduleMgr) 
-  : moduleManager(moduleMgr) {
+  : moduleManager(moduleMgr), powerRelayOn(false), 
+    waitingForPowerRelayDelay(false), powerRelayOnTime(0), pendingTurnOnStripIndex(255),
+    lastSafetyCheckTime(0), stripStateChangeCallback(nullptr) {
   // Initialize strip states
   for (int i = 0; i < NUM_STRIPS; i++) {
     stripStates[i].on = false;
@@ -129,9 +131,18 @@ void LEDStripController::begin() {
     Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGBW GRBW type) Bedroom");
   }
   
+  // Initialize power relay
+  pinMode(POWER_RELAY_PIN, OUTPUT);
+  digitalWrite(POWER_RELAY_PIN, LOW);  // OFF at boot
+  powerRelayOn = false;
+  waitingForPowerRelayDelay = false;
+  pendingTurnOnStripIndex = 255;
+  lastSafetyCheckTime = 0;
+  
   if (DEBUG_SERIAL) {
     Serial.println("Dimming speed: " + String(DIMMING_SPEED) + " units/sec, Hold threshold: " + String(HOLD_THRESHOLD) + "ms");
     Serial.println("Transitions: " + String(TRANSITION_DURATION) + "ms");
+    Serial.println("🔌 Power relay - Pin: " + String(POWER_RELAY_PIN) + " - OK (initialized OFF)");
     Serial.println("✅ LED Strip Controller Ready!");
   }
 }
@@ -524,7 +535,12 @@ void LEDStripController::startTransition(uint8_t stripIndex, bool turningOn) {
   StripState& state = stripStates[stripIndex];
   TransitionState& trans = state.transition;
   
-  if (trans.active) return;
+  if (trans.active) {
+    if (DEBUG_SERIAL) {
+      Serial.println("⚠️ startTransition: Strip " + String(stripIndex) + " already has active transition, skipping");
+    }
+    return;
+  }
   
   trans.active = true;
   trans.startTime = millis();
@@ -770,6 +786,32 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
 // ============================================================================
 
 void LEDStripController::loop() {
+  // Handle power relay delay after turning on
+  if (waitingForPowerRelayDelay) {
+    if (millis() - powerRelayOnTime >= POWER_RELAY_ON_DELAY) {
+      // Delay expired - turn on the pending strip
+      turnOnStripAfterDelay(pendingTurnOnStripIndex);
+      waitingForPowerRelayDelay = false;
+      pendingTurnOnStripIndex = 255;
+    }
+  }
+  
+  // Safety check: every 60 seconds, verify all strips are off and turn off relay if needed
+  const unsigned long SAFETY_CHECK_INTERVAL = 60000;  // 60 seconds
+  if (millis() - lastSafetyCheckTime >= SAFETY_CHECK_INTERVAL) {
+    lastSafetyCheckTime = millis();
+    if (DEBUG_SERIAL) {
+      Serial.println("🔍 Safety check: powerRelayOn=" + String(powerRelayOn ? "ON" : "OFF"));
+    }
+    if (powerRelayOn) {
+      // Only check if relay is ON (no need to check if already OFF)
+      if (DEBUG_SERIAL) {
+        Serial.println("🔍 Safety check: Calling checkAndTurnOffPowerRelay()...");
+      }
+      checkAndTurnOffPowerRelay();
+    }
+  }
+  
   // Update all strips
   for (int i = 0; i < NUM_STRIPS; i++) {
     if (stripStates[i].transition.active) {
@@ -799,48 +841,65 @@ void LEDStripController::turnOnStrip(uint8_t stripIndex) {
     return;  // Already on
   }
   
-  state.on = true;
+  // Ensure power relay is on before turning on strip
+  ensurePowerRelayOn(stripIndex);
   
-  // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
-    extState.on = true;
-    extState.brightness = state.brightness;
-    if (DEBUG_VERBOSE) {
-      Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
+  // If relay is already ON and not waiting for delay, turn on strip normally
+  if (powerRelayOn && !waitingForPowerRelayDelay) {
+    state.on = true;
+    
+    // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
+    if (stripIndex == 0) {
+      StripState& extState = stripStates[2];
+      extState.on = true;
+      extState.brightness = state.brightness;
+      if (DEBUG_VERBOSE) {
+        Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
+      }
+    }
+    
+    // Choose transition once and use it for both strips (if Kitchen)
+    startTransition(stripIndex, true);
+    
+    // Kitchen: copy the same transition to extension strip
+    if (stripIndex == 0) {
+      StripState& extState = stripStates[2];
+      TransitionState& mainTrans = state.transition;
+      TransitionState& extTrans = extState.transition;
+      
+      // Copy transition from main to extension
+      extTrans.active = mainTrans.active;
+      extTrans.type = mainTrans.type;
+      extTrans.startTime = mainTrans.startTime;
+      extTrans.targetBrightness = mainTrans.targetBrightness;
+      extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
+      extTrans.randomIndex = 0;
+      
+      if (DEBUG_VERBOSE) {
+        Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
+      }
+    }
+    
+    Serial.println("💡 Strip " + String(stripIndex) + " ON (brightness: " + String(state.brightness) + ")");
+    
+    // Call callback to notify that strip state changed (for status publishing)
+    if (stripStateChangeCallback) {
+      stripStateChangeCallback(stripIndex);
     }
   }
-  
-  // Choose transition once and use it for both strips (if Kitchen)
-  startTransition(stripIndex, true);
-  
-  // Kitchen: copy the same transition to extension strip
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
-    TransitionState& mainTrans = state.transition;
-    TransitionState& extTrans = extState.transition;
-    
-    // Copy transition from main to extension
-    extTrans.active = mainTrans.active;
-    extTrans.type = mainTrans.type;
-    extTrans.startTime = mainTrans.startTime;
-    extTrans.targetBrightness = mainTrans.targetBrightness;
-    extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
-    extTrans.randomIndex = 0;
-    
-    if (DEBUG_VERBOSE) {
-      Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
-    }
-  }
-  
-  Serial.println("💡 Strip " + String(stripIndex) + " ON (brightness: " + String(state.brightness) + ")");
+  // If waiting for delay, strip will be turned on in loop() after delay expires
 }
 
 void LEDStripController::turnOffStrip(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
   StripState& state = stripStates[stripIndex];
-  if (!state.on) return;  // Already off
+  if (!state.on) {
+    if (DEBUG_SERIAL) {
+      Serial.println("⚠️ turnOffStrip: Strip " + String(stripIndex) + " is already OFF");
+    }
+    return;  // Already off
+  }
   
   // If in AUTO mode, remember brightness before turning off
   if (state.mode == STRIP_MODE_AUTO) {
@@ -855,7 +914,26 @@ void LEDStripController::turnOffStrip(uint8_t stripIndex) {
     extState.on = false;
   }
   
+  // If transition is already active, stop it first (force complete)
+  if (state.transition.active) {
+    if (DEBUG_SERIAL) {
+      Serial.println("⚠️ turnOffStrip: Strip " + String(stripIndex) + " has active transition, forcing completion");
+    }
+    // Force complete the transition
+    state.transition.active = false;
+    clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
+    showStrip(stripIndex);
+    // Clean up random order if exists
+    if (state.transition.randomOrder != nullptr) {
+      delete[] state.transition.randomOrder;
+      state.transition.randomOrder = nullptr;
+    }
+  }
+  
   // Choose transition once and use it for both strips (if Kitchen)
+  if (DEBUG_SERIAL) {
+    Serial.println("🔍 turnOffStrip: Starting transition for strip " + String(stripIndex));
+  }
   startTransition(stripIndex, false);
   
   // Kitchen: copy the same transition to extension strip
@@ -878,6 +956,11 @@ void LEDStripController::turnOffStrip(uint8_t stripIndex) {
   }
   
   Serial.println("💡 Strip " + String(stripIndex) + " OFF (brightness: " + String(state.brightness) + ")");
+  
+  // Call callback to notify that strip state changed (for status publishing)
+  if (stripStateChangeCallback) {
+    stripStateChangeCallback(stripIndex);
+  }
 }
 
 void LEDStripController::toggleStrip(uint8_t stripIndex) {
@@ -989,6 +1072,9 @@ void LEDStripController::setBrightnessSmooth(uint8_t stripIndex, uint8_t targetB
   // If strip is off, turn it on first (but don't show yet)
   uint8_t startBrightness = state.brightness;
   if (!state.on) {
+    // Ensure power relay is on before turning on strip
+    ensurePowerRelayOn(stripIndex);
+    
     state.on = true;
     startBrightness = 0;  // Start from 0 for smooth fade-in
     
@@ -1035,6 +1121,115 @@ void LEDStripController::setBrightnessSmooth(uint8_t stripIndex, uint8_t targetB
 }
 
 // ============================================================================
+// POWER RELAY MANAGEMENT
+// ============================================================================
+
+void LEDStripController::ensurePowerRelayOn(uint8_t stripIndex) {
+  if (!powerRelayOn) {
+    // Relay is OFF - turn it on
+    powerRelayOn = true;
+    digitalWrite(POWER_RELAY_PIN, HIGH);
+    powerRelayOnTime = millis();
+    waitingForPowerRelayDelay = true;
+    pendingTurnOnStripIndex = stripIndex;
+    // Don't turn on strip yet - will be turned on in loop() after 100ms
+    if (DEBUG_SERIAL) {
+      Serial.println("🔌 Power relay ON (waiting 100ms for stabilization)");
+    }
+  } else if (!waitingForPowerRelayDelay) {
+    // Relay is already ON and not waiting for delay - strip can be turned on immediately
+    // This function only ensures relay is ON, doesn't turn on the strip
+  }
+}
+
+void LEDStripController::checkAndTurnOffPowerRelay() {
+  // Check all strips
+  bool allStripsOff = true;
+  for (int i = 0; i < NUM_STRIPS; i++) {
+    if (stripStates[i].on || 
+        stripStates[i].transition.active || 
+        stripStates[i].dimmingActive || 
+        stripStates[i].blinkActive) {
+      allStripsOff = false;
+      if (DEBUG_SERIAL) {
+        Serial.println("🔌 Power relay check: Strip " + String(i) + " is still active (on=" + 
+                       String(stripStates[i].on) + ", transition=" + String(stripStates[i].transition.active) + 
+                       ", dimming=" + String(stripStates[i].dimmingActive) + ", blink=" + 
+                       String(stripStates[i].blinkActive) + ")");
+      }
+      break;
+    }
+  }
+  
+  if (DEBUG_SERIAL) {
+    Serial.println("🔌 Power relay check result: allStripsOff=" + String(allStripsOff) + ", powerRelayOn=" + String(powerRelayOn));
+  }
+  
+  // If all are OFF and relay is ON → turn it off
+  if (allStripsOff && powerRelayOn) {
+    powerRelayOn = false;
+    digitalWrite(POWER_RELAY_PIN, LOW);
+    if (DEBUG_SERIAL) {
+      Serial.println("🔌 Power relay OFF (all strips are OFF)");
+    }
+  } else if (DEBUG_SERIAL && powerRelayOn) {
+    Serial.println("🔌 Power relay check: Not turning off (allStripsOff=" + String(allStripsOff) + ", powerRelayOn=" + String(powerRelayOn) + ")");
+  }
+}
+
+void LEDStripController::turnOnStripAfterDelay(uint8_t stripIndex) {
+  if (stripIndex >= NUM_STRIPS) return;
+  
+  StripState& state = stripStates[stripIndex];
+  if (state.on) {
+    // Already on, nothing to do
+    return;
+  }
+  
+  // Turn on strip normally (but WITHOUT checking relay again)
+  state.on = true;
+  
+  // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
+  if (stripIndex == 0) {
+    StripState& extState = stripStates[2];
+    extState.on = true;
+    extState.brightness = state.brightness;
+    if (DEBUG_VERBOSE) {
+      Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
+    }
+  }
+  
+  // Choose transition once and use it for both strips (if Kitchen)
+  startTransition(stripIndex, true);
+  
+  // Kitchen: copy the same transition to extension strip
+  if (stripIndex == 0) {
+    StripState& extState = stripStates[2];
+    TransitionState& mainTrans = state.transition;
+    TransitionState& extTrans = extState.transition;
+    
+    // Copy transition from main to extension
+    extTrans.active = mainTrans.active;
+    extTrans.type = mainTrans.type;
+    extTrans.startTime = mainTrans.startTime;
+    extTrans.targetBrightness = mainTrans.targetBrightness;
+    extTrans.randomOrder = nullptr;
+    extTrans.randomIndex = 0;
+    
+    if (DEBUG_VERBOSE) {
+      Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
+    }
+  }
+  
+  Serial.println("💡 Strip " + String(stripIndex) + " ON (brightness: " + String(state.brightness) + ")");
+  
+  // Call callback to notify that strip state changed (for status publishing)
+  if (stripStateChangeCallback) {
+    stripStateChangeCallback(stripIndex);
+  }
+}
+
+// ============================================================================
 // GETTERS
 // ============================================================================
 
@@ -1056,6 +1251,10 @@ bool LEDStripController::isStripOn(uint8_t stripIndex) const {
 uint8_t LEDStripController::getBrightness(uint8_t stripIndex) const {
   if (stripIndex >= NUM_STRIPS) return 0;
   return stripStates[stripIndex].brightness;
+}
+
+void LEDStripController::setStripStateChangeCallback(StripStateChangeCallback callback) {
+  stripStateChangeCallback = callback;
 }
 
 void LEDStripController::printStatus() const {

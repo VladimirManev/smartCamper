@@ -64,6 +64,10 @@ public:
   void publishStripStatus(uint8_t stripIndex);
   void publishRelayStatus();
   
+  // Static callback for LEDStripController strip state changes
+  static void onStripStateChangedStatic(uint8_t stripIndex);
+  void onStripStateChanged(uint8_t stripIndex);
+  
   // Check if any button is pressed (for MQTT command blocking)
   bool isAnyButtonPressed() const;
   

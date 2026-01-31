@@ -106,10 +106,7 @@ void ButtonHandler::processButton(uint8_t btnIndex, unsigned long currentTime) {
           Serial.flush();
           if (ledController) {
             ledController->toggleStrip(stripIndex);
-            // Publish strip status update
-            if (ledManager) {
-              ledManager->publishStripStatus(stripIndex);
-            }
+            // Status will be published via callback from LEDStripController
           }
         }
       }

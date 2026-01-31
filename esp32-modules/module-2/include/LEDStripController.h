@@ -12,6 +12,9 @@
 // Forward declaration
 class ModuleManager;
 
+// Callback function type for strip state changes
+typedef void (*StripStateChangeCallback)(uint8_t stripIndex);
+
 // NeoPixelBus strip type definitions - using different RMT channels
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt0Ws2812xMethod> LedStrip0;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt1Ws2812xMethod> LedStrip1;
@@ -72,6 +75,20 @@ private:
   
   // Update strip with current brightness
   void updateStrip(uint8_t stripIndex);
+  
+  // Power relay management
+  bool powerRelayOn;                      // Relay state (true = ON, false = OFF)
+  bool waitingForPowerRelayDelay;         // Waiting for 100ms delay?
+  unsigned long powerRelayOnTime;         // When relay was turned on (for delay)
+  uint8_t pendingTurnOnStripIndex;        // Which strip is waiting to turn on (255 = invalid)
+  unsigned long lastSafetyCheckTime;      // Last time safety check was performed
+  
+  void ensurePowerRelayOn(uint8_t stripIndex);
+  void checkAndTurnOffPowerRelay();
+  void turnOnStripAfterDelay(uint8_t stripIndex);
+  
+  // Callback for strip state changes (for status publishing)
+  StripStateChangeCallback stripStateChangeCallback;
 
 public:
   LEDStripController(ModuleManager* moduleMgr);
@@ -99,6 +116,9 @@ public:
   
   // Strip configuration getter
   static const StripConfig* getStripConfigs() { return stripConfigs; }
+  
+  // Callback registration
+  void setStripStateChangeCallback(StripStateChangeCallback callback);
   
   // Status
   void printStatus() const;

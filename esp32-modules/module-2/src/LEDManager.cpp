@@ -41,6 +41,9 @@ void LEDManager::begin() {
   // Initialize LED strip controller
   ledStripController.begin();
   
+  // Register callback for strip state changes (for status publishing after delay)
+  ledStripController.setStripStateChangeCallback(LEDManager::onStripStateChangedStatic);
+  
   // Initialize relay controller
   relayController.begin();
   
@@ -169,13 +172,14 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
     
     if (action == "on") {
       ledStripController.turnOnStrip(stripIndex);
-      publishStripStatus(stripIndex);
+      // Status will be published via callback after strip actually turns on
+      // (handles power relay delay case)
     } else if (action == "off") {
       ledStripController.turnOffStrip(stripIndex);
-      publishStripStatus(stripIndex);
+      // Status will be published via callback
     } else if (action == "toggle") {
       ledStripController.toggleStrip(stripIndex);
-      publishStripStatus(stripIndex);
+      // Status will be published via callback
     } else if (action == "brightness") {
       // Parse JSON payload: {"value": 128}
       StaticJsonDocument<200> doc;
@@ -323,6 +327,19 @@ void LEDManager::publishRelayStatus() {
 
 bool LEDManager::isAnyButtonPressed() const {
   return buttonHandler.isAnyButtonPressed();
+}
+
+// Static callback wrapper for LEDStripController
+void LEDManager::onStripStateChangedStatic(uint8_t stripIndex) {
+  if (currentInstance) {
+    currentInstance->onStripStateChanged(stripIndex);
+  }
+}
+
+// Instance callback method - publishes status when strip state changes after delay
+void LEDManager::onStripStateChanged(uint8_t stripIndex) {
+  // Publish status after strip actually turned on (after power relay delay)
+  publishStripStatus(stripIndex);
 }
 
 

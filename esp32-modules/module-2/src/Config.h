@@ -54,6 +54,10 @@
 #define NUM_RELAYS 1   // Number of relays (easily expandable)
 #define RELAY_PIN_0 26 // Pin for relay 0 control (OUTPUT)
 
+// Power relay settings (for LED strips power management)
+#define POWER_RELAY_PIN 14              // Pin for power relay control (OUTPUT)
+#define POWER_RELAY_ON_DELAY 100        // 100ms delay after turning on relay (for power stabilization)
+
 // PIR sensor settings (HC-SR501)
 #define PIR_SENSOR_PIN 2         // Pin for PIR sensor
 #define PIR_MOTION_TIMEOUT 60000 // 60 seconds (1 minute) after last motion detected

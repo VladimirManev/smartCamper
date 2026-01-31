@@ -18,6 +18,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 | **Button 3** | 27 | Input (Pull-up) | Floor relay toggle |
 | **Button 4** | 13 | Input (Pull-up) | Bedroom control (Strip 4) |
 | **Relay 0** | 26 | Output | Floor lighting relay |
+| **Power Relay** | 14 | Output | LED strips power management (10A relay) |
 | **PIR Sensor** | 2 | Input | Motion detection (Strip 3) |
 
 ### LED Strip Details
@@ -73,6 +74,20 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 | `smartcamper/commands/module-2/force_update` | `{}` | Force status update |
 
 ## Features
+
+### Power Relay Management
+
+The module includes a power relay (GPIO 14) that physically cuts power to all LED strips when they are all turned off. This prevents standby power consumption (0.5A+) from WS2812 controllers.
+
+**How it works:**
+- Relay turns ON automatically when any strip is turned on (with 100ms stabilization delay)
+- Relay turns OFF automatically when all strips are off (safety check every 60 seconds)
+- Prevents battery drain when all strips are off
+
+**Safety check:**
+- Every 60 seconds, the system verifies all strips are off
+- If relay is ON and all strips are off, relay is automatically turned off
+- This ensures relay never stays ON unnecessarily
 
 ### Transitions
 - 8 different transition effects (4 for ON, 4 for OFF)
