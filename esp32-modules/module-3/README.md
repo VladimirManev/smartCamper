@@ -23,7 +23,7 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 | **Leveling Sensor SDA** (MPU6050) | 21 | Input/Output | I²C SDA for leveling sensor (GY-521) |
 | **Leveling Sensor SCL** (MPU6050) | 22 | Input/Output | I²C SCL for leveling sensor (GY-521) |
 | **BOOT Button** (Zeroing) | 0 | Input (Pull-up) | Long press (3s) to zero leveling reference |
-| **Built-in LED** (Feedback) | 2 | Output | Visual feedback for zeroing (3 quick blinks) |
+| **Leveling LED** (Feedback) | 16 | Output | Visual feedback for zeroing (3 quick blinks) |
 
 ### Heating Circle Details
 
@@ -73,7 +73,7 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 **Zeroing Function:**
 - **Button:** BOOT button (GPIO 0)
 - **Action:** Long press for 3 seconds to save current position as zero reference
-- **Feedback:** Built-in LED (GPIO 2) blinks 3 times + serial message
+- **Feedback:** Leveling LED (GPIO 16) blinks 3 times + serial message
 - **Storage:** Zero offsets stored in ESP32 Preferences (non-volatile flash)
 
 ### Sensor Specifications

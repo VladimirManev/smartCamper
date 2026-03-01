@@ -75,7 +75,7 @@
 #define LEVELING_TIMEOUT 22000   // 22 seconds - timeout to stop publishing and measuring
 #define LEVELING_ZERO_BUTTON_PIN 0  // GPIO 0 - BOOT button for zeroing leveling
 #define LEVELING_ZERO_BUTTON_HOLD_TIME 3000  // 3 seconds - hold time to zero leveling
-#define LEVELING_LED_PIN 2       // GPIO 2 - Built-in LED for visual feedback
+#define LEVELING_LED_PIN 16      // GPIO 16 - LED for leveling visual feedback
 
 // Circle modes (used by FloorHeatingController and FloorHeatingSensor)
 enum CircleMode

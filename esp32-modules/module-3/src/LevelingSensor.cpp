@@ -49,7 +49,7 @@ void LevelingSensor::begin() {
   // Initialize BOOT button (GPIO 0) for zeroing
   pinMode(LEVELING_ZERO_BUTTON_PIN, INPUT_PULLUP);
   
-  // Initialize LED (GPIO 2) for visual feedback
+  // Initialize LED (GPIO 16) for visual feedback
   pinMode(LEVELING_LED_PIN, OUTPUT);
   digitalWrite(LEVELING_LED_PIN, LOW);
   
@@ -252,7 +252,7 @@ void LevelingSensor::handleZeroButton() {
 }
 
 void LevelingSensor::blinkLED(int times, int duration) {
-  // Blink built-in LED (GPIO 2) for visual feedback
+  // Blink leveling LED (GPIO 16) for visual feedback
   for (int i = 0; i < times; i++) {
     digitalWrite(LEVELING_LED_PIN, HIGH);
     delay(duration);

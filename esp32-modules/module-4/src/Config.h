@@ -33,7 +33,7 @@
 #define NUM_DAMPERS 5 // Number of dampers
 
 // Servo motor pins for each damper (array indices match damper indices)
-#define DAMPER_0_SERVO_PIN 2  // GPIO pin for damper 0 servo signal (Yellow/Orange wire)
+#define DAMPER_0_SERVO_PIN 26  // GPIO pin for damper 0 servo signal (Yellow/Orange wire) - changed from GPIO 2 (reserved for LED)
 #define DAMPER_0_BUTTON_PIN 4 // GPIO pin for damper 0 toggle button
 #define DAMPER_1_SERVO_PIN 5  // GPIO pin for damper 1 servo signal
 #define DAMPER_1_BUTTON_PIN 16 // GPIO pin for damper 1 toggle button

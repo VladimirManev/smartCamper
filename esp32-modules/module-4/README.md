@@ -15,7 +15,7 @@ Module 4 controls:
 
 | Component             | Pin | Type   | Description                                                   |
 | --------------------- | --- | ------ | ------------------------------------------------------------- |
-| **Servo Motor 0**     | 2   | Output | SG90 servo signal for Damper 0 - Front (Yellow/Orange wire)   |
+| **Servo Motor 0**     | 26  | Output | SG90 servo signal for Damper 0 - Front (Yellow/Orange wire) |
 | **Button 0**          | 4   | Input  | Toggle button for Damper 0 - Front (INPUT_PULLUP)             |
 | **Servo Motor 1**     | 5   | Output | SG90 servo signal for Damper 1 - Rear (Yellow/Orange wire)    |
 | **Button 1**          | 16  | Input  | Toggle button for Damper 1 - Rear (INPUT_PULLUP)              |
