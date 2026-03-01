@@ -47,16 +47,14 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
           viewBox="0 0 200 200"
           preserveAspectRatio="xMidYMid meet"
         >
-          {/* Tank outline */}
-          <rect
-            x="45"
-            y="20"
-            width="110"
-            height="160"
+          {/* Tank outline - open at top (no top line) */}
+          <path
+            d="M 45 20 L 45 172 Q 45 180 53 180 L 147 180 Q 155 180 155 172 L 155 20"
             fill="none"
             stroke={accentBlue}
             strokeWidth="8"
-            rx="12"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
 
           {/* Water fill - fills from bottom up */}

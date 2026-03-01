@@ -1,11 +1,48 @@
 # Raspberry Pi - Бързи команди
 
-## Обновяване от Git
+## 🚀 Качване на проекта от локалния компютър (препоръчително)
+
+Този метод работи без интернет връзка. Качва файловете директно от твоя компютър през SSH.
+
+### От локалния компютър:
+
+```bash
+# От директорията на проекта
+cd /path/to/smartCamper
+
+# Основна команда (качва всичко)
+./deploy-to-raspberry.sh
+
+# Опции:
+./deploy-to-raspberry.sh --build-frontend    # Build на frontend преди качване
+./deploy-to-raspberry.sh --skip-frontend     # Пропусни frontend
+./deploy-to-raspberry.sh --skip-backend      # Пропусни backend
+./deploy-to-raspberry.sh --ip 192.168.4.1    # Задай IP адрес
+./deploy-to-raspberry.sh --user pi           # Задай потребител
+```
+
+### Конфигурация:
+
+Отвори `deploy-to-raspberry.sh` и промени тези стойности в началото на файла:
+- `RASPBERRY_IP` - IP адрес на Raspberry Pi (обикновено `192.168.4.1`)
+- `RASPBERRY_USER` - Потребителско име (обикновено `pi`)
+- `SSH_KEY` - Път към SSH ключ (ако е нужно)
+
+### Как работи:
+
+1. Скриптът качва файловете през SSH/rsync
+2. Автоматично изпълнява `update-from-local.sh` на Raspberry Pi
+3. Скриптът на Pi инсталира зависимости и прави build
+4. Рестартира backend service ако е нужно
+
+## Обновяване от Git (старият метод - изисква интернет)
 
 ```bash
 cd ~/smartCamper
 ./update-from-git.sh
 ```
+
+⚠️ **Забележка:** Този метод изисква интернет връзка. За затворена система използвай метода по-горе.
 
 ## Ръчно обновяване (ако скриптът не работи)
 
