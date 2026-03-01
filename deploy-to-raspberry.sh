@@ -375,6 +375,24 @@ if [ -f "$PROJECT_DIR/hostapd.conf" ]; then
         "$PROJECT_DIR/hostapd.conf" \
         "${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}/"
 fi
+
+if [ -f "$PROJECT_DIR/shutdown-button.py" ]; then
+    eval rsync -avz --progress $RSYNC_SSH_OPTS \
+        "$PROJECT_DIR/shutdown-button.py" \
+        "${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}/"
+fi
+
+if [ -f "$PROJECT_DIR/shutdown-button.service" ]; then
+    eval rsync -avz --progress $RSYNC_SSH_OPTS \
+        "$PROJECT_DIR/shutdown-button.service" \
+        "${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}/"
+fi
+
+if [ -f "$PROJECT_DIR/install-shutdown-button.sh" ]; then
+    eval rsync -avz --progress $RSYNC_SSH_OPTS \
+        "$PROJECT_DIR/install-shutdown-button.sh" \
+        "${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}/"
+fi
 echo ""
 
 # Clean up exclude file
