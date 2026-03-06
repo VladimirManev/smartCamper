@@ -52,6 +52,10 @@ const sensorDataHandler = (io, topic, message) => {
       }
       return handleTable(io, topicParts, message);
     
+    case "module-5":
+      // Module-5 is the appliance controller module (Audio System, Water Pump, Refrigerator)
+      return handleAppliance(io, topicParts, message);
+    
     case "errors":
       // Error topics: smartcamper/errors/{module-id}/{component-type}/{component-id}
       return handleErrorTopic(io, topicParts, message);
@@ -343,6 +347,34 @@ function handleTable(io, topicParts, message) {
       }
     } catch (error) {
       console.log(`❌ Failed to parse table status JSON: ${error.message}`);
+      return true; // Handled, but error
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Handle appliance status data
+ * Format: smartcamper/sensors/module-5/status (JSON)
+ */
+function handleAppliance(io, topicParts, message) {
+  // Format: smartcamper/sensors/module-5/status (JSON)
+  if (topicParts.length >= 4 && topicParts[3] === "status") {
+    try {
+      const statusData = JSON.parse(message);
+      
+      // Forward the status data as-is from module
+      // Module publishes: {"relays": {"0": {"state": "ON"}, "1": {"state": "OFF"}, "2": {"state": "ON"}}}
+      io.emit("applianceStatusUpdate", {
+        type: "full",
+        data: statusData,
+        timestamp: new Date().toISOString(),
+      });
+      
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse appliance status JSON: ${error.message}`);
       return true; // Handled, but error
     }
   }

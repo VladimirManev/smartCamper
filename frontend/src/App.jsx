@@ -13,6 +13,7 @@ import { useFloorHeating } from "./hooks/useFloorHeating";
 import { useDamperController } from "./hooks/useDamperController";
 import { useTableController } from "./hooks/useTableController";
 import { useLeveling } from "./hooks/useLeveling";
+import { useApplianceController } from "./hooks/useApplianceController";
 import { StatusIcons } from "./components/StatusIcons";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
@@ -79,8 +80,14 @@ function App() {
   // Check if module-4 is online (base module - ready for extension)
   const isModule4Online = isModuleOnline("module-4");
 
+  // Check if module-5 is online (appliance controller)
+  const isModule5Online = isModuleOnline("module-5");
+
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
+
+  // Appliance controller
+  const { appliances, sendApplianceCommand } = useApplianceController(socket);
 
   // Floor heating controller
   const { circles, sendFloorHeatingCommand } = useFloorHeating(socket);
@@ -523,6 +530,20 @@ function App() {
     });
   };
 
+  // Appliance command handlers
+  const handleApplianceToggle = (index) => {
+    // Don't send command if module is offline
+    if (!isModule5Online) {
+      return;
+    }
+    
+    sendApplianceCommand({
+      type: "relay",
+      index: index,
+      action: "toggle",
+    });
+  };
+
   // Floor heating command handlers
   const handleCircleToggle = (index) => {
     // Don't send command if module is offline
@@ -886,6 +907,76 @@ function App() {
             disabled={!isModule1Online}
           />
           <p className="card-label">Gray Water</p>
+        </div>
+
+        {/* Audio System */}
+        <div className="card-wrapper">
+          <LEDCard
+            name="Audio"
+            strip={appliances[0]}
+            onClick={() => handleApplianceToggle(0)}
+            onLongPress={() => openModal("led", "Audio", { strip: appliances[0], type: "relay", index: 0 })}
+            type="relay"
+            icon="audio"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Audio</p>
+        </div>
+
+        {/* Water Pump */}
+        <div className="card-wrapper">
+          <LEDCard
+            name="Pump"
+            strip={appliances[1]}
+            onClick={() => handleApplianceToggle(1)}
+            onLongPress={() => openModal("led", "Pump", { strip: appliances[1], type: "relay", index: 1 })}
+            type="relay"
+            icon="pump"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Pump</p>
+        </div>
+
+        {/* Refrigerator */}
+        <div className="card-wrapper">
+          <LEDCard
+            name="Fridge"
+            strip={appliances[2]}
+            onClick={() => handleApplianceToggle(2)}
+            onLongPress={() => openModal("led", "Fridge", { strip: appliances[2], type: "relay", index: 2 })}
+            type="relay"
+            icon="fridge"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Fridge</p>
+        </div>
+
+        {/* WC Fan */}
+        <div className="card-wrapper">
+          <LEDCard
+            name="WC Fan"
+            strip={appliances[3]}
+            onClick={() => handleApplianceToggle(3)}
+            onLongPress={() => openModal("led", "WC Fan", { strip: appliances[3], type: "relay", index: 3 })}
+            type="relay"
+            icon="fan"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">WC Fan</p>
+        </div>
+
+        {/* Boiler */}
+        <div className="card-wrapper">
+          <LEDCard
+            name="Boiler"
+            strip={appliances[4]}
+            onClick={() => handleApplianceToggle(4)}
+            onLongPress={() => openModal("led", "Boiler", { strip: appliances[4], type: "relay", index: 4 })}
+            type="relay"
+            icon="boiler"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Boiler</p>
         </div>
       </div>
       </div>

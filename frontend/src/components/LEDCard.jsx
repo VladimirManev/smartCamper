@@ -17,8 +17,9 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {string} props.type - Type: "strip" or "relay" (default: "strip")
  * @param {boolean} props.disabled - Whether the LED control is disabled/offline
+ * @param {string} props.icon - Icon type: "bulb" (default), "audio", "pump", "fridge", "fan", "boiler"
  */
-export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false }) => {
+export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false, icon = "bulb" }) => {
   const isOn = strip?.state === "ON";
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
@@ -61,8 +62,8 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
 
   // Determine display text or icon
   const displayText = mode === "AUTO" ? "AUTO" : strip?.state || "OFF";
-  const showBulbIcon = displayText === "OFF" || displayText === "ON";
-  const isBulbOn = isOn && displayText === "ON";
+  const showIcon = displayText === "OFF" || displayText === "ON";
+  const isIconOn = isOn && displayText === "ON";
 
   // Generate unique gradient ID based on name and type
   // Use a simple hash to ensure uniqueness
@@ -134,14 +135,61 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
           </svg>
         )}
         <span className="button-text">
-          {showBulbIcon ? (
-            <span className={`bulb-icon ${isBulbOn ? "bulb-on" : ""}`} style={{ color: isBulbOn ? accentBlue : "var(--color-text-secondary)" }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Light bulb icon - simple and clean */}
-                <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill={isBulbOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+          {showIcon ? (
+            <span className={`bulb-icon ${isIconOn ? "bulb-on" : ""}`} style={{ color: isIconOn ? accentBlue : "var(--color-text-secondary)" }}>
+              {icon === "audio" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Speaker icon */}
+                  <path d="M12 3L7 8H3v8h4l5 5V3z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M17 9c1.5 1.5 1.5 4 0 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 6c2.5 2.5 2.5 6.5 0 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : icon === "pump" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Large water drop icon - pointed at top, wide at bottom */}
+                  <path d="M12 2c0 0-7 8-7 12 0 4 3 7 7 7s7-3 7-7c0-4-7-12-7-12z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : icon === "fridge" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Snowflake icon */}
+                  <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="5.64" y1="5.64" x2="18.36" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="18.36" y1="5.64" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="6" y1="12" x2="3" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="6" y1="12" x2="3" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="18" y1="12" x2="21" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="18" y1="12" x2="21" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="12" y1="6" x2="9" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="12" y1="6" x2="15" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="12" y1="18" x2="9" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="12" y1="18" x2="15" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx="12" cy="12" r="1.5" fill={isIconOn ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5"/>
+                </svg>
+              ) : icon === "fan" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Fan icon - spiral/wind pattern */}
+                  <path d="M12 2 Q16 6 18 12 Q16 18 12 20 Q8 18 6 12 Q8 6 12 2" stroke="currentColor" strokeWidth="2.5" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="12" r="2" fill={isIconOn ? "var(--color-bg-primary)" : "currentColor"} opacity={isIconOn ? 0.9 : 1}/>
+                </svg>
+              ) : icon === "boiler" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Extra large horizontal boiler icon - empty inside, flame outside */}
+                  <rect x="0" y="5" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Flame outside on the left */}
+                  <path d="M0 10 Q-2 8 0 6 Q-1 8 0 10" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                  {isIconOn && (
+                    <path d="M0 9 Q-1 8 0 7" stroke="var(--color-bg-primary)" strokeWidth="1.5" fill="var(--color-bg-primary)" opacity="0.9"/>
+                  )}
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Light bulb icon - simple and clean */}
+                  <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              )}
             </span>
           ) : (
             displayText

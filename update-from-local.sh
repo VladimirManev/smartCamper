@@ -32,6 +32,14 @@ if [ -d "frontend" ]; then
     if [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ] || \
        ([ -f "frontend/package.json" ] && [ "frontend/package.json" -nt "frontend/dist" ]); then
         FRONTEND_NEEDS_BUILD=true
+    else
+        # Also check if any source files are newer than dist (jsx, js, css files)
+        if [ -d "frontend/dist" ]; then
+            # Check if any source file is newer than dist
+            if find frontend/src -type f \( -name "*.jsx" -o -name "*.js" -o -name "*.css" \) -newer frontend/dist 2>/dev/null | grep -q .; then
+                FRONTEND_NEEDS_BUILD=true
+            fi
+        fi
     fi
 fi
 
@@ -101,20 +109,32 @@ fi
 # Restart backend service if needed
 if [ "$BACKEND_NEEDS_RESTART" = true ] || [ "$FRONTEND_NEEDS_BUILD" = true ]; then
     echo -e "${YELLOW}🔄 Restarting backend service...${NC}"
+    # Temporarily disable set -e for this section to handle errors gracefully
+    set +e
     sudo systemctl restart smartcamper-backend
+    RESTART_EXIT_CODE=$?
+    set -e
     
-    # Check status
-    sleep 2
-    if sudo systemctl is-active --quiet smartcamper-backend; then
-        echo -e "${GREEN}✅ Backend service restarted successfully!${NC}"
+    if [ $RESTART_EXIT_CODE -eq 0 ]; then
+        # Check status
+        sleep 2
+        if sudo systemctl is-active --quiet smartcamper-backend; then
+            echo -e "${GREEN}✅ Backend service restarted successfully!${NC}"
+        else
+            echo -e "${RED}❌ Backend service is not running! Check logs:${NC}"
+            echo -e "${YELLOW}   sudo journalctl -u smartcamper-backend -n 50${NC}"
+            exit 1
+        fi
     else
-        echo -e "${RED}❌ Backend service is not running! Check logs:${NC}"
-        echo -e "${YELLOW}   sudo journalctl -u smartcamper-backend -n 50${NC}"
+        echo -e "${RED}❌ Failed to restart backend service! (exit code: $RESTART_EXIT_CODE)${NC}"
+        echo -e "${YELLOW}   Check permissions and service status:${NC}"
+        echo -e "${YELLOW}   sudo systemctl status smartcamper-backend${NC}"
         exit 1
     fi
 else
     echo -e "${GREEN}✅ No restart needed.${NC}"
 fi
 
+echo ""
 echo -e "${GREEN}✨ Update completed successfully!${NC}"
 echo -e "${YELLOW}📡 Application is available at: http://192.168.4.1:3000${NC}"

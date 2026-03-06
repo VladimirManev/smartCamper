@@ -12,6 +12,7 @@ const floorHeatingCommandHandler = require("./handlers/floorHeatingCommandHandle
 const levelingCommandHandler = require("./handlers/levelingCommandHandler");
 const damperCommandHandler = require("./handlers/damperCommandHandler");
 const tableCommandHandler = require("./handlers/tableCommandHandler");
+const applianceCommandHandler = require("./handlers/applianceCommandHandler");
 const { sendForceUpdateToAllOnline } = require("./handlers/moduleCommandHandler");
 
 const setupSocketIO = (io, aedes) => {
@@ -98,6 +99,11 @@ const setupSocketIO = (io, aedes) => {
     // Handle table commands from frontend
     socket.on("tableCommand", (data) => {
       tableCommandHandler(socket, aedes, data);
+    });
+
+    // Handle appliance commands from frontend
+    socket.on("applianceCommand", (data) => {
+      applianceCommandHandler(socket, aedes, data);
     });
 
     // When frontend disconnects
