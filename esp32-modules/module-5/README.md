@@ -1,6 +1,6 @@
 # Module-5: Appliance Controller
 
-ESP32 module for controlling five appliances via relays: Audio System, Water Pump, Refrigerator, WC Fan, and Boiler.
+ESP32 module for controlling six appliances via relays: Audio System, Water Pump, Refrigerator, WC Fan, Boiler, and Inverter.
 
 ## Hardware Configuration
 
@@ -13,11 +13,13 @@ ESP32 module for controlling five appliances via relays: Audio System, Water Pum
 | **Relay 2** (Refrigerator)   | 16  | Output          | Relay control for refrigerator |
 | **Relay 3** (WC Fan)         | 23  | Output          | Relay control for WC fan       |
 | **Relay 4** (Boiler)         | 27  | Output          | Relay control for boiler       |
+| **Relay 5** (Inverter)       | 32  | Output          | Relay control for inverter      |
 | **Button 0** (Audio System)  | 17  | Input (Pull-up) | Manual toggle for relay 0       |
 | **Button 1** (Water Pump)   | 21  | Input (Pull-up) | Manual toggle for relay 1       |
 | **Button 2** (Refrigerator)  | 22  | Input (Pull-up) | Manual toggle for relay 2       |
 | **Button 3** (WC Fan)         | 25  | Input (Pull-up) | Manual toggle for relay 3       |
 | **Button 4** (Boiler)        | 26  | Input (Pull-up) | Manual toggle for relay 4       |
+| **Button 5** (Inverter)      | 33  | Input (Pull-up) | Manual toggle for relay 5       |
 
 ### Appliance Details
 
@@ -28,6 +30,7 @@ ESP32 module for controlling five appliances via relays: Audio System, Water Pum
 | **2** | Refrigerator  | 16        | 22          | Refrigerator control       |
 | **3** | WC Fan        | 23        | 25          | WC fan control             |
 | **4** | Boiler        | 27        | 26          | Boiler control             |
+| **5** | Inverter      | 32        | 33          | Inverter control           |
 
 ### Button Functions
 
@@ -61,10 +64,11 @@ ESP32 module for controlling five appliances via relays: Audio System, Water Pum
 
 ### Command Format
 
-- `{index}` can be 0, 1, 2, 3, or 4 (for the five relays)
+- `{index}` can be 0, 1, 2, 3, 4, or 5 (for the six relays)
 - Example: `smartcamper/commands/module-5/relay/0/toggle` - toggles relay 0 (Audio System)
 - Example: `smartcamper/commands/module-5/relay/3/toggle` - toggles relay 3 (WC Fan)
 - Example: `smartcamper/commands/module-5/relay/4/toggle` - toggles relay 4 (Boiler)
+- Example: `smartcamper/commands/module-5/relay/5/toggle` - toggles relay 5 (Inverter)
 
 ## Features
 
@@ -110,13 +114,13 @@ ESP32 module for controlling five appliances via relays: Audio System, Water Pum
 ### Relays not working
 
 - Check relay power supply (12V DC)
-- Check relay connections (pins 14, 15, 16, 23, 27)
+- Check relay connections (pins 14, 15, 16, 23, 27, 32)
 - Check serial output for errors
 - Ensure proper ground connection between ESP32 and relays
 
 ### Buttons not working
 
-- Check button connections (pins 17, 21, 22, 25, 26)
+- Check button connections (pins 17, 21, 22, 25, 26, 33)
 - Check pull-up resistors (internal pull-ups are used)
 - Test with multimeter (button should connect pin to GND when pressed)
 - Check serial output for press messages

@@ -18,6 +18,7 @@ export const useApplianceController = (socket) => {
     2: { state: "OFF" }, // Refrigerator
     3: { state: "OFF" }, // WC Fan
     4: { state: "OFF" }, // Boiler
+    5: { state: "OFF" }, // Inverter
   });
 
   useEffect(() => {

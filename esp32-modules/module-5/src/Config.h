@@ -29,7 +29,7 @@
 #define WIFI_PING_TIMEOUT 1000    // 1 second timeout for ping
 
 // Appliance Relay Configuration (Module 5 specific)
-#define NUM_RELAYS 5 // Number of appliance relays
+#define NUM_RELAYS 6 // Number of appliance relays
 
 // Relay pins (for controlling appliances)
 #define RELAY_PIN_0 14 // GPIO pin for relay 0 (Audio System)
@@ -37,6 +37,7 @@
 #define RELAY_PIN_2 16 // GPIO pin for relay 2 (Refrigerator)
 #define RELAY_PIN_3 23 // GPIO pin for relay 3 (WC Fan)
 #define RELAY_PIN_4 27 // GPIO pin for relay 4 (Boiler)
+#define RELAY_PIN_5 32 // GPIO pin for relay 5 (Inverter)
 
 // Button pins (for manual control - toggle buttons)
 #define BUTTON_PIN_0 17 // GPIO pin for button 0 (Audio System)
@@ -44,8 +45,9 @@
 #define BUTTON_PIN_2 22 // GPIO pin for button 2 (Refrigerator)
 #define BUTTON_PIN_3 25 // GPIO pin for button 3 (WC Fan)
 #define BUTTON_PIN_4 26 // GPIO pin for button 4 (Boiler)
+#define BUTTON_PIN_5 33 // GPIO pin for button 5 (Inverter)
 
-#define NUM_BUTTONS 5 // Number of buttons
+#define NUM_BUTTONS 6 // Number of buttons
 
 // Appliance names (for identification)
 // Relay 0: Audio System
@@ -53,6 +55,7 @@
 // Relay 2: Refrigerator
 // Relay 3: WC Fan
 // Relay 4: Boiler
+// Relay 5: Inverter
 
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output

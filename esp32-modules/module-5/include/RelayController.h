@@ -10,7 +10,7 @@
 class RelayController {
 private:
   bool relayStates[NUM_RELAYS];
-  uint8_t relayPins[NUM_RELAYS] = {RELAY_PIN_0, RELAY_PIN_1, RELAY_PIN_2, RELAY_PIN_3, RELAY_PIN_4};
+  uint8_t relayPins[NUM_RELAYS] = {RELAY_PIN_0, RELAY_PIN_1, RELAY_PIN_2, RELAY_PIN_3, RELAY_PIN_4, RELAY_PIN_5};
   
 public:
   RelayController();

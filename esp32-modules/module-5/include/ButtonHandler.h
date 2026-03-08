@@ -37,7 +37,7 @@ private:
   ButtonStateMachine buttons[NUM_BUTTONS];
   
   // Button configuration - maps button index to relay index
-  uint8_t buttonRelayMap[NUM_BUTTONS] = {0, 1, 2, 3, 4};  // Button 0 -> Relay 0, Button 1 -> Relay 1, Button 2 -> Relay 2, Button 3 -> Relay 3, Button 4 -> Relay 4
+  uint8_t buttonRelayMap[NUM_BUTTONS] = {0, 1, 2, 3, 4, 5};  // Button 0 -> Relay 0, Button 1 -> Relay 1, Button 2 -> Relay 2, Button 3 -> Relay 3, Button 4 -> Relay 4, Button 5 -> Relay 5
   
   void processButton(uint8_t btnIndex, unsigned long currentTime);
   

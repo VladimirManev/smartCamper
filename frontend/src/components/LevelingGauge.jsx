@@ -30,8 +30,8 @@ export const LevelingGauge = ({ label, angle, axis }) => {
     // Update on mount
     updateColors();
     
-    // Update periodically to catch theme changes
-    const interval = setInterval(updateColors, 100);
+    // Update periodically to catch theme changes (reduced frequency for better performance)
+    const interval = setInterval(updateColors, 2000); // 2 seconds instead of 100ms
     
     return () => clearInterval(interval);
   }, []);

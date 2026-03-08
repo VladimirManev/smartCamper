@@ -28,8 +28,8 @@ export const SettingsCard = ({ name, onClick, onLongPress, disabled = false }) =
     // Update on mount
     updateColor();
     
-    // Update periodically to catch theme changes
-    const interval = setInterval(updateColor, 100);
+    // Update periodically to catch theme changes (reduced frequency for better performance)
+    const interval = setInterval(updateColor, 2000); // 2 seconds instead of 100ms
     
     return () => clearInterval(interval);
   }, []);

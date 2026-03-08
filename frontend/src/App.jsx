@@ -4,7 +4,7 @@
  * Uses custom hooks and components for separation of concerns
  */
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { useSocket } from "./hooks/useSocket";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
@@ -40,26 +40,29 @@ function App() {
   // Socket connection
   const { socket, connected } = useSocket();
 
-  // Date state
+  // Date state - update less frequently for better performance
   const [date, setDate] = useState(new Date());
   
   useEffect(() => {
     const timer = setInterval(() => {
       setDate(new Date());
-    }, 1000);
+    }, 60000); // Update every minute instead of every second (date doesn't change that often)
     return () => clearInterval(timer);
   }, []);
 
-  // Format date
-  const day = date.getDate();
-  const monthNames = [
-    "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-    "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
-  ];
-  const month = monthNames[date.getMonth()];
-  const dateString = `${day} ${month}`;
-  const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  const dayName = dayNames[date.getDay()];
+  // Format date - memoized to prevent recalculation on every render
+  const { day, month, dateString, dayName } = useMemo(() => {
+    const day = date.getDate();
+    const monthNames = [
+      "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+      "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+    ];
+    const month = monthNames[date.getMonth()];
+    const dateString = `${day} ${month}`;
+    const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    const dayName = dayNames[date.getDay()];
+    return { day, month, dateString, dayName };
+  }, [date]);
 
   // Module status tracking (from heartbeat system)
   const { isModuleOnline, moduleStatuses } = useModuleStatus(socket);
@@ -977,6 +980,20 @@ function App() {
             disabled={!isModule5Online}
           />
           <p className="card-label">Boiler</p>
+        </div>
+
+        {/* Inverter */}
+        <div className="card-wrapper">
+          <LEDCard
+            name="Inverter"
+            strip={appliances[5]}
+            onClick={() => handleApplianceToggle(5)}
+            onLongPress={() => openModal("led", "Inverter", { strip: appliances[5], type: "relay", index: 5 })}
+            type="relay"
+            icon="inverter"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Inverter</p>
         </div>
       </div>
       </div>

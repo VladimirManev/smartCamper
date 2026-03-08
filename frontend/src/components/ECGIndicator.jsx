@@ -28,8 +28,8 @@ export const ECGIndicator = ({ lastDataTimestamp }) => {
 
     checkDataFreshness();
     
-    // Check every 100ms for smooth color transitions
-    const interval = setInterval(checkDataFreshness, 100);
+    // Check every 500ms for smooth color transitions (reduced for better performance)
+    const interval = setInterval(checkDataFreshness, 500); // 500ms instead of 100ms
 
     return () => clearInterval(interval);
   }, [lastDataTimestamp]);

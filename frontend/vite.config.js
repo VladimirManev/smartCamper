@@ -4,6 +4,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    target: ['es2015', 'safari12'], // Поддръжка за по-стари браузъри включително iPhone 6 Plus
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false, // Запазваме console.log за debugging
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

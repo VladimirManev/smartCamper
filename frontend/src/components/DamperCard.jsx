@@ -3,6 +3,7 @@
  * Displays and controls a single damper (air vent)
  */
 
+import { memo } from "react";
 import { useLongPress } from "../hooks/useLongPress";
 
 /**
@@ -14,7 +15,7 @@ import { useLongPress } from "../hooks/useLongPress";
  * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {boolean} props.disabled - Whether the damper control is disabled/offline
  */
-export const DamperCard = ({ name, damper, onClick, onLongPress, disabled = false }) => {
+const DamperCardComponent = ({ name, damper, onClick, onLongPress, disabled = false }) => {
   const angle = damper?.angle || 0;
   
   // Determine damper state: 0° (closed), 45° (half-open), 90° (open)
@@ -111,3 +112,5 @@ export const DamperCard = ({ name, damper, onClick, onLongPress, disabled = fals
   );
 };
 
+// Memoize component to prevent unnecessary re-renders
+export const DamperCard = memo(DamperCardComponent);

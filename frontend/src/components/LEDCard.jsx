@@ -5,7 +5,7 @@
 
 import { getArcProgress } from "../utils/arcProgress";
 import { useLongPress } from "../hooks/useLongPress";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { getThemeColor } from "../utils/getThemeColor";
 
 /**
@@ -19,7 +19,7 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {boolean} props.disabled - Whether the LED control is disabled/offline
  * @param {string} props.icon - Icon type: "bulb" (default), "audio", "pump", "fridge", "fan", "boiler"
  */
-export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false, icon = "bulb" }) => {
+const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false, icon = "bulb" }) => {
   const isOn = strip?.state === "ON";
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
@@ -37,8 +37,8 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
     // Update on mount
     updateColors();
     
-    // Update periodically to catch theme changes
-    const interval = setInterval(updateColors, 100);
+    // Update periodically to catch theme changes (reduced frequency for better performance)
+    const interval = setInterval(updateColors, 2000); // 2 seconds instead of 100ms
     
     return () => clearInterval(interval);
   }, []);
@@ -200,3 +200,5 @@ export const LEDCard = ({ name, strip, onClick, onLongPress, type = "strip", dis
   );
 };
 
+// Memoize component to prevent unnecessary re-renders
+export const LEDCard = memo(LEDCardComponent);

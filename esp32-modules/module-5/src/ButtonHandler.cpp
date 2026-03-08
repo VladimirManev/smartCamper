@@ -19,8 +19,10 @@ ButtonHandler::ButtonHandler(RelayController* relayCtrl)
       buttons[i].pin = BUTTON_PIN_2;
     } else if (i == 3) {
       buttons[i].pin = BUTTON_PIN_3;
-    } else {
+    } else if (i == 4) {
       buttons[i].pin = BUTTON_PIN_4;
+    } else {
+      buttons[i].pin = BUTTON_PIN_5;
     }
     buttons[i].relayIndex = buttonRelayMap[i];
     buttons[i].lastRawReading = false;

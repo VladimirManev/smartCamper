@@ -3,7 +3,7 @@
  * Displays and controls a single floor heating circle
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useLongPress } from "../hooks/useLongPress";
 import { getThemeColor } from "../utils/getThemeColor";
 
@@ -16,7 +16,7 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
-export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled = false }) => {
+const FloorHeatingCardComponent = ({ name, circle, onClick, onLongPress, disabled = false }) => {
   // Get theme colors
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
@@ -30,8 +30,8 @@ export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled 
     // Update on mount
     updateColors();
     
-    // Update periodically to catch theme changes
-    const interval = setInterval(updateColors, 100);
+    // Update periodically to catch theme changes (reduced frequency for better performance)
+    const interval = setInterval(updateColors, 2000); // 2 seconds instead of 100ms
     
     return () => clearInterval(interval);
   }, []);
@@ -124,3 +124,5 @@ export const FloorHeatingCard = ({ name, circle, onClick, onLongPress, disabled 
   );
 };
 
+// Memoize component to prevent unnecessary re-renders
+export const FloorHeatingCard = memo(FloorHeatingCardComponent);
