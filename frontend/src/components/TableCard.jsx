@@ -7,6 +7,7 @@
  */
 
 import { useRef, useEffect } from "react";
+import { Card } from "./Card";
 
 /**
  * TableCard component
@@ -46,13 +47,13 @@ export const TableCard = ({
   const DEBOUNCE_DELAY = 300; // ms - prevent rapid double clicks
   const MAX_TOUCH_MOVE = 15; // pixels - max movement to consider it a tap (not drag)
   
-  // Determine button class and color
+  // Determine button class and icon class
   let buttonClass = "neumorphic-button";
-  let iconColor = "var(--color-accent-gray)"; // Gray when inactive
+  let iconClass = "icon-gray"; // Gray when inactive
   
   if (isActive) {
     buttonClass += " on";
-    iconColor = "var(--color-accent-blue)"; // Blue when active
+    iconClass = "icon-active"; // Active icon color
   } else {
     buttonClass += " off";
   }
@@ -243,50 +244,111 @@ export const TableCard = ({
     }
   }
   
+  // Table icon SVG
+  const tableIcon = (
+    <svg className="table-icon" viewBox="0 0 100 100">
+      {/* Table (horizontal line) */}
+      <line
+        x1="20"
+        y1="50"
+        x2="80"
+        y2="50"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      {/* Arrow(s) - single or double (stacked) based on isAuto */}
+      <polygon
+        points={arrowPoints1}
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        strokeLinejoin="round"
+      />
+      {arrowPoints2 && (
+        <polygon
+          points={arrowPoints2}
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="0.5"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
+  );
+
+  // Determine button state and icon state
+  const buttonState = isActive ? "on" : "off";
+  const iconState = isActive ? "active" : "gray";
+
+  // Custom handlers for hold mode (includes global event listeners)
+  const customHandlers = isHoldMode ? {
+    onMouseDown: handleMouseDown,
+    onMouseUp: handleMouseUp,
+    onMouseLeave: handleMouseLeave,
+    onTouchStart: handleTouchStart,
+    onTouchEnd: handleTouchEnd,
+    onTouchCancel: handleHoldEnd,
+  } : {
+    onClick: handleClick,
+    onTouchStart: handleTouchStart,
+    onTouchEnd: handleTouchEnd,
+  };
+
+  // Global event listeners for hold mode
+  useEffect(() => {
+    if (!isHoldMode || !isHoldingRef.current) return;
+
+    const handleGlobalMouseUp = (e) => {
+      if (isHoldingRef.current) {
+        isHoldingRef.current = false;
+        if (onHoldEnd) {
+          onHoldEnd();
+        }
+      }
+    };
+
+    const handleGlobalTouchEnd = (e) => {
+      if (isHoldingRef.current) {
+        isHoldingRef.current = false;
+        if (onHoldEnd) {
+          onHoldEnd();
+        }
+      }
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('touchend', handleGlobalTouchEnd);
+    document.addEventListener('touchcancel', handleGlobalTouchEnd);
+
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+      document.removeEventListener('touchcancel', handleGlobalTouchEnd);
+    };
+  }, [isHoldMode, onHoldEnd]);
+
+  // Cleanup: stop movement if disabled while holding
+  useEffect(() => {
+    if (disabled && isHoldingRef.current && isHoldMode && onHoldEnd) {
+      isHoldingRef.current = false;
+      onHoldEnd();
+    }
+  }, [disabled, isHoldMode, onHoldEnd]);
+  
   return (
-    <div 
-      className={`led-card ${disabled ? "disabled" : ""}`}
-      onClick={isHoldMode ? undefined : handleClick}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={isHoldMode ? handleHoldEnd : undefined}
-    >
-      <p className="led-name">{name}</p>
-      <div className={buttonClass} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <svg className="table-icon" viewBox="0 0 100 100" width="100" height="100" style={{ display: 'block' }}>
-          {/* Table (horizontal line) */}
-          <line
-            x1="20"
-            y1="50"
-            x2="80"
-            y2="50"
-            stroke={iconColor}
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          {/* Arrow(s) - single or double (stacked) based on isAuto */}
-          <polygon
-            points={arrowPoints1}
-            fill={iconColor}
-            stroke={iconColor}
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          {arrowPoints2 && (
-            <polygon
-              points={arrowPoints2}
-              fill={iconColor}
-              stroke={iconColor}
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
-      </div>
-    </div>
+    <Card
+      name={name}
+      icon={tableIcon}
+      buttonState={buttonState}
+      iconState={iconState}
+      onClick={isHoldMode ? undefined : onClick}
+      onHoldStart={onHoldStart}
+      onHoldEnd={onHoldEnd}
+      disabled={disabled}
+      mode={isHoldMode ? "hold" : "click"}
+      customHandlers={customHandlers}
+    />
   );
 };
 

@@ -4,9 +4,9 @@
  */
 
 import { getArcProgress } from "../utils/arcProgress";
-import { useLongPress } from "../hooks/useLongPress";
 import { useEffect, useState, memo } from "react";
 import { getThemeColor } from "../utils/getThemeColor";
+import { Card } from "./Card";
 
 /**
  * LEDCard component
@@ -24,7 +24,7 @@ const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", d
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
   
-  // Get theme colors for gradients
+  // Get theme colors for gradients only
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
   
@@ -66,31 +66,75 @@ const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", d
   const isIconOn = isOn && displayText === "ON";
 
   // Generate unique gradient ID based on name and type
-  // Use a simple hash to ensure uniqueness
   const gradientId = `gradient-${name.toLowerCase().replace(/\s+/g, "-")}-${type}`;
 
-  // Handle click - don't do anything if disabled
-  const handleClick = () => {
-    if (!disabled && onClick) {
-      onClick();
-    }
+  // Determine button state and icon state
+  const buttonState = mode === "AUTO" ? "auto" : (isOn ? "on" : "off");
+  const iconState = isIconOn ? "active" : "inactive";
+
+  // Render icon based on type
+  const renderIcon = () => {
+    if (!showIcon) return displayText;
+    
+    const iconMap = {
+      audio: (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3L7 8H3v8h4l5 5V3z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M17 9c1.5 1.5 1.5 4 0 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M20 6c2.5 2.5 2.5 6.5 0 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+      pump: (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2c0 0-7 8-7 12 0 4 3 7 7 7s7-3 7-7c0-4-7-12-7-12z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+      fridge: (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="5.64" y1="5.64" x2="18.36" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="18.36" y1="5.64" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="6" y1="12" x2="3" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="6" y1="12" x2="3" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="18" y1="12" x2="21" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="18" y1="12" x2="21" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="12" y1="6" x2="9" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="12" y1="6" x2="15" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="12" y1="18" x2="9" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="12" y1="18" x2="15" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="12" cy="12" r="1.5" fill={isIconOn ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      ),
+      fan: (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2 Q16 6 18 12 Q16 18 12 20 Q8 18 6 12 Q8 6 12 2" stroke="currentColor" strokeWidth="2.5" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="12" r="2" fill={isIconOn ? "var(--color-bg-primary)" : "currentColor"} opacity={isIconOn ? 0.9 : 1}/>
+        </svg>
+      ),
+      boiler: (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="5" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M0 10 Q-2 8 0 6 Q-1 8 0 10" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+          {isIconOn && (
+            <path d="M0 9 Q-1 8 0 7" stroke="var(--color-bg-primary)" strokeWidth="1.5" fill="var(--color-bg-primary)" opacity="0.9"/>
+          )}
+        </svg>
+      ),
+      bulb: (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      ),
+    };
+    
+    return iconMap[icon] || iconMap.bulb;
   };
 
-  // Handle long press
-  const handleLongPress = () => {
-    if (!disabled && onLongPress) {
-      onLongPress();
-    }
-  };
-
-  // Long press handlers
-  const longPressHandlers = useLongPress(handleLongPress, handleClick);
-
-  return (
-    <div className={`led-card ${disabled ? "disabled" : ""}`} {...longPressHandlers}>
-      <p className="led-name">{name}</p>
-      <div className={buttonClass}>
-        {type === "strip" ? (
+  // Progress arc for strips or circle for relays
+  const progressArc = type === "strip" ? (
           <svg className="horseshoe-progress" viewBox="0 0 200 200">
             <defs>
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -98,7 +142,6 @@ const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", d
                 <stop offset="100%" stopColor={accentBlueDark} />
               </linearGradient>
             </defs>
-            {/* Arc from 135° (start) to 45° (end) - fills according to brightness */}
             <path
               className="horseshoe-fill"
               d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6"
@@ -119,7 +162,6 @@ const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", d
                 <stop offset="100%" stopColor={accentBlueDark} />
               </linearGradient>
             </defs>
-            {/* Closed circle - if ON it exists, if OFF it doesn't */}
             {isOn && (
               <circle
                 className="horseshoe-fill"
@@ -133,70 +175,20 @@ const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", d
               />
             )}
           </svg>
-        )}
-        <span className="button-text">
-          {showIcon ? (
-            <span className={`bulb-icon ${isIconOn ? "bulb-on" : ""}`} style={{ color: isIconOn ? accentBlue : "var(--color-text-secondary)" }}>
-              {icon === "audio" ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Speaker icon */}
-                  <path d="M12 3L7 8H3v8h4l5 5V3z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M17 9c1.5 1.5 1.5 4 0 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M20 6c2.5 2.5 2.5 6.5 0 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : icon === "pump" ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Large water drop icon - pointed at top, wide at bottom */}
-                  <path d="M12 2c0 0-7 8-7 12 0 4 3 7 7 7s7-3 7-7c0-4-7-12-7-12z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : icon === "fridge" ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Snowflake icon */}
-                  <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <line x1="5.64" y1="5.64" x2="18.36" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <line x1="18.36" y1="5.64" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <line x1="6" y1="12" x2="3" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="6" y1="12" x2="3" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="18" y1="12" x2="21" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="18" y1="12" x2="21" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="12" y1="6" x2="9" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="12" y1="6" x2="15" y2="3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="12" y1="18" x2="9" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="12" y1="18" x2="15" y2="21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="12" cy="12" r="1.5" fill={isIconOn ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5"/>
-                </svg>
-              ) : icon === "fan" ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Fan icon - spiral/wind pattern */}
-                  <path d="M12 2 Q16 6 18 12 Q16 18 12 20 Q8 18 6 12 Q8 6 12 2" stroke="currentColor" strokeWidth="2.5" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="12" r="2" fill={isIconOn ? "var(--color-bg-primary)" : "currentColor"} opacity={isIconOn ? 0.9 : 1}/>
-                </svg>
-              ) : icon === "boiler" ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Extra large horizontal boiler icon - empty inside, flame outside */}
-                  <rect x="0" y="5" width="24" height="14" rx="2" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                  {/* Flame outside on the left */}
-                  <path d="M0 10 Q-2 8 0 6 Q-1 8 0 10" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                  {isIconOn && (
-                    <path d="M0 9 Q-1 8 0 7" stroke="var(--color-bg-primary)" strokeWidth="1.5" fill="var(--color-bg-primary)" opacity="0.9"/>
-                  )}
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Light bulb icon - simple and clean */}
-                  <path d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z" stroke="currentColor" strokeWidth="2" fill={isIconOn ? "currentColor" : "none"} strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              )}
-            </span>
-          ) : (
-            displayText
-          )}
-        </span>
-      </div>
-    </div>
+  );
+
+  return (
+    <Card
+      name={name}
+      icon={showIcon ? renderIcon() : displayText}
+      buttonState={buttonState}
+      iconState={iconState}
+      onClick={onClick}
+      onLongPress={onLongPress}
+      disabled={disabled}
+    >
+      {progressArc}
+    </Card>
   );
 };
 

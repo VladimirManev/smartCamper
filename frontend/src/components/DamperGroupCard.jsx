@@ -1,12 +1,10 @@
 /**
  * DamperGroupCard Component
  * Group card that displays as a damper card in OFF/closed state
- * Opens a modal with all damper cards when long pressed
+ * Opens a modal with all damper cards when clicked
  */
 
-import { useState, useEffect } from "react";
-import { useLongPress } from "../hooks/useLongPress";
-import { getThemeColor } from "../utils/getThemeColor";
+import { Card } from "./Card";
 
 /**
  * DamperGroupCard component
@@ -16,109 +14,22 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  */
 export const DamperGroupCard = ({ name, onClick, disabled = false }) => {
-  // Get theme color for icon
-  const [damperColor, setDamperColor] = useState("#3b82f6");
-  
-  useEffect(() => {
-    const updateColor = () => {
-      setDamperColor(getThemeColor("--color-accent-blue"));
-    };
-    
-    // Update on mount
-    updateColor();
-    
-    // Update periodically to catch theme changes (reduced frequency for better performance)
-    const interval = setInterval(updateColor, 2000); // 2 seconds instead of 100ms
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // Always show as closed (OFF) state for group card
-  const angle = 0;
-  const isClosed = true;
-
-  // Button class - always OFF state (no glow)
-  const buttonClass = "neumorphic-button off";
-
-  // Handle click - opens modal
-  const handleClick = (event) => {
-    if (!disabled && onClick) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      onClick();
-    }
-  };
-
-  // Handle long press - placeholder (logs to console for now)
-  const handleLongPress = () => {
-    if (!disabled) {
-      console.log("Damper Group card long pressed");
-    }
-  };
-
-  // Long press handlers
-  const longPressHandlers = useLongPress(handleLongPress, handleClick);
+  // Airflow icon SVG (from airflow.svg - converted to use currentColor)
+  const airflowIcon = (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 12H14M16.5 4C17.8807 4 19 5.11929 19 6.5C19 7.88071 17.8807 9 16.5 9H14M5 9H10M17 19C18.1046 19 19 18.1046 19 17C19 15.8954 18.1046 15 17 15H11M4 15H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
 
   return (
-    <div className={`led-card ${disabled ? "disabled" : ""}`} {...longPressHandlers}>
-      <p className="led-name">{name}</p>
-      <div className={buttonClass}>
-        <svg className="damper-icon" viewBox="0 0 100 100" width="100" height="100">
-          {/* Two horizontal lines (air duct) - shorter */}
-          <line
-            x1="30"
-            y1="30"
-            x2="70"
-            y2="30"
-            stroke={damperColor}
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          <line
-            x1="30"
-            y1="70"
-            x2="70"
-            y2="70"
-            stroke={damperColor}
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-          
-          {/* Air flow arrow at left edge (pointing left) - wide angle with tail */}
-          <line
-            x1="20"
-            y1="50"
-            x2="30"
-            y2="50"
-            stroke={damperColor}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 30 50 L 25 45 M 30 50 L 25 55"
-            stroke={damperColor}
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-          
-          {/* Damper blade (rotating line) - closed position (0°) */}
-          <g transform={`translate(50, 50) rotate(${angle}) translate(-50, -50)`}>
-            <line
-              x1="50"
-              y1="40"
-              x2="50"
-              y2="60"
-              stroke={damperColor}
-              strokeWidth="6"
-              strokeLinecap="round"
-            />
-          </g>
-        </svg>
-      </div>
-    </div>
+    <Card
+      name={name}
+      icon={airflowIcon}
+      buttonState="off"
+      iconState="active"
+      onClick={onClick}
+      disabled={disabled}
+    />
   );
 };
 

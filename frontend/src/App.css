@@ -48,6 +48,21 @@
   --color-white-3: rgba(255, 255, 255, 0.03);
   --color-white-5: rgba(255, 255, 255, 0.05);
   --color-white-10: rgba(255, 255, 255, 0.1);
+  
+  /* Icon blue (for Midnight Glass theme) - fallback to accent blue */
+  --color-icon-blue: var(--color-accent-blue);
+  --color-icon-blue-10: var(--color-accent-blue-10);
+  --color-icon-blue-20: var(--color-accent-blue-20);
+  --color-icon-blue-30: var(--color-accent-blue-30);
+  --color-icon-blue-40: var(--color-accent-blue-40);
+  --color-icon-blue-50: var(--color-accent-blue-50);
+  --color-icon-blue-60: var(--color-accent-blue-60);
+  --color-icon-blue-70: var(--color-accent-blue-70);
+  --color-icon-blue-80: var(--color-accent-blue-80);
+  
+  /* Shadow colors for inward effect (for Midnight Glass theme) - fallback to black */
+  --color-shadow-inset-top: rgba(20, 25, 35, 0.4);
+  --color-shadow-inset-bottom: rgba(0, 0, 0, 0.6);
 }
 
 /* Reset and base styles */
@@ -973,8 +988,10 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0;
+  /* Softer inward shadows - more blurred and subtle */
   box-shadow: 0 4px 12px var(--color-accent-blue-20),
-    inset 0 1px 0 var(--color-white-5);
+    inset 2px 2px 4px var(--color-shadow-inset-bottom),
+    inset -2px -2px 4px var(--color-shadow-inset-top);
   position: relative;
   overflow: hidden;
   width: 70px;
@@ -995,7 +1012,16 @@ body {
   .led-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 20px 60px var(--color-accent-blue-30),
-      inset 0 1px 0 var(--color-white-10);
+      inset 2px 2px 4px var(--color-shadow-inset-bottom),
+      inset -2px -2px 4px var(--color-shadow-inset-top);
+  }
+  
+  /* Icons become brighter on hover */
+  .sensor-card:hover i,
+  .led-card:hover i,
+  .sensor-card:hover svg,
+  .led-card:hover svg {
+    filter: brightness(1.2);
   }
 
   .toggle-btn:hover {
@@ -1270,9 +1296,99 @@ body {
 /* Disabled cards already have pointer-events: none, so hover won't trigger anyway */
 
 .sensor-card i {
-  color: var(--color-accent-blue);
+  color: var(--color-icon-blue);
   font-size: 1.2rem;
   margin: 0;
+  transition: color 0.3s ease, filter 0.3s ease;
+}
+
+/* Active state - icon becomes brighter when card is active/hovered */
+.sensor-card:hover i,
+.sensor-card:active i {
+  color: var(--color-icon-blue);
+  filter: brightness(1.2);
+}
+
+/* Universal icon color classes - use these for all card icons */
+.icon-active {
+  color: var(--color-icon-blue, var(--color-accent-blue));
+  transition: color 0.3s ease, filter 0.3s ease;
+}
+
+.icon-inactive {
+  color: var(--color-icon-blue, var(--color-accent-blue));
+  opacity: 0.6;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.icon-gray {
+  color: var(--color-icon-blue, var(--color-accent-blue));
+  opacity: 0.4;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+/* Icon container - applies color to all child SVG elements using currentColor */
+/* Centralized icon sizing - change these values to resize all icons */
+.icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  /* Default icon size for regular cards */
+  --icon-size: 20px;
+  /* All icons should use icon-blue color */
+  color: var(--color-icon-blue);
+}
+
+/* Group cards (main screen) - all icons should be the same size */
+.led-card .icon-container {
+  --icon-size: 28px;
+}
+
+.icon-container svg,
+.icon-container i,
+.icon-container img {
+  color: inherit;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  max-width: var(--icon-size);
+  max-height: var(--icon-size);
+  font-size: var(--icon-size);
+}
+
+/* Legacy size classes - kept for backwards compatibility but not needed anymore */
+.icon-container.icon-large svg,
+.icon-container.icon-large i {
+  --icon-size: 28px;
+}
+
+/* Medium icons */
+.icon-container.icon-medium svg,
+.icon-container.icon-medium i {
+  --icon-size: 24px;
+}
+
+/* Small icons */
+.icon-container.icon-small svg,
+.icon-container.icon-small i {
+  --icon-size: 16px;
+}
+
+/* Apply currentColor to stroke, but only fill if explicitly set in SVG */
+.icon-container svg * {
+  stroke: currentColor;
+}
+
+/* Only fill elements that have fill attribute set (not "none") */
+.icon-container svg *[fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+
+/* Leveling icon - now uses SVG with currentColor, no special handling needed */
+.leveling-icon {
+  width: 100%;
+  height: 100%;
 }
 
 .value {
@@ -1300,19 +1416,56 @@ body {
   flex-shrink: 0;
 }
 
-.water-tank {
-  width: 100%;
-  height: 100%;
-  max-width: 95px;
-  max-height: 95px;
-}
-
 .water-tank-card {
   position: relative;
+  overflow: visible;
+}
+
+/* Water tank button - the button itself acts as the tank */
+.water-tank-card .neumorphic-button {
+  position: relative;
   overflow: hidden;
+}
+
+/* Water fill effect - fills from bottom up using ::after on the button */
+.water-tank-card .neumorphic-button::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--water-level, 0%);
+  background: linear-gradient(
+    to top,
+    var(--water-color-bottom, #2563eb) 0%,
+    var(--water-color-bottom, #2563eb) 50%,
+    var(--water-color-top, #3b82f6) 100%
+  );
+  opacity: 0.7;
+  transition: height 0.5s ease;
+  z-index: 1;
+  border-radius: 0 0 50% 50%;
+  pointer-events: none;
+}
+
+/* Water tank content - text overlay */
+.water-tank-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  padding: 0.25rem;
-  gap: 0;
+  pointer-events: none;
+}
+
+.water-tank-content {
+  position: relative;
+  z-index: 2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 .water-tank-label {
@@ -1322,11 +1475,22 @@ body {
 .water-tank-temperature {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  fill: var(--color-text-primary);
-  text-shadow: 0 2px 4px var(--color-black-50);
-  pointer-events: none;
   user-select: none;
-  font-size: 32px;
+  font-size: 18px;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.water-tank-percentage {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  user-select: none;
+  font-size: 24px;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
 }
 
 .led-card {
@@ -1356,23 +1520,46 @@ body {
   box-shadow: 0 0 15px var(--color-accent-blue-40), 0 0 30px var(--color-accent-blue-20);
 }
 
+/* Button text container - centers content */
+.button-text {
+  position: relative;
+  z-index: 2;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 /* OFF state - recessed */
 .neumorphic-button.off {
   background: var(--color-bg-secondary);
-  box-shadow: inset 6px 6px 12px var(--color-black-50),
-    inset -6px -6px 12px var(--color-white-3),
+  /* Softer inward shadows - more blurred and subtle */
+  box-shadow: inset 4px 4px 12px var(--color-shadow-inset-bottom),
+    inset -4px -4px 12px var(--color-shadow-inset-top),
     0 0 15px var(--color-accent-blue-40), 0 0 30px var(--color-accent-blue-20);
 }
 
-/* ON state - raised with gradient ring */
+/* ON state - raised with refined glow effect */
 .neumorphic-button.on {
   background: var(--color-bg-secondary);
-  /* Very bright and saturated glow effect - extra bright inner ring */
-  box-shadow: inset 4px 4px 8px var(--color-black-30),
-    inset -4px -4px 8px var(--color-white-3), 0 0 2px var(--color-accent-blue),
-    0 0 5px var(--color-accent-blue), 0 0 10px var(--color-accent-blue),
-    0 0 15px var(--color-accent-blue-95), 0 0 20px var(--color-accent-blue-85),
-    0 0 8px var(--color-accent-blue-dark);
+  /* Softer inward shadows */
+  /* Precise glow: narrow concentrated line + wide pale glow */
+  box-shadow: inset 3px 3px 8px var(--color-shadow-inset-bottom),
+    inset -3px -3px 8px var(--color-shadow-inset-top),
+    /* Narrow concentrated glow line at edge */
+    0 0 1px var(--color-accent-blue),
+    0 0 2px var(--color-accent-blue),
+    0 0 3px var(--color-accent-blue-80),
+    /* Wide pale glow that barely disperses outward */
+    0 0 8px var(--color-accent-blue-30),
+    0 0 16px var(--color-accent-blue-15),
+    0 0 24px var(--color-accent-blue-10);
 }
 
 /* ::before effect removed for testing */
@@ -1433,6 +1620,20 @@ body {
 .neumorphic-button.on .button-text {
   color: var(--color-accent-blue);
   text-shadow: 0 0 10px var(--color-accent-blue-50);
+  /* Icon becomes brighter when active */
+  filter: brightness(1.15);
+}
+
+/* All SVG icons should use icon-blue color, regardless of button state */
+.neumorphic-button .button-text svg,
+.neumorphic-button .button-text i {
+  color: var(--color-icon-blue);
+}
+
+/* Active state - icon inside button becomes brighter */
+.neumorphic-button.on .button-text i,
+.neumorphic-button.on .button-text svg {
+  filter: brightness(1.2);
 }
 
 /* Modal Styles */
@@ -1753,14 +1954,13 @@ body {
   justify-content: center;
   border-radius: 50%;
   background: var(--color-bg-secondary);
-  /* Neumorphic effect - similar to clock button */
-  box-shadow: inset 6px 6px 12px var(--color-black-50),
-    inset -6px -6px 12px var(--color-white-3),
+  /* Softer shadows + refined glow */
+  box-shadow: inset 4px 4px 10px var(--color-shadow-inset-bottom),
+    inset -4px -4px 10px var(--color-shadow-inset-top),
     0 0 1px var(--color-accent-blue),
-    0 0 2px var(--color-accent-blue),
-    0 0 4px var(--color-accent-blue-90),
-    0 0 6px var(--color-accent-blue-80),
-    0 0 3px var(--color-accent-blue-dark);
+    0 0 2px var(--color-accent-blue-80),
+    0 0 4px var(--color-accent-blue-30),
+    0 0 8px var(--color-accent-blue-15);
   overflow: hidden;  /* Ensure line doesn't go outside circle */
 }
 
@@ -2003,12 +2203,13 @@ body {
 .tiny-circle {
   background: var(--color-bg-secondary);
   border-radius: 50%;
-  /* Similar glow effect but even smaller */
-  box-shadow: inset 0.9px 0.9px 1.8px var(--color-black-30),
-    inset -0.9px -0.9px 1.8px var(--color-white-3),
-    0 0 0.5px var(--color-accent-blue), 0 0 1.3px var(--color-accent-blue),
-    0 0 2.7px var(--color-accent-blue-90), 0 0 4.5px var(--color-accent-blue-80),
-    0 0 1.8px var(--color-accent-blue-dark);
+  /* Softer shadows + refined glow */
+  box-shadow: inset 1px 1px 3px var(--color-shadow-inset-bottom),
+    inset -1px -1px 3px var(--color-shadow-inset-top),
+    0 0 0.5px var(--color-accent-blue),
+    0 0 1px var(--color-accent-blue-80),
+    0 0 3px var(--color-accent-blue-30),
+    0 0 6px var(--color-accent-blue-15);
   position: relative;
   display: flex;
   align-items: center;
@@ -2028,12 +2229,16 @@ body {
   min-height: 84px;
   background: var(--color-bg-secondary);
   border-radius: 50%;
-  /* Same glow effect as neumorphic-button.on */
-  box-shadow: inset 2.4px 2.4px 4.8px var(--color-black-30),
-    inset -2.4px -2.4px 4.8px var(--color-white-3),
-    0 0 1.2px var(--color-accent-blue), 0 0 3px var(--color-accent-blue),
-    0 0 6px var(--color-accent-blue), 0 0 9px var(--color-accent-blue-95),
-    0 0 12px var(--color-accent-blue-85), 0 0 4.8px var(--color-accent-blue-dark);
+  /* Softer inward shadows + refined glow effect */
+  box-shadow: inset 2px 2px 6px var(--color-shadow-inset-bottom),
+    inset -2px -2px 6px var(--color-shadow-inset-top),
+    /* Narrow concentrated glow line */
+    0 0 1px var(--color-accent-blue),
+    0 0 2px var(--color-accent-blue),
+    0 0 3px var(--color-accent-blue-80),
+    /* Wide pale glow */
+    0 0 8px var(--color-accent-blue-30),
+    0 0 16px var(--color-accent-blue-15);
   position: relative;
   display: flex;
   align-items: center;
@@ -2071,12 +2276,13 @@ body {
   min-height: 50px;
   background: var(--color-bg-secondary);
   border-radius: 50%;
-  /* Similar glow effect as clock-button but smaller */
-  box-shadow: inset 1.5px 1.5px 3px var(--color-black-30),
-    inset -1.5px -1.5px 3px var(--color-white-3),
-    0 0 1px var(--color-accent-blue), 0 0 2px var(--color-accent-blue),
-    0 0 4px var(--color-accent-blue-90), 0 0 6px var(--color-accent-blue-80),
-    0 0 3px var(--color-accent-blue-dark);
+  /* Softer shadows + refined glow */
+  box-shadow: inset 1.5px 1.5px 3px var(--color-shadow-inset-bottom),
+    inset -1.5px -1.5px 3px var(--color-shadow-inset-top),
+    0 0 0.5px var(--color-accent-blue),
+    0 0 1px var(--color-accent-blue-80),
+    0 0 3px var(--color-accent-blue-30),
+    0 0 6px var(--color-accent-blue-15);
   position: relative;
   display: flex;
   align-items: center;
@@ -2123,12 +2329,13 @@ body {
   min-height: 45px;
   background: var(--color-bg-secondary);
   border-radius: 50%;
-  /* Similar glow effect but smaller */
-  box-shadow: inset 1.5px 1.5px 3px var(--color-black-30),
-    inset -1.5px -1.5px 3px var(--color-white-3),
-    0 0 1px var(--color-accent-blue), 0 0 2px var(--color-accent-blue),
-    0 0 4px var(--color-accent-blue-90), 0 0 6px var(--color-accent-blue-80),
-    0 0 3px var(--color-accent-blue-dark);
+  /* Softer shadows + refined glow */
+  box-shadow: inset 1.5px 1.5px 3px var(--color-shadow-inset-bottom),
+    inset -1.5px -1.5px 3px var(--color-shadow-inset-top),
+    0 0 0.5px var(--color-accent-blue),
+    0 0 1px var(--color-accent-blue-80),
+    0 0 3px var(--color-accent-blue-30),
+    0 0 6px var(--color-accent-blue-15);
   position: relative;
   display: flex;
   align-items: center;
