@@ -91,8 +91,8 @@ function App() {
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
 
   const { anyActive: lightingGroupActive } = useMemo(
-    () => getLightingGroupAggregate(ledStrips),
-    [ledStrips]
+    () => getLightingGroupAggregate(ledStrips, relays),
+    [ledStrips, relays]
   );
 
   // Appliance controller
