@@ -1,6 +1,6 @@
 /**
  * FloorHeatingGroupCard Component
- * Group card that displays as a floor heating card in OFF state
+ * Group card mirrors aggregate heat-on state; long-press master OFF
  * Opens a modal with all floor heating cards when clicked
  */
 
@@ -13,9 +13,17 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {Object} props - Component props
  * @param {string} props.name - Display name (e.g., "Floor Heating")
  * @param {Function} props.onClick - Click handler function (opens modal)
+ * @param {Function} [props.onLongPress] - e.g. master OFF for active zones
  * @param {boolean} props.disabled - Whether the control is disabled/offline
+ * @param {boolean} props.anyActive - True when any circle is TEMP_CONTROL + relay ON
  */
-export const FloorHeatingGroupCard = ({ name, onClick, disabled = false }) => {
+export const FloorHeatingGroupCard = ({
+  name,
+  onClick,
+  onLongPress,
+  disabled = false,
+  anyActive = false,
+}) => {
   // Get theme colors for gradients only (for horseshoe progress if needed)
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
@@ -41,8 +49,7 @@ export const FloorHeatingGroupCard = ({ name, onClick, disabled = false }) => {
     </svg>
   );
 
-  // Empty horseshoe progress for structure consistency
-  const horseshoeProgress = (
+  const ringOverlay = (
     <svg className="horseshoe-progress" viewBox="0 0 200 200">
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -50,20 +57,35 @@ export const FloorHeatingGroupCard = ({ name, onClick, disabled = false }) => {
           <stop offset="100%" stopColor={accentBlueDark} />
         </linearGradient>
       </defs>
-      {/* No circle shown in OFF state */}
+      {anyActive && (
+        <circle
+          className="horseshoe-fill"
+          cx="100"
+          cy="100"
+          r="80"
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+      )}
     </svg>
   );
+
+  const buttonState = anyActive ? "on" : "off";
+  const iconState = anyActive ? "active" : "inactive";
 
   return (
     <Card
       name={name}
       icon={radiantIcon}
-      buttonState="off"
-      iconState="active"
+      buttonState={buttonState}
+      iconState={iconState}
       onClick={onClick}
+      onLongPress={onLongPress}
       disabled={disabled}
     >
-      {horseshoeProgress}
+      {ringOverlay}
     </Card>
   );
 };

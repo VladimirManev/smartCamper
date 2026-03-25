@@ -38,6 +38,10 @@ import {
   getLightingGroupAggregate,
   getLightingMasterOffPlan,
 } from "./utils/lightingGroupAggregate";
+import {
+  getRadiantGroupAggregate,
+  getRadiantMasterOffPlan,
+} from "./utils/radiantGroupAggregate";
 import "./App.css";
 
 function App() {
@@ -103,6 +107,11 @@ function App() {
 
   // Floor heating controller
   const { circles, sendFloorHeatingCommand } = useFloorHeating(socket);
+
+  const { anyActive: radiantGroupActive } = useMemo(
+    () => getRadiantGroupAggregate(circles),
+    [circles]
+  );
 
   // Damper controller
   const { dampers, sendDamperCommand } = useDamperController(socket);
@@ -595,6 +604,16 @@ function App() {
     });
   };
 
+  /** Long-press Radiant: circle/{i}/off for each zone not already OFF (same as per-card off). */
+  const handleRadiantGroupLongPress = () => {
+    if (!isModule3Online) return;
+    const { indicesToOff } = getRadiantMasterOffPlan(circles);
+    if (indicesToOff.length === 0) return;
+    for (const index of indicesToOff) {
+      sendFloorHeatingCommand({ type: "circle", index, action: "off" });
+    }
+  };
+
   // Damper command handlers with debouncing
   const lastCommandTime = useRef({});
   const DEBOUNCE_DELAY = 300; // ms - prevent multiple rapid clicks
@@ -881,7 +900,9 @@ function App() {
           <FloorHeatingGroupCard
             name="Radiant"
             onClick={() => openModal("floor-heating-group", "Radiant")}
+            onLongPress={handleRadiantGroupLongPress}
             disabled={!isModule3Online}
+            anyActive={radiantGroupActive}
           />
           <p className="card-label">Radiant</p>
         </div>
