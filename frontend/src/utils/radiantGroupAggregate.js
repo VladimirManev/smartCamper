@@ -5,22 +5,20 @@
 export const RADIANT_CIRCLE_INDICES = [0, 1, 2, 3];
 
 /**
- * Matches FloorHeatingCard "on" (heating active): TEMP_CONTROL + relay ON.
- * @param {{ mode?: string, relay?: string }|undefined} circle
+ * Group card "on" if the zone is not fully off (TEMP_CONTROL regardless of relay/temp).
+ * @param {{ mode?: string }|undefined} circle
  */
-export function isCircleHeatOnForGroup(circle) {
-  const mode = circle?.mode || "OFF";
-  const relay = circle?.relay || "OFF";
-  return mode === "TEMP_CONTROL" && relay === "ON";
+export function isCircleOnForRadiantGroup(circle) {
+  return (circle?.mode || "OFF") !== "OFF";
 }
 
 /**
- * @param {Record<string, { mode?: string, relay?: string }>} circles
+ * @param {Record<string, { mode?: string }>} circles
  * @returns {{ anyActive: boolean }}
  */
 export function getRadiantGroupAggregate(circles) {
   for (const index of RADIANT_CIRCLE_INDICES) {
-    if (isCircleHeatOnForGroup(circles[index])) {
+    if (isCircleOnForRadiantGroup(circles[index])) {
       return { anyActive: true };
     }
   }

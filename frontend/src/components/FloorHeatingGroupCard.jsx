@@ -15,7 +15,7 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {Function} [props.onLongPress] - e.g. master OFF for active zones
  * @param {boolean} props.disabled - Whether the control is disabled/offline
- * @param {boolean} props.anyActive - True when any circle is TEMP_CONTROL + relay ON
+ * @param {boolean} props.anyActive - True when any circle mode is not OFF (same idea as Light group)
  */
 export const FloorHeatingGroupCard = ({
   name,
@@ -84,6 +84,7 @@ export const FloorHeatingGroupCard = ({
       onClick={onClick}
       onLongPress={onLongPress}
       disabled={disabled}
+      cardClass="radiant-group-card"
     >
       {ringOverlay}
     </Card>
