@@ -19,7 +19,9 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
   // When disabled, don't show water (empty tank)
   const displayLevel = disabled ? null : level;
   const cardRef = useRef(null);
-  
+  /** When both level and temperature exist, false = show °C, true = show % */
+  const [showLevelReadout, setShowLevelReadout] = useState(false);
+
   // Get theme colors
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
@@ -53,20 +55,46 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
     }
   }, [displayLevel, accentBlue, accentBlueDark]);
 
+  const hasLevel =
+    !disabled &&
+    displayLevel !== null &&
+    displayLevel !== undefined;
+  const hasTemp =
+    !disabled &&
+    temperature !== null &&
+    temperature !== undefined;
+
+  useEffect(() => {
+    if (!hasLevel || !hasTemp) return;
+    const id = setInterval(() => {
+      setShowLevelReadout((v) => !v);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [hasLevel, hasTemp]);
+
+  let readoutText = null;
+  if (hasLevel && hasTemp) {
+    readoutText = showLevelReadout
+      ? `${Math.round(displayLevel)}%`
+      : `${temperature.toFixed(1)}°`;
+  } else if (hasLevel) {
+    readoutText = `${Math.round(displayLevel)}%`;
+  } else if (hasTemp) {
+    readoutText = `${temperature.toFixed(1)}°`;
+  }
+
   // Text content to display in the center of the button
   const waterTankContent = (
     <div className="water-tank-content">
-      {displayLevel !== null && displayLevel !== undefined && !disabled && (
-        temperature !== null && temperature !== undefined && (
-          <div
-            className="water-tank-temperature"
-            style={{
-              color: textPrimary,
-            }}
-          >
-            {temperature.toFixed(1)}°
-          </div>
-        )
+      {readoutText !== null && (
+        <div
+          className="water-tank-readout"
+          style={{
+            color: textPrimary,
+          }}
+        >
+          {readoutText}
+        </div>
       )}
     </div>
   );
