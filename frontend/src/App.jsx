@@ -34,6 +34,7 @@ import { CardModal } from "./components/CardModal";
 import { CustomDropdown } from "./components/CustomDropdown";
 import { themes, applyTheme, getThemeNames } from "./themes";
 import ducatoImage from "./assets/ducato.png";
+import { getLightingGroupAggregate } from "./utils/lightingGroupAggregate";
 import "./App.css";
 
 function App() {
@@ -88,6 +89,9 @@ function App() {
 
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
+
+  const { anyActive: lightingGroupActive, maxBrightness: lightingGroupMaxBrightness } =
+    useMemo(() => getLightingGroupAggregate(ledStrips), [ledStrips]);
 
   // Appliance controller
   const { appliances, sendApplianceCommand } = useApplianceController(socket);
@@ -848,6 +852,8 @@ function App() {
             name="Light"
             onClick={() => openModal("lighting-group", "Light")}
             disabled={!isModule2Online}
+            anyActive={lightingGroupActive}
+            maxBrightness={lightingGroupMaxBrightness}
           />
           <p className="card-label">Light</p>
         </div>

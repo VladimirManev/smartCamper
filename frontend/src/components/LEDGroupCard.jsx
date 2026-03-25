@@ -1,12 +1,13 @@
 /**
  * LEDGroupCard Component
- * Group card that displays as an LED card in OFF state
+ * Group card mirrors aggregate on-state of lighting modal strips
  * Opens a modal with all LED cards when clicked
  */
 
 import { Card } from "./Card";
 import { useEffect, useState } from "react";
 import { getThemeColor } from "../utils/getThemeColor";
+import { getArcProgress } from "../utils/arcProgress";
 
 /**
  * LEDGroupCard component
@@ -14,8 +15,16 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {string} props.name - Display name (e.g., "Lighting")
  * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
+ * @param {boolean} props.anyActive - True when any lighting-group strip is on (bathroom AUTO excluded)
+ * @param {number} props.maxBrightness - Max brightness (0–255) among active strips for arc display
  */
-export const LEDGroupCard = ({ name, onClick, disabled = false }) => {
+export const LEDGroupCard = ({
+  name,
+  onClick,
+  disabled = false,
+  anyActive = false,
+  maxBrightness = 0,
+}) => {
   // Get theme colors for gradients only
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
@@ -43,9 +52,8 @@ export const LEDGroupCard = ({ name, onClick, disabled = false }) => {
     </svg>
   );
 
-  // Empty horseshoe progress (not visible since brightness is 0)
   const arcLength = Math.PI * 80 * (270 / 180);
-  const progress = 0;
+  const progress = getArcProgress(maxBrightness, anyActive);
   const horseshoeProgress = (
     <svg className="horseshoe-progress" viewBox="0 0 200 200">
       <defs>
@@ -63,17 +71,20 @@ export const LEDGroupCard = ({ name, onClick, disabled = false }) => {
         strokeLinecap="round"
         strokeDasharray={`${progress} ${arcLength}`}
         strokeDashoffset="0"
-        opacity="0"
+        opacity={anyActive && progress > 0 ? 1 : 0}
       />
     </svg>
   );
+
+  const buttonState = anyActive ? "on" : "off";
+  const iconState = anyActive ? "active" : "inactive";
 
   return (
     <Card
       name={name}
       icon={lampIcon}
-      buttonState="off"
-      iconState="active"
+      buttonState={buttonState}
+      iconState={iconState}
       onClick={onClick}
       disabled={disabled}
     >
