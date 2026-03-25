@@ -84,7 +84,6 @@ export const FloorHeatingGroupCard = ({
       onClick={onClick}
       onLongPress={onLongPress}
       disabled={disabled}
-      cardClass="radiant-group-card"
     >
       {ringOverlay}
     </Card>

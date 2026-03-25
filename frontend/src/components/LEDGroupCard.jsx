@@ -87,7 +87,6 @@ export const LEDGroupCard = ({
       onClick={onClick}
       onLongPress={onLongPress}
       disabled={disabled}
-      cardClass="led-group-card"
     >
       {ringOverlay}
     </Card>

@@ -1416,18 +1416,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Light + Radiant group cards — center ring + .button-text in one cell */
-.led-group-card .neumorphic-button,
-.radiant-group-card .neumorphic-button {
-  display: grid;
-  place-items: center;
-}
-
-.led-group-card .neumorphic-button > *,
-.radiant-group-card .neumorphic-button > * {
-  grid-area: 1 / 1;
-}
-
 .water-tank-card {
   position: relative;
   overflow: visible;
