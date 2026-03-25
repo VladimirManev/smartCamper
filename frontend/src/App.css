@@ -1422,9 +1422,16 @@ body {
 }
 
 /* Water tank button - the button itself acts as the tank */
+/* Grid stacks children (readout + empty .button-text) in one cell so text stays centered */
 .water-tank-card .neumorphic-button {
   position: relative;
   overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.water-tank-card .neumorphic-button > * {
+  grid-area: 1 / 1;
 }
 
 /* Water fill effect - fills from bottom up using ::after on the button */
