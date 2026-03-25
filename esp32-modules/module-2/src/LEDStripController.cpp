@@ -544,7 +544,11 @@ void LEDStripController::startTransition(uint8_t stripIndex, bool turningOn) {
   trans.randomIndex = 0;
   
   if (turningOn) {
-    int index = random(0, NUM_ON_TRANSITIONS);
+    // Avoid TRANSITION_NONE: if we pick 0 here, updateTransition() can end up
+    // with state.on=true but no transition function calling showStrip().
+    // With the current enum layout, valid "turning on" transition types for the
+    // ON-side switch are 1..(NUM_ON_TRANSITIONS-1).
+    int index = random(1, NUM_ON_TRANSITIONS);
     trans.type = (TransitionType)index;
     Serial.println("✨ Strip " + String(stripIndex) + " ON transition " + String(index));
   } else {
