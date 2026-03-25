@@ -15,10 +15,12 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  * @param {boolean} props.anyActive - True when any lighting-group strip is on (bathroom AUTO excluded)
+ * @param {Function} [props.onLongPress] - e.g. master OFF for all lit channels in the group
  */
 export const LEDGroupCard = ({
   name,
   onClick,
+  onLongPress,
   disabled = false,
   anyActive = false,
 }) => {
@@ -83,6 +85,7 @@ export const LEDGroupCard = ({
       buttonState={buttonState}
       iconState={iconState}
       onClick={onClick}
+      onLongPress={onLongPress}
       disabled={disabled}
     >
       {ringOverlay}

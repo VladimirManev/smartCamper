@@ -34,7 +34,10 @@ import { CardModal } from "./components/CardModal";
 import { CustomDropdown } from "./components/CustomDropdown";
 import { themes, applyTheme, getThemeNames } from "./themes";
 import ducatoImage from "./assets/ducato.png";
-import { getLightingGroupAggregate } from "./utils/lightingGroupAggregate";
+import {
+  getLightingGroupAggregate,
+  getLightingMasterOffPlan,
+} from "./utils/lightingGroupAggregate";
 import "./App.css";
 
 function App() {
@@ -539,6 +542,19 @@ function App() {
     });
   };
 
+  /** Long-press Light group: turn off each lit strip (same commands as per-zone off; kitchen = index 0 only) + Ambient toggle if ON. Bathroom AUTO: no command. */
+  const handleLightingGroupLongPress = () => {
+    if (!isModule2Online) return;
+    const { stripIndices, toggleAmbient } = getLightingMasterOffPlan(ledStrips, relays);
+    if (stripIndices.length === 0 && !toggleAmbient) return;
+    for (const index of stripIndices) {
+      sendLEDCommand({ type: "strip", index, action: "off" });
+    }
+    if (toggleAmbient) {
+      sendLEDCommand({ type: "relay", action: "toggle" });
+    }
+  };
+
   // Appliance command handlers
   const handleApplianceToggle = (index) => {
     // Don't send command if module is offline
@@ -853,6 +869,7 @@ function App() {
           <LEDGroupCard
             name="Light"
             onClick={() => openModal("lighting-group", "Light")}
+            onLongPress={handleLightingGroupLongPress}
             disabled={!isModule2Online}
             anyActive={lightingGroupActive}
           />

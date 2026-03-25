@@ -40,3 +40,21 @@ export function getLightingGroupAggregate(ledStrips, relays) {
   }
   return { anyActive: false };
 }
+
+/**
+ * Master OFF (long-press Light group): same "lit" rules as the group aggregate.
+ * Kitchen uses strip 0 only — firmware syncs strip 2 with 0.
+ * @param {Record<string, { state?: string, brightness?: number, mode?: string }>} ledStrips
+ * @param {Record<string, { state?: string }>} relays
+ * @returns {{ stripIndices: number[], toggleAmbient: boolean }}
+ */
+export function getLightingMasterOffPlan(ledStrips, relays) {
+  const stripIndices = [];
+  for (const index of LIGHTING_GROUP_STRIP_INDICES) {
+    if (isStripActiveForLightingGroup(index, ledStrips[index])) {
+      stripIndices.push(index);
+    }
+  }
+  const toggleAmbient = relays?.[AMBIENT_RELAY_INDEX]?.state === "ON";
+  return { stripIndices, toggleAmbient };
+}
