@@ -7,7 +7,6 @@
 import { Card } from "./Card";
 import { useEffect, useState } from "react";
 import { getThemeColor } from "../utils/getThemeColor";
-import { getArcProgress } from "../utils/arcProgress";
 
 /**
  * LEDGroupCard component
@@ -16,14 +15,12 @@ import { getArcProgress } from "../utils/arcProgress";
  * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  * @param {boolean} props.anyActive - True when any lighting-group strip is on (bathroom AUTO excluded)
- * @param {number} props.maxBrightness - Max brightness (0–255) among active strips for arc display
  */
 export const LEDGroupCard = ({
   name,
   onClick,
   disabled = false,
   anyActive = false,
-  maxBrightness = 0,
 }) => {
   // Get theme colors for gradients only
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
@@ -52,9 +49,8 @@ export const LEDGroupCard = ({
     </svg>
   );
 
-  const arcLength = Math.PI * 80 * (270 / 180);
-  const progress = getArcProgress(maxBrightness, anyActive);
-  const horseshoeProgress = (
+  /* Full ring like Ambient (relay) cards — no brightness arc */
+  const ringOverlay = (
     <svg className="horseshoe-progress" viewBox="0 0 200 200">
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -62,17 +58,18 @@ export const LEDGroupCard = ({
           <stop offset="100%" stopColor={accentBlueDark} />
         </linearGradient>
       </defs>
-      <path
-        className="horseshoe-fill"
-        d="M 43.4 156.6 A 80 80 0 1 1 156.6 156.6"
-        fill="none"
-        stroke={`url(#${gradientId})`}
-        strokeWidth="8"
-        strokeLinecap="round"
-        strokeDasharray={`${progress} ${arcLength}`}
-        strokeDashoffset="0"
-        opacity={anyActive && progress > 0 ? 1 : 0}
-      />
+      {anyActive && (
+        <circle
+          className="horseshoe-fill"
+          cx="100"
+          cy="100"
+          r="80"
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+      )}
     </svg>
   );
 
@@ -88,7 +85,7 @@ export const LEDGroupCard = ({
       onClick={onClick}
       disabled={disabled}
     >
-      {horseshoeProgress}
+      {ringOverlay}
     </Card>
   );
 };

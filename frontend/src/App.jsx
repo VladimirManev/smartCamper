@@ -90,8 +90,10 @@ function App() {
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
 
-  const { anyActive: lightingGroupActive, maxBrightness: lightingGroupMaxBrightness } =
-    useMemo(() => getLightingGroupAggregate(ledStrips), [ledStrips]);
+  const { anyActive: lightingGroupActive } = useMemo(
+    () => getLightingGroupAggregate(ledStrips),
+    [ledStrips]
+  );
 
   // Appliance controller
   const { appliances, sendApplianceCommand } = useApplianceController(socket);
@@ -853,7 +855,6 @@ function App() {
             onClick={() => openModal("lighting-group", "Light")}
             disabled={!isModule2Online}
             anyActive={lightingGroupActive}
-            maxBrightness={lightingGroupMaxBrightness}
           />
           <p className="card-label">Light</p>
         </div>

@@ -21,18 +21,14 @@ export function isStripActiveForLightingGroup(index, strip) {
 
 /**
  * @param {Record<string, { state?: string, brightness?: number, mode?: string }>} ledStrips
- * @returns {{ anyActive: boolean, maxBrightness: number }}
+ * @returns {{ anyActive: boolean }}
  */
 export function getLightingGroupAggregate(ledStrips) {
-  let anyActive = false;
-  let maxBrightness = 0;
   for (const index of LIGHTING_GROUP_STRIP_INDICES) {
     const strip = ledStrips[index];
     if (isStripActiveForLightingGroup(index, strip)) {
-      anyActive = true;
-      const b = strip.brightness ?? 0;
-      if (b > maxBrightness) maxBrightness = b;
+      return { anyActive: true };
     }
   }
-  return { anyActive, maxBrightness };
+  return { anyActive: false };
 }
