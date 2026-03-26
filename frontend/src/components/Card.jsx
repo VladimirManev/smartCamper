@@ -54,10 +54,7 @@ export const Card = ({
   
   // Click mode state
   const lastActionTime = useRef(0);
-  const touchStartPos = useRef({ x: 0, y: 0 });
-  const hasTriggeredTouch = useRef(false);
   const DEBOUNCE_DELAY = 300; // ms - prevent rapid double clicks
-  const MAX_TOUCH_MOVE = 15; // pixels - max movement to consider it a tap (not drag)
   
   // Handle click - for click mode
   const handleClick = (e) => {
@@ -115,28 +112,6 @@ export const Card = ({
     isHoldingRef.current = false;
     if (onHoldEnd) {
       onHoldEnd();
-    }
-  };
-  
-  // CLICK MODE HANDLERS (for touch devices)
-  const handleTouchStart = (e) => {
-    if (disabled || isHoldMode) return;
-    
-    const touch = e.touches[0];
-    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
-    hasTriggeredTouch.current = false;
-  };
-  
-  const handleTouchEnd = (e) => {
-    if (disabled || isHoldMode || hasTriggeredTouch.current) return;
-    
-    const touch = e.changedTouches[0];
-    const moveX = Math.abs(touch.clientX - touchStartPos.current.x);
-    const moveY = Math.abs(touch.clientY - touchStartPos.current.y);
-    
-    if (moveX < MAX_TOUCH_MOVE && moveY < MAX_TOUCH_MOVE) {
-      hasTriggeredTouch.current = true;
-      handleClick(e);
     }
   };
   
@@ -212,8 +187,6 @@ export const Card = ({
     <div
       className={`led-card ${cardClass} ${disabled ? "disabled" : ""}`}
       {...longPressHandlers}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <p className="led-name">{name}</p>
       <div className={buttonClass}>
