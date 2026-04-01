@@ -40,7 +40,8 @@ ESP32 module for monitoring indoor temperature, indoor humidity, outdoor tempera
 **Water Level Sensor:**
 - 7-level detection (15%, 30%, 45%, 60%, 75%, 90%, 100%)
 - Digital pins with pull-up resistors
-- Update interval: 1 second (5-second average)
+- Measurement every 30 seconds (electrode-friendly); reported level is the **mode** (most frequent) of the last **10** samples (~5 minute rolling window)
+- MQTT: publish on level change (>1%) or `force_update` (before the buffer is full, force sends the latest single reading)
 
 ## Network Configuration
 

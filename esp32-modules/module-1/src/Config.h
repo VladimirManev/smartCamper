@@ -58,8 +58,8 @@
 #define LEVEL_PERCENT_7 100
 
 // Water level sensor timing
-#define WATER_LEVEL_READ_INTERVAL 1000   // 1 second - measurement interval
-#define WATER_LEVEL_AVERAGE_INTERVAL 5000 // 5 seconds - average calculation interval
+#define WATER_LEVEL_READ_INTERVAL 30000   // 30 seconds - measurement interval (electrode-friendly)
+#define WATER_LEVEL_MODE_SAMPLE_COUNT 10  // rolling window: 10 x 30s ~= 5 min; mode of these samples
 #define WATER_LEVEL_THRESHOLD 1.0         // 1% change threshold for publishing
 
 // Water Temperature Sensor Configuration (DS18B20 - Module 1 specific)

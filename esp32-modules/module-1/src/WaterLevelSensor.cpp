@@ -39,7 +39,7 @@ WaterLevelSensor::WaterLevelSensor(MQTTManager* mqtt) {
   // Initialize measurement data
   measurementIndex = 0;
   measurementCount = 0;
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < WATER_LEVEL_MODE_SAMPLE_COUNT; i++) {
     levelIndices[i] = -1;  // -1 means empty/0%
   }
   
@@ -124,26 +124,19 @@ void WaterLevelSensor::loop() {
     // Convert level to percentage (handles -1 as 0%)
     float percent = levelToPercent(level);
     
-    // Store level index for mode calculation (not percentage - prevents invalid intermediate values)
+    // Store level index for mode (not percentage)
     levelIndices[measurementIndex] = level;
-    measurementIndex = (measurementIndex + 1) % 5;
-    if (measurementCount < 5) {
+    measurementIndex = (measurementIndex + 1) % WATER_LEVEL_MODE_SAMPLE_COUNT;
+    if (measurementCount < WATER_LEVEL_MODE_SAMPLE_COUNT) {
       measurementCount++;
     }
-    
-    // Calculate mode (most frequent value) every 5 measurements (5 seconds) OR on force update
-    if (measurementCount >= 5 && (currentTime - lastDataSent >= WATER_LEVEL_AVERAGE_INTERVAL || isForceUpdate)) {
-      // Find mode (most frequent level index)
-      int modeLevelIndex = findMode(levelIndices, 5);
+
+    if (measurementCount >= WATER_LEVEL_MODE_SAMPLE_COUNT) {
+      int modeLevelIndex = findMode(levelIndices, WATER_LEVEL_MODE_SAMPLE_COUNT);
       float modePercent = levelToPercent(modeLevelIndex);
-      
-      // Publish if needed (change detection ≥1% or force update or first publish)
       publishIfNeeded(modePercent, currentTime, isForceUpdate);
-      
-      // Reset force update flag
       forceUpdateRequested = false;
     } else if (isForceUpdate) {
-      // If we don't have 5 measurements yet, just publish current value
       publishIfNeeded(percent, currentTime, true);
       forceUpdateRequested = false;
     }
@@ -280,7 +273,7 @@ void WaterLevelSensor::printStatus() const {
   if (DEBUG_SERIAL) {
     Serial.println("📊 Water Level Sensor Status:");
     Serial.println("  Last Level: " + String(lastPublishedLevel >= 0 ? String(lastPublishedLevel, 1) + "%" : "N/A"));
-    Serial.println("  Measurement Count: " + String(measurementCount) + "/5");
+    Serial.println("  Measurement Count: " + String(measurementCount) + "/" + String(WATER_LEVEL_MODE_SAMPLE_COUNT));
     Serial.println("  Last Data Sent: " + String((millis() - lastDataSent) / 1000) + " seconds ago");
     Serial.println("  Force Update Requested: " + String(forceUpdateRequested ? "Yes" : "No"));
   }

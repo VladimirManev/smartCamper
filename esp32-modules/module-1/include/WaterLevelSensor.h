@@ -1,6 +1,6 @@
 // Water Level Sensor
 // Specific sensor logic for gray water level detection using conductivity-based electrodes
-// Handles: Reading, averaging, change detection, publishing
+// Handles: Reading, mode over rolling window, change detection, publishing
 
 #ifndef WATER_LEVEL_SENSOR_H
 #define WATER_LEVEL_SENSOR_H
@@ -21,7 +21,7 @@ private:
   unsigned long lastDataSent;
   
   // Measurement data
-  int levelIndices[5];  // Store last 5 level indices for averaging (not percentages)
+  int levelIndices[WATER_LEVEL_MODE_SAMPLE_COUNT];  // Rolling window for mode (level indices)
   int measurementIndex;
   int measurementCount;
   
