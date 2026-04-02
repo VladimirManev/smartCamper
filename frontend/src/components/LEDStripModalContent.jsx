@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LEDCard } from "./LEDCard";
+import { LEDModalArcDimmer } from "./LEDModalArcDimmer";
 
 const APPLIANCE_ICON_BY_TITLE = {
   Audio: "audio",
@@ -43,8 +44,20 @@ export function LEDStripModalContent({
     (value) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
         onBrightness(value);
       }, BRIGHTNESS_DEBOUNCE_MS);
+    },
+    [onBrightness]
+  );
+
+  const commitBrightness = useCallback(
+    (value) => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      onBrightness(value);
     },
     [onBrightness]
   );
@@ -56,7 +69,7 @@ export function LEDStripModalContent({
 
   if (variant === "relay") {
     return (
-      <div className="led-strip-modal">
+      <div className="led-strip-modal led-strip-modal--relay">
         <div className="led-strip-modal__card">
           <LEDCard
             name=""
@@ -72,35 +85,19 @@ export function LEDStripModalContent({
   }
 
   return (
-    <div className="led-strip-modal">
-      <label className="led-strip-modal__brightness-label" htmlFor={`led-brightness-${stripIndex}`}>
-        <span>Brightness</span>
-        <span>{sliderOverride !== null ? sliderOverride : brightness}</span>
-      </label>
-      <input
-        id={`led-brightness-${stripIndex}`}
-        className="led-strip-modal__range"
-        type="range"
-        min={1}
-        max={255}
-        value={sliderValue}
+    <div className="led-strip-modal led-strip-modal--strip">
+      <LEDModalArcDimmer
+        strip={strip}
+        stripIndex={stripIndex}
         disabled={disabled}
-        onChange={(e) => {
-          const v = Number(e.target.value);
+        displayBrightness={sliderValue}
+        onBrightnessDrag={(v) => {
           setSliderOverride(v);
           scheduleBrightness(v);
         }}
+        onBrightnessCommit={commitBrightness}
+        onToggle={onToggle}
       />
-      <div className="led-strip-modal__card">
-        <LEDCard
-          name=""
-          strip={strip}
-          onClick={onToggle}
-          type="strip"
-          disabled={disabled}
-          icon="bulb"
-        />
-      </div>
     </div>
   );
 }

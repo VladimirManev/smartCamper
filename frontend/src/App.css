@@ -1882,37 +1882,19 @@ body {
   color: var(--color-text-primary);
 }
 
-/* LED strip detail: slider + same LEDCard as dashboard (title is in modal header) */
+/* LED strip detail: arc = brightness, center = toggle (modal only) */
 .led-strip-modal {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
   width: 100%;
-  max-width: 320px;
+  max-width: 360px;
   margin: 0 auto;
 }
 
-.led-strip-modal__brightness-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
-.led-strip-modal__range {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  accent-color: var(--color-accent-blue);
-  cursor: pointer;
-}
-
-.led-strip-modal__range:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.led-strip-modal--relay .led-strip-modal__card {
+  transform: scale(1.32);
+  transform-origin: center center;
 }
 
 .led-strip-modal__card .led-name {
@@ -1924,10 +1906,90 @@ body {
   justify-content: center;
 }
 
+.led-modal-arc-dimmer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.led-modal-arc-dimmer--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.led-modal-arc-dimmer__frame {
+  position: relative;
+  width: min(88vw, 320px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.led-modal-arc-dimmer__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+button.led-modal-arc-dimmer__bulb.neumorphic-button {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(5.5rem, 42vw, 7.5rem);
+  height: clamp(5.5rem, 42vw, 7.5rem);
+  min-width: 5.5rem;
+  min-height: 5.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  z-index: 2;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.led-modal-arc-dimmer__bulb:disabled {
+  cursor: not-allowed;
+}
+
+.led-modal-arc-dimmer__bulb .button-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.led-modal-arc-dimmer__bulb .icon-container svg {
+  width: clamp(2.5rem, 20vw, 3.25rem);
+  height: clamp(2.5rem, 20vw, 3.25rem);
+}
+
+.led-modal-arc-dimmer__auto-text {
+  font-size: clamp(0.65rem, 3.5vw, 0.8rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.led-modal-arc-dimmer__value {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 400px) {
   .led-strip-modal {
     max-width: 100%;
-    gap: 0.5rem;
+  }
+
+  .led-modal-arc-dimmer__frame {
+    width: min(92vw, 300px);
   }
 }
 
