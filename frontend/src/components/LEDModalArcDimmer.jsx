@@ -86,6 +86,11 @@ export function LEDModalArcDimmer({
 
   const gradientId = `modal-arc-grad-${stripIndex}`;
 
+  const percent = Math.min(
+    100,
+    Math.max(0, Math.round((displayBrightness / 255) * 100))
+  );
+
   const progress = getArcProgress(displayBrightness, true);
   const arcOpacity = isOn ? 1 : 0.38;
 
@@ -159,9 +164,10 @@ export function LEDModalArcDimmer({
           className="led-modal-arc-dimmer__svg"
           viewBox="0 0 200 200"
           role="slider"
-          aria-valuemin={1}
-          aria-valuemax={255}
-          aria-valuenow={displayBrightness}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          aria-valuetext={`${percent}%`}
           aria-label="Brightness"
         >
           <defs>
@@ -226,7 +232,7 @@ export function LEDModalArcDimmer({
           </span>
         </button>
       </div>
-      <div className="led-modal-arc-dimmer__value">{displayBrightness}</div>
+      <div className="led-modal-arc-dimmer__value">{percent}%</div>
     </div>
   );
 }

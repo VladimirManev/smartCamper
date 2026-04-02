@@ -16,6 +16,8 @@ const APPLIANCE_ICON_BY_TITLE = {
 };
 
 const BRIGHTNESS_DEBOUNCE_MS = 150;
+/** Clear local arc only when MQTT state has caught up (avoids stale updates resetting the UI). */
+const BRIGHTNESS_MATCH_EPS = 3;
 
 export function LEDStripModalContent({
   variant,
@@ -36,9 +38,13 @@ export function LEDStripModalContent({
   }, []);
 
   const brightness = strip?.brightness ?? 0;
+
   useEffect(() => {
-    setSliderOverride(null);
-  }, [brightness]);
+    if (sliderOverride === null) return;
+    if (Math.abs(brightness - sliderOverride) <= BRIGHTNESS_MATCH_EPS) {
+      setSliderOverride(null);
+    }
+  }, [brightness, sliderOverride]);
 
   const scheduleBrightness = useCallback(
     (value) => {
@@ -51,12 +57,13 @@ export function LEDStripModalContent({
     [onBrightness]
   );
 
-  const commitBrightness = useCallback(
+  const handleBrightnessCommit = useCallback(
     (value) => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
       }
+      setSliderOverride(value);
       onBrightness(value);
     },
     [onBrightness]
@@ -95,7 +102,7 @@ export function LEDStripModalContent({
           setSliderOverride(v);
           scheduleBrightness(v);
         }}
-        onBrightnessCommit={commitBrightness}
+        onBrightnessCommit={handleBrightnessCommit}
         onToggle={onToggle}
       />
     </div>
