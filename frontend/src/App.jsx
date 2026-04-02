@@ -31,6 +31,7 @@ import { ECGIndicator } from "./components/ECGIndicator";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
 import { CardModal } from "./components/CardModal";
+import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
 import { CustomDropdown } from "./components/CustomDropdown";
 import { themes, applyTheme, getThemeNames } from "./themes";
 import ducatoImage from "./assets/ducato.png";
@@ -136,6 +137,21 @@ function App() {
   // Leveling controller - check if leveling modal is open
   const isLevelingModalOpen = modalStack.some(modal => modal.cardType === "leveling");
   const { pitch, roll, lastDataTimestamp } = useLeveling(socket, isLevelingModalOpen);
+
+  const GRAY_WATER_MODULE_ID = "module-1";
+  const isGrayWaterModalTop =
+    modalStack.length > 0 && modalStack[modalStack.length - 1].cardType === "gray-water";
+
+  // While gray water modal is open, ask backend to force module-1 (fresh level + sensors) every 5s
+  useEffect(() => {
+    if (!socket || !connected || !isGrayWaterModalTop) return;
+    const emit = () => {
+      socket.emit("forceModuleUpdate", { moduleId: GRAY_WATER_MODULE_ID });
+    };
+    emit();
+    const id = setInterval(emit, 5000);
+    return () => clearInterval(id);
+  }, [socket, connected, isGrayWaterModalTop]);
   
   // Damper preset selection state
   const [selectedPreset, setSelectedPreset] = useState("Manual");
@@ -471,6 +487,16 @@ function App() {
             </div>
           </div>
         </div>
+      );
+    }
+
+    if (cardType === "gray-water") {
+      return (
+        <GrayWaterModalContent
+          level={grayWaterLevel}
+          temperature={grayWaterTemperature}
+          disabled={!isModule1Online}
+        />
       );
     }
 
@@ -953,6 +979,7 @@ function App() {
             level={grayWaterLevel}
             temperature={grayWaterTemperature}
             disabled={!isModule1Online}
+            onLongPress={() => openModal("gray-water", "Gray Water")}
           />
           <p className="card-label">Gray Water</p>
         </div>

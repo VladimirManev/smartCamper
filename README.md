@@ -120,6 +120,7 @@ pio run --target upload
 
 ## 📚 Documentation
 
+- `backend/README.md` - Backend: WebSocket events, MQTT bridge, `forceModuleUpdate`
 - `LED_CONTROLLER_DOCUMENTATION.md` - Complete LED controller documentation
 - `RASPBERRY_PI_COMMANDS.md` - Raspberry Pi management commands
 - `update-from-git.sh` - Script for updating project on Raspberry Pi

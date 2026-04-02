@@ -134,7 +134,9 @@ void WaterLevelSensor::loop() {
     if (measurementCount >= WATER_LEVEL_MODE_SAMPLE_COUNT) {
       int modeLevelIndex = findMode(levelIndices, WATER_LEVEL_MODE_SAMPLE_COUNT);
       float modePercent = levelToPercent(modeLevelIndex);
-      publishIfNeeded(modePercent, currentTime, isForceUpdate);
+      // Force: publish latest single reading (no mode). Normal: mode over rolling window.
+      float publishPercent = isForceUpdate ? percent : modePercent;
+      publishIfNeeded(publishPercent, currentTime, isForceUpdate);
       forceUpdateRequested = false;
     } else if (isForceUpdate) {
       publishIfNeeded(percent, currentTime, true);

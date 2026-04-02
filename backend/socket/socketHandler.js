@@ -13,7 +13,12 @@ const levelingCommandHandler = require("./handlers/levelingCommandHandler");
 const damperCommandHandler = require("./handlers/damperCommandHandler");
 const tableCommandHandler = require("./handlers/tableCommandHandler");
 const applianceCommandHandler = require("./handlers/applianceCommandHandler");
-const { sendForceUpdateToAllOnline } = require("./handlers/moduleCommandHandler");
+const {
+  sendForceUpdateToAllOnline,
+  sendForceUpdate,
+} = require("./handlers/moduleCommandHandler");
+
+const FORCE_MODULE_ID_PATTERN = /^module-[1-9]\d*$/;
 
 const setupSocketIO = (io, aedes) => {
   // Initialize Module Registry for heartbeat tracking
@@ -104,6 +109,17 @@ const setupSocketIO = (io, aedes) => {
     // Handle appliance commands from frontend
     socket.on("applianceCommand", (data) => {
       applianceCommandHandler(socket, aedes, data);
+    });
+
+    // Force one module to publish fresh sensor/state data (MQTT force_update)
+    socket.on("forceModuleUpdate", (data) => {
+      const raw = data && typeof data.moduleId === "string" ? data.moduleId.trim() : "";
+      if (!FORCE_MODULE_ID_PATTERN.test(raw)) {
+        return;
+      }
+      sendForceUpdate(aedes, raw).catch((err) => {
+        console.log(`❌ forceModuleUpdate failed for ${raw}: ${err.message}`);
+      });
     });
 
     // When frontend disconnects

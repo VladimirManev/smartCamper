@@ -14,8 +14,9 @@ import { Card } from "./Card";
  * @param {number|null} props.level - Water level percentage (0-100)
  * @param {number|null} props.temperature - Water temperature in Celsius
  * @param {boolean} props.disabled - Whether the sensor is disabled/offline
+ * @param {Function} [props.onLongPress] - Opens detail modal (e.g. gray water)
  */
-export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
+export const GrayWaterTank = ({ level, temperature, disabled = false, onLongPress }) => {
   // When disabled, don't show water (empty tank)
   const displayLevel = disabled ? null : level;
   const cardRef = useRef(null);
@@ -108,6 +109,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false }) => {
         iconState={disabled ? "gray" : "active"}
         disabled={disabled}
         cardClass="water-tank-card"
+        onLongPress={onLongPress}
       >
         {waterTankContent}
       </Card>
