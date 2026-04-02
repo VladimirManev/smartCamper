@@ -206,8 +206,8 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
       if (brightness > 255) brightness = 255;
       
       ledStripController.setBrightnessSmooth(stripIndex, brightness);
-      // Status will be published when transition completes
-      publishStripStatus(stripIndex);
+      // Status is published when smooth transition completes (strip callback), not here —
+      // immediate publish would send stale brightness while dimming is still running.
     } else if (action == "mode") {
       // Parse JSON payload: {"mode": "OFF"|"ON"|"AUTO"}
       StaticJsonDocument<200> doc;

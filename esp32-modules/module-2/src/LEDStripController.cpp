@@ -765,12 +765,15 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
     state.brightness = newBrightness;
     syncKitchenExtension(stripIndex);
   } else if (reachedTarget && state.isSmoothTransition) {
-    // Smooth transition completed - we'll publish status externally
+    // Smooth transition completed (e.g. MQTT brightness) — publish final state to MQTT/UI
     state.dimmingActive = false;
     state.isSmoothTransition = false;
     state.brightness = targetBrightness;
     updateStrip(stripIndex);
     syncKitchenExtension(stripIndex);
+    if (stripStateChangeCallback) {
+      stripStateChangeCallback(stripIndex);
+    }
   } else {
     // Still transitioning
     state.brightness = newBrightness;
