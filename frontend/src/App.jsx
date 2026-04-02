@@ -32,6 +32,10 @@ import { ClockDateCard } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
 import { CardModal } from "./components/CardModal";
 import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
+import {
+  LEDStripModalContent,
+  getApplianceModalIcon,
+} from "./components/LEDStripModalContent";
 import { CustomDropdown } from "./components/CustomDropdown";
 import { themes, applyTheme, getThemeNames } from "./themes";
 import ducatoImage from "./assets/ducato.png";
@@ -522,7 +526,56 @@ function App() {
       );
     }
 
-    // For individual card modals (led, floor-heating, damper) - empty for now
+    if (cardType === "led" && modal.cardData) {
+      const data = modal.cardData;
+      if (data.type === "strip") {
+        const idx = data.index;
+        const onToggle =
+          idx === 3 ? handleBathroomModeCycle : () => handleStripToggle(idx);
+        return (
+          <LEDStripModalContent
+            variant="strip"
+            strip={ledStrips[idx]}
+            stripIndex={idx}
+            onBrightness={(value) => {
+              if (!isModule2Online) return;
+              sendLEDCommand({
+                type: "strip",
+                index: idx,
+                action: "brightness",
+                value,
+              });
+            }}
+            onToggle={onToggle}
+            disabled={!isModule2Online}
+          />
+        );
+      }
+      if (data.type === "relay") {
+        if (modal.cardName === "Ambient") {
+          return (
+            <LEDStripModalContent
+              variant="relay"
+              strip={relays[0]}
+              onToggle={handleRelayToggle}
+              disabled={!isModule2Online}
+              icon="bulb"
+            />
+          );
+        }
+        return (
+          <LEDStripModalContent
+            variant="relay"
+            strip={appliances[data.index]}
+            onToggle={() => handleApplianceToggle(data.index)}
+            disabled={!isModule5Online}
+            icon={getApplianceModalIcon(modal.cardName)}
+          />
+        );
+      }
+    }
+
+    // floor-heating, damper — empty for now
     return null;
   };
 
