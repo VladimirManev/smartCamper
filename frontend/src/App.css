@@ -1213,6 +1213,26 @@ body {
   }
 }
 
+/* Opens above the button (e.g. LED strip modal — avoids modal-container overflow clip). */
+.custom-dropdown-menu--top {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  animation: dropdownFadeInTop 0.2s ease-out;
+  box-shadow: 0 -8px 24px var(--color-accent-blue-30),
+    inset 0 1px 0 var(--color-white-5);
+}
+
+@keyframes dropdownFadeInTop {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .custom-dropdown-option {
   width: 100%;
   padding: 0.9rem;
@@ -1882,6 +1902,12 @@ body {
   color: var(--color-text-primary);
 }
 
+/* LED strip modal: keep content on one screen when possible (no inner scroll). */
+.modal-content:has(.led-strip-modal--strip) {
+  overflow-y: visible;
+  padding: 0.65rem 1rem 0.85rem;
+}
+
 /* LED strip detail: arc = brightness, center = toggle (modal only) */
 .led-strip-modal {
   display: flex;
@@ -1890,6 +1916,31 @@ body {
   width: 100%;
   max-width: 360px;
   margin: 0 auto;
+}
+
+.led-strip-modal--strip .led-modal-arc-dimmer__frame {
+  width: min(76vw, 228px);
+}
+
+.led-strip-modal--strip .led-modal-arc-dimmer {
+  gap: 0.2rem;
+}
+
+.led-strip-modal--strip button.led-modal-arc-dimmer__bulb.neumorphic-button {
+  width: clamp(4.25rem, 34vw, 5.75rem);
+  height: clamp(4.25rem, 34vw, 5.75rem);
+  min-width: 4.25rem;
+  min-height: 4.25rem;
+}
+
+.led-strip-modal--strip .led-modal-arc-dimmer__bulb .icon-container svg {
+  width: clamp(2rem, 16vw, 2.6rem);
+  height: clamp(2rem, 16vw, 2.6rem);
+}
+
+.led-strip-modal--strip .led-modal-arc-dimmer__value {
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
 .led-strip-modal--relay .led-strip-modal__card {
@@ -1983,6 +2034,70 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   font-variant-numeric: tabular-nums;
 }
 
+.led-strip-modal__light {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  box-sizing: border-box;
+}
+
+/* LED strip modal: same CustomDropdown as Airflow; menu opens up via menuPlacement="top". */
+.led-strip-modal__hue-wrap {
+  margin-top: 1.35rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.led-strip-modal__hue-bar {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 1.85rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.led-strip-modal__hue-bar:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 0 0 2px var(--color-accent, rgba(126, 184, 255, 0.7));
+}
+
+.led-strip-modal__hue-bar-track {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    to right,
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
+}
+
+.led-strip-modal__hue-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  margin-left: -2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
 @media (max-width: 400px) {
   .led-strip-modal {
     max-width: 100%;
@@ -1990,6 +2105,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
   .led-modal-arc-dimmer__frame {
     width: min(92vw, 300px);
+  }
+
+  .led-strip-modal--strip .led-modal-arc-dimmer__frame {
+    width: min(72vw, 220px);
   }
 }
 

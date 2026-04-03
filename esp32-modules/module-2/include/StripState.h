@@ -6,11 +6,17 @@
 
 #include <Arduino.h>
 
-// Strip mode (for motion-activated strips)
+// User-facing strip mode (all strips; only bathroom uses AUTO / PIR)
 enum StripMode {
-  STRIP_MODE_OFF,   // 0: Strip is off
-  STRIP_MODE_AUTO,  // 1: Automatic (motion-activated)
-  STRIP_MODE_ON     // 2: Strip is on
+  STRIP_MODE_OFF,   // 0: off
+  STRIP_MODE_AUTO,  // 1: motion (strip 3 only; ignored on other strips)
+  STRIP_MODE_ON     // 2: on
+};
+
+// Visual effect when output is on (solid channels vs test patterns)
+enum StripEffect {
+  STRIP_EFFECT_NORMAL = 0,
+  STRIP_EFFECT_RAINBOW_STATIC = 1,
 };
 
 // Transition types
@@ -43,9 +49,15 @@ struct StripState {
   bool on;
   uint8_t brightness;
   
-  // Mode (for motion-activated strips like Strip 3)
-  StripMode mode;  // OFF, AUTO, or ON
-  uint8_t lastAutoBrightness;  // Remember brightness when in AUTO mode
+  // RGBW mix at "full" recipe; scaled by brightness in firmware
+  uint8_t chR;
+  uint8_t chG;
+  uint8_t chB;
+  uint8_t chW;
+  StripEffect effect;
+  
+  StripMode mode;
+  uint8_t lastAutoBrightness;  // AUTO (strip 3): level for next PIR on
   
   // Dimming
   bool dimmingActive;

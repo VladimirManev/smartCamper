@@ -42,12 +42,35 @@ export const CardModal = ({ isOpen, onClose, title, children, isNested = false, 
     if (!isOpen) return;
 
     const blockClicks = (event) => {
+      const t = event.target;
+      // Native <select> dropdown options are often rendered outside .modal-container;
+      // still belong to a <select> that lives inside the modal — must not preventDefault.
+      if (
+        t?.tagName === "OPTION" &&
+        t.parentElement?.tagName === "SELECT" &&
+        modalRef.current?.contains(t.parentElement)
+      ) {
+        return;
+      }
+      const selectEl =
+        t?.tagName === "SELECT"
+          ? t
+          : typeof t?.closest === "function"
+            ? t.closest("select")
+            : null;
+      if (
+        selectEl &&
+        modalRef.current &&
+        modalRef.current.contains(selectEl)
+      ) {
+        return;
+      }
       // Allow clicks on modal elements (modal container and its children)
-      if (modalRef.current && modalRef.current.contains(event.target)) {
+      if (modalRef.current && modalRef.current.contains(t)) {
         return;
       }
       // Allow clicks on overlay itself (for closing)
-      if (overlayRef.current && event.target === overlayRef.current) {
+      if (overlayRef.current && t === overlayRef.current) {
         return;
       }
       // Block all other clicks (elements below overlay)

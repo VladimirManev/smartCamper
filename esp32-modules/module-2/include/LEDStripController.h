@@ -46,10 +46,11 @@ private:
   void showStrip(uint8_t stripIndex);
   
   // Helper functions for colors
-  RgbwColor fixColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w);
+  RgbwColor fixColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) const;
   RgbwColor whiteColor(uint8_t brightness);
   RgbwColor warmWhiteColor(uint8_t brightness);
-  RgbwColor getWhiteColorForStrip(uint8_t stripIndex, uint8_t brightness);
+  static void hueToRgb(uint16_t hue, uint8_t& r, uint8_t& g, uint8_t& b);
+  RgbwColor getPixelColor(uint8_t stripIndex, int pixelIndex, uint8_t brightnessScale) const;
   
   // Transition functions
   void transitionOnCenterToEdges(uint8_t stripIndex);
@@ -107,6 +108,8 @@ public:
   void setStripMode(uint8_t stripIndex, StripMode mode);
   void startDimming(uint8_t stripIndex);
   void stopDimming(uint8_t stripIndex);
+  /** Re-render strip if ON (e.g. after MQTT channel/effect change). */
+  void requestStripRedraw(uint8_t stripIndex);
   
   // Getters
   StripState& getStripState(uint8_t stripIndex);

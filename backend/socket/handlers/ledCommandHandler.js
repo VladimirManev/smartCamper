@@ -34,6 +34,12 @@ const ledCommandHandler = (socket, aedes, data) => {
     // If mode value exists, add it to payload
     else if (data.action === "mode" && data.value) {
       mqttPayload = JSON.stringify({ mode: data.value });
+    } else if (
+      data.action === "apply" &&
+      data.payload &&
+      typeof data.payload === "object"
+    ) {
+      mqttPayload = JSON.stringify(data.payload);
     }
   } else if (data.type === "relay" && data.action === "toggle") {
     // Relay command: relay/toggle

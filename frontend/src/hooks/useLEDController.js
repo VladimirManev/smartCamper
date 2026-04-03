@@ -6,6 +6,31 @@
 
 import { useState, useEffect } from "react";
 
+const DEFAULT_CHANNELS = { r: 255, g: 255, b: 255, w: 255 };
+const BEDROOM_CHANNELS = { r: 255, g: 230, b: 190, w: 0 };
+
+function defaultChannelsForIndex(index) {
+  return index === 4 ? { ...BEDROOM_CHANNELS } : { ...DEFAULT_CHANNELS };
+}
+
+function normalizeStripFromStatus(index, stripData) {
+  const ch = stripData.channels || {};
+  const base = defaultChannelsForIndex(Number(index));
+  return {
+    state: stripData.state,
+    brightness: stripData.brightness ?? 0,
+    mode: stripData.mode != null ? String(stripData.mode).toUpperCase() : "OFF",
+    channels: {
+      r: ch.r ?? base.r,
+      g: ch.g ?? base.g,
+      b: ch.b ?? base.b,
+      w: ch.w ?? base.w,
+    },
+    effect:
+      stripData.effect === "rainbow_static" ? "rainbow_static" : "normal",
+  };
+}
+
 /**
  * Custom hook for LED controller
  * @param {Object} socket - Socket.io instance
@@ -13,10 +38,10 @@ import { useState, useEffect } from "react";
  */
 export const useLEDController = (socket) => {
   const [ledStrips, setLedStrips] = useState({
-    0: { state: "OFF", brightness: 0 }, // Kitchen
-    1: { state: "OFF", brightness: 0 }, // Lighting
-    3: { state: "OFF", brightness: 0, mode: "OFF" }, // Bathroom (motion-activated)
-    4: { state: "OFF", brightness: 0 }, // Bedroom
+    0: { state: "OFF", brightness: 0, mode: "OFF", channels: { ...DEFAULT_CHANNELS }, effect: "normal" },
+    1: { state: "OFF", brightness: 0, mode: "OFF", channels: { ...DEFAULT_CHANNELS }, effect: "normal" },
+    3: { state: "OFF", brightness: 0, mode: "OFF", channels: { ...DEFAULT_CHANNELS }, effect: "normal" },
+    4: { state: "OFF", brightness: 0, mode: "OFF", channels: { ...BEDROOM_CHANNELS }, effect: "normal" },
   });
   
   const [relays, setRelays] = useState({
@@ -40,11 +65,7 @@ export const useLEDController = (socket) => {
         if (statusData.strips) {
           const newStrips = {};
           for (const [index, stripData] of Object.entries(statusData.strips)) {
-            newStrips[index] = {
-              state: stripData.state,
-              brightness: stripData.brightness,
-              ...(stripData.mode && { mode: stripData.mode }), // Add mode if present (for Strip 3)
-            };
+            newStrips[index] = normalizeStripFromStatus(index, stripData);
           }
           setLedStrips((prev) => ({ ...prev, ...newStrips }));
         }

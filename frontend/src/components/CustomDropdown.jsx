@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from "react";
  * @param {string} props.placeholder - Placeholder text (optional)
  * @param {string} props.className - Additional CSS classes (optional)
  * @param {boolean} props.disabled - Whether dropdown is disabled (optional)
+ * @param {"bottom"|"top"} props.menuPlacement - Menu opens below (default) or above the button
  */
 export const CustomDropdown = ({
   value,
@@ -19,6 +20,7 @@ export const CustomDropdown = ({
   placeholder = "Select...",
   className = "",
   disabled = false,
+  menuPlacement = "bottom",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -119,7 +121,12 @@ export const CustomDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="custom-dropdown-menu" ref={dropdownRef}>
+        <div
+          className={`custom-dropdown-menu${
+            menuPlacement === "top" ? " custom-dropdown-menu--top" : ""
+          }`}
+          ref={dropdownRef}
+        >
           {normalizedOptions.map((option) => (
             <button
               key={option.value}

@@ -209,7 +209,7 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
       // Status is published when smooth transition completes (strip callback), not here —
       // immediate publish would send stale brightness while dimming is still running.
     } else if (action == "mode") {
-      // Parse JSON payload: {"mode": "OFF"|"ON"|"AUTO"}
+      // Parse JSON payload: {"mode": "off"|"on"|"auto"} (case-insensitive)
       StaticJsonDocument<200> doc;
       DeserializationError error = deserializeJson(doc, message);
       
@@ -228,13 +228,14 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
       }
       
       String modeStr = doc["mode"].as<String>();
+      modeStr.toLowerCase();
       StripMode mode;
       
-      if (modeStr == "OFF") {
+      if (modeStr == "off") {
         mode = STRIP_MODE_OFF;
-      } else if (modeStr == "ON") {
+      } else if (modeStr == "on") {
         mode = STRIP_MODE_ON;
-      } else if (modeStr == "AUTO") {
+      } else if (modeStr == "auto") {
         mode = STRIP_MODE_AUTO;
       } else {
         if (DEBUG_SERIAL) {
@@ -244,6 +245,73 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
       }
       
       ledStripController.setStripMode(stripIndex, mode);
+      publishStripStatus(stripIndex);
+    } else if (action == "apply") {
+      StaticJsonDocument<768> adoc;
+      DeserializationError aerr = deserializeJson(adoc, message);
+      if (aerr) {
+        if (DEBUG_SERIAL) {
+          Serial.println("❌ apply JSON: " + String(aerr.c_str()));
+        }
+        return;
+      }
+      
+      StripState& st = ledStripController.getStripState(stripIndex);
+      bool needRedraw = false;
+      
+      if (adoc.containsKey("channels")) {
+        JsonObject ch = adoc["channels"];
+        if (ch.containsKey("r")) {
+          st.chR = (uint8_t)constrain(ch["r"].as<int>(), 0, 255);
+          needRedraw = true;
+        }
+        if (ch.containsKey("g")) {
+          st.chG = (uint8_t)constrain(ch["g"].as<int>(), 0, 255);
+          needRedraw = true;
+        }
+        if (ch.containsKey("b")) {
+          st.chB = (uint8_t)constrain(ch["b"].as<int>(), 0, 255);
+          needRedraw = true;
+        }
+        if (ch.containsKey("w")) {
+          st.chW = (uint8_t)constrain(ch["w"].as<int>(), 0, 255);
+          needRedraw = true;
+        }
+      }
+      
+      if (adoc.containsKey("effect")) {
+        String ef = adoc["effect"].as<String>();
+        ef.toLowerCase();
+        st.effect = (ef == "rainbow_static") ? STRIP_EFFECT_RAINBOW_STATIC : STRIP_EFFECT_NORMAL;
+        needRedraw = true;
+      }
+      
+      if (adoc.containsKey("brightness")) {
+        uint8_t b = (uint8_t)adoc["brightness"].as<unsigned int>();
+        if (b < 1) b = 1;
+        if (b > 255) b = 255;
+        ledStripController.setBrightnessSmooth(stripIndex, b);
+      }
+      
+      if (adoc.containsKey("mode")) {
+        String ms = adoc["mode"].as<String>();
+        ms.toLowerCase();
+        StripMode nm = STRIP_MODE_OFF;
+        if (ms == "on") {
+          nm = STRIP_MODE_ON;
+        } else if (ms == "auto") {
+          nm = STRIP_MODE_AUTO;
+        }
+        ledStripController.setStripMode(stripIndex, nm);
+      }
+      
+      if (adoc.containsKey("brightness")) {
+        return;
+      }
+      
+      if (needRedraw && st.on) {
+        ledStripController.requestStripRedraw(stripIndex);
+      }
       publishStripStatus(stripIndex);
     } else {
       if (DEBUG_SERIAL) {
@@ -270,10 +338,8 @@ void LEDManager::publishFullStatus() {
     return;  // Cannot publish if not connected
   }
   
-  // Create JSON object with all data
-  StaticJsonDocument<1024> doc;
+  StaticJsonDocument<1536> doc;
   
-  // Add data for all strips
   JsonObject strips = doc.createNestedObject("strips");
   for (uint8_t i = 0; i < NUM_STRIPS; i++) {
     const StripState& state = ledStripController.getStripState(i);
@@ -281,18 +347,22 @@ void LEDManager::publishFullStatus() {
     strip["state"] = state.on ? "ON" : "OFF";
     strip["brightness"] = state.brightness;
     
-    // Add mode for motion-activated strips (Strip 3)
-    if (i == 3) {  // MOTION_STRIP_INDEX
-      const char* modeStr;
-      if (state.mode == STRIP_MODE_OFF) {
-        modeStr = "OFF";
-      } else if (state.mode == STRIP_MODE_ON) {
-        modeStr = "ON";
-      } else {
-        modeStr = "AUTO";
-      }
-      strip["mode"] = modeStr;
+    const char* modeJson;
+    if (state.mode == STRIP_MODE_OFF) {
+      modeJson = "off";
+    } else if (state.mode == STRIP_MODE_AUTO) {
+      modeJson = "auto";
+    } else {
+      modeJson = "on";
     }
+    strip["mode"] = modeJson;
+    
+    JsonObject ch = strip.createNestedObject("channels");
+    ch["r"] = state.chR;
+    ch["g"] = state.chG;
+    ch["b"] = state.chB;
+    ch["w"] = state.chW;
+    strip["effect"] = (state.effect == STRIP_EFFECT_RAINBOW_STATIC) ? "rainbow_static" : "normal";
   }
   
   // Add data for all relays

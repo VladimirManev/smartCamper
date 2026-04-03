@@ -548,6 +548,15 @@ function App() {
             }}
             onToggle={onToggle}
             disabled={!isModule2Online}
+            sendStripApply={(payload) => {
+              if (!isModule2Online) return;
+              sendLEDCommand({
+                type: "strip",
+                index: idx,
+                action: "apply",
+                payload,
+              });
+            }}
           />
         );
       }
@@ -601,13 +610,13 @@ function App() {
     
     const currentMode = ledStrips[3]?.mode || "OFF";
     let nextMode;
-    // Cycle: OFF -> AUTO -> ON -> OFF
+    // Cycle: OFF -> AUTO -> ON -> OFF (MQTT uses lowercase; UI state stays uppercase)
     if (currentMode === "OFF") {
-      nextMode = "AUTO";
+      nextMode = "auto";
     } else if (currentMode === "AUTO") {
-      nextMode = "ON";
+      nextMode = "on";
     } else {
-      nextMode = "OFF";
+      nextMode = "off";
     }
 
     sendLEDCommand({
