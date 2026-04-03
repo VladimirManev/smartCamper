@@ -11,7 +11,7 @@ const StripConfig LEDStripController::stripConfigs[NUM_STRIPS] = {
   {STRIP_0_PIN, STRIP_0_LED_COUNT},   // Strip 0: Kitchen (main)
   {STRIP_1_PIN, STRIP_1_LED_COUNT},   // Strip 1: Main lighting
   {STRIP_2_PIN, STRIP_2_LED_COUNT},   // Strip 2: Kitchen (extension for spice rack, mirrors strip 0)
-  {STRIP_3_PIN, STRIP_3_LED_COUNT},   // Strip 3: Bathroom (motion activated, no button, no dimming)
+  {STRIP_3_PIN, STRIP_3_LED_COUNT},   // Strip 3: Bathroom (motion AUTO, no button; MQTT dimming OK)
   {STRIP_4_PIN, STRIP_4_LED_COUNT}    // Strip 4: Bedroom (GRBW protocol)
 };
 
@@ -769,6 +769,9 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
     state.dimmingActive = false;
     state.isSmoothTransition = false;
     state.brightness = targetBrightness;
+    if (stripIndex == MOTION_STRIP_INDEX && state.mode == STRIP_MODE_AUTO) {
+      state.lastAutoBrightness = targetBrightness;
+    }
     updateStrip(stripIndex);
     syncKitchenExtension(stripIndex);
     if (stripStateChangeCallback) {
@@ -813,10 +816,9 @@ void LEDStripController::loop() {
     if (stripStates[i].transition.active) {
       updateTransition(i);
     } else {
-      // Strip 3 (motion activated) has no dimming
-      if (i != MOTION_STRIP_INDEX) {
-        updateDimming(i);
-      }
+      // Strip 3: no physical button dimming (startDimming is a no-op), but MQTT smooth brightness
+      // still uses updateDimming — it was incorrectly skipped here, so bathroom never dimmed from app.
+      updateDimming(i);
       updateBlink(i);
     }
   }
