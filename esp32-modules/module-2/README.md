@@ -43,6 +43,10 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 - **AUTO**: Motion sensor controls strip (60s timeout)
 - **ON**: Strip stays on
 
+**Strip 3 brightness (MQTT / app):** There is **no** physical button hold-dimming on this strip, but `strip/3/brightness` uses the same **smooth transition** as the other strips whenever the strip is **ON** (including **AUTO** while the light is already on from PIR). When a smooth MQTT brightness change **finishes** in **AUTO** mode, the firmware updates `lastAutoBrightness` so the next motion-triggered ON uses that level.
+
+**Status publish after `brightness`:** Full JSON on `smartcamper/sensors/module-2/status` is sent when the **smooth transition completes**, not at command receive (avoids publishing stale `brightness` while fading).
+
 ## Network Configuration
 
 - **WiFi SSID**: `SmartCamper`
@@ -58,7 +62,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 
 | Topic | Message Format | Update Frequency |
 |-------|---------------|------------------|
-| `smartcamper/sensors/module-2/status` | `{"strips": {...}, "relays": {...}}` | On change only (button press, MQTT command, force_update) |
+| `smartcamper/sensors/module-2/status` | `{"strips": {...}, "relays": {...}}` | On change (after transitions where applicable; MQTT `brightness` after fade completes) |
 | `smartcamper/heartbeat/module-2` | `{"timestamp": ..., "moduleId": "module-2", "uptime": ..., "wifiRSSI": ...}` | Every 10 seconds |
 
 ### Subscribed (Commands)
@@ -68,7 +72,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 | `smartcamper/commands/module-2/strip/{index}/on` | `{}` | Turn on strip |
 | `smartcamper/commands/module-2/strip/{index}/off` | `{}` | Turn off strip |
 | `smartcamper/commands/module-2/strip/{index}/toggle` | `{}` | Toggle strip |
-| `smartcamper/commands/module-2/strip/{index}/brightness` | `{"value": 0-255}` | Set brightness |
+| `smartcamper/commands/module-2/strip/{index}/brightness` | `{"value": 1-255}` | Smooth brightness (clamped by firmware) |
 | `smartcamper/commands/module-2/strip/3/mode` | `{"mode": "OFF"\|"AUTO"\|"ON"}` | Set Strip 3 mode |
 | `smartcamper/commands/module-2/relay/toggle` | `{}` | Toggle relay |
 | `smartcamper/commands/module-2/force_update` | `{}` | Force status update |
@@ -77,7 +81,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 
 ### Power Relay Management
 
-The module includes a power relay (GPIO 14) that physically cuts power to all LED strips when they are all turned off. This prevents standby power consumption (0.5A+) from WS2812 controllers.
+The module includes a power relay (GPIO 32 — see `Config.h`) that physically cuts power to all LED strips when they are all turned off. This prevents standby power consumption (0.5A+) from WS2812 controllers.
 
 **How it works:**
 - Relay turns ON automatically when any strip is turned on (with 100ms stabilization delay)
@@ -95,10 +99,8 @@ The module includes a power relay (GPIO 14) that physically cuts power to all LE
 - Duration: 1 second
 
 ### Dimming
-- Hold button >250ms to start
-- Speed: 50 brightness units/second
-- Alternates between increase/decrease
-- Blinks when reaching maximum
+- **Button hold** (strips 0, 1, 4 only): Hold >250ms to start; speed ~50 brightness units/s; alternates up/down; blink at max. Strip 3 has **no** dimmer button.
+- **MQTT `brightness`**: All strips **including strip 3** — smooth fade to target; final status published when the fade **completes**.
 
 ### Motion Sensor
 - PIR sensor on pin 2
@@ -148,10 +150,9 @@ The module includes a power relay (GPIO 14) that physically cuts power to all LE
 - Check serial output for motion detection messages
 
 ### Dimming Not Working
-- Ensure strip is ON before holding button
-- Hold button for >250ms to activate dimming
-- Strip 3 in AUTO mode doesn't support dimming (use ON/OFF mode)
-- Check serial output for dimming messages
+- **Button dimming:** Strip must be ON; hold **>250ms** (strips 0, 1, 4 only — not bathroom).
+- **App / MQTT dimming:** Works for **all strips including bathroom** when the strip is ON; if the UI lags, confirm status topic updates after the fade ends.
+- Check serial output for dimming / smooth brightness messages
 
 ### No MQTT Connection
 - Verify MQTT broker IP in `src/Config.h`
