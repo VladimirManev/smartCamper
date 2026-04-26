@@ -3012,7 +3012,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     grid-auto-rows: min-content;
-    gap: 3px;
+    gap: 10px;
     padding: 0.35rem;
     width: 100%;
     margin: 0;
@@ -3020,10 +3020,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     justify-items: stretch;
     align-items: stretch;
     align-content: center;
-    flex: 0 0 60%;
-    height: 60%;
-    max-height: 60%;
-    min-height: 60%;
+    flex: 0 0 57%;
+    height: 57%;
+    max-height: 57%;
+    min-height: 57%;
     overflow-y: auto;
     align-self: stretch;
     border: 1px solid var(--color-accent-blue-30);
@@ -3049,6 +3049,16 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-wrapper > .card-label {
     display: none;
+  }
+
+  /* GrayWaterTank wraps Card in an extra div — must fill grid cell like other cards */
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card,

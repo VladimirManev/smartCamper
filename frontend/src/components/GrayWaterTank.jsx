@@ -101,7 +101,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false, onLongPres
   );
 
   return (
-    <div ref={cardRef}>
+    <div ref={cardRef} className="gray-water-card-root">
       <Card
         name="Gray Water"
         icon={null}
