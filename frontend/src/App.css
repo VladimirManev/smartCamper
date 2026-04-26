@@ -246,6 +246,15 @@ body {
   max-width: 100%;
 }
 
+/* Wraps sensor row + clock (phone) or sensor-clock cluster + bus (tablet) */
+.top-metrics-row {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  gap: 0.5rem;
+}
+
 /* Container for image and clock - side by side on portrait, stacked on landscape */
 .image-clock-container {
   display: flex;
@@ -2557,7 +2566,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 .clock-calendar-line {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 1.2;
   color: var(--color-text-secondary);
@@ -3071,46 +3080,87 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     font-size: 0.82rem;
   }
 
-  .app.app--tablet-landscape .sensor-text-row {
+  .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     width: 100%;
-    justify-content: flex-start;
-    gap: 1.2rem;
-    flex-shrink: 0;
   }
 
-  .app.app--tablet-landscape .sensor-text-row .date-text-item {
+  .app.app--tablet-landscape .tablet-split__left-inner .sensor-clock-cluster {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    gap: 1rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .sensor-clock-cluster .sensor-text-row {
+    width: auto;
+    flex: 1;
+    justify-content: flex-start;
+    gap: 1.2rem;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .sensor-clock-cluster
+    .sensor-text-row
+    .date-text-item {
     display: none;
   }
 
-  .app.app--tablet-landscape .sensor-text-row .sensor-label {
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .sensor-clock-cluster
+    .sensor-text-row
+    .sensor-label {
     font-size: 0.8rem;
   }
 
-  .app.app--tablet-landscape .sensor-text-row .sensor-value {
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .sensor-clock-cluster
+    .sensor-text-row
+    .sensor-value {
     font-size: 1.18rem;
   }
 
-  .app.app--tablet-landscape .sensor-text-row .sensor-icon {
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .sensor-clock-cluster
+    .sensor-text-row
+    .sensor-icon {
     font-size: 1.15rem;
   }
 
-  .app.app--tablet-landscape .image-clock-container {
-    width: 100%;
-    justify-content: space-between;
-    align-items: flex-start;
+  .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row > .image-sensor-wrapper {
     flex-shrink: 0;
+    margin-top: 0;
+    flex: 0 1 auto;
+    max-width: 48%;
+    align-self: center;
   }
 
   .app.app--tablet-landscape .clock-time {
     font-size: 48px;
   }
 
-  .app.app--tablet-landscape .clock-date-card {
+  .app.app--tablet-landscape .sensor-clock-cluster .clock-date-card {
     margin-left: 0;
-    padding: 0.4rem 0 0 0.2rem;
-    margin-top: -2.2rem;
+    margin-top: 0;
+    padding: 0.35rem 0.5rem 0 0;
     align-items: flex-start;
-    gap: 0.25rem;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .sensor-clock-cluster .clock-calendar-line {
+    font-size: 17px;
   }
 
   .app.app--tablet-landscape .ducato-image {

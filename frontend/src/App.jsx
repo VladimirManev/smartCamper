@@ -938,63 +938,87 @@ function App() {
     });
   };
 
+  const clockSlot = (
+    <ClockDateCard
+      indoorTemp={indoorTemperature}
+      outdoorTemp={outdoorTemperature}
+      humidity={indoorHumidity}
+    />
+  );
+
+  const sensorTextRow = (
+    <div className="sensor-text-row">
+      <div className="sensor-text-item date-text-item">
+        <div className="sensor-text-content">
+          <span className="sensor-label date-label">{dayName}</span>
+          <span className="sensor-value date-value">{dateString}</span>
+        </div>
+      </div>
+      <div className="sensor-text-item">
+        <i className="fas fa-thermometer-half sensor-icon"></i>
+        <div className="sensor-text-content">
+          <span className="sensor-label">IN</span>
+          <span className="sensor-value">
+            {indoorTemperature !== null && indoorTemperature !== undefined
+              ? `${indoorTemperature.toFixed(1)}°`
+              : "--°"}
+          </span>
+        </div>
+      </div>
+      <div className="sensor-text-item">
+        <i className="fas fa-tint sensor-icon"></i>
+        <div className="sensor-text-content">
+          <span className="sensor-label">IN</span>
+          <span className="sensor-value">
+            {indoorHumidity !== null && indoorHumidity !== undefined
+              ? `${indoorHumidity.toFixed(0)}%`
+              : "--%"}
+          </span>
+        </div>
+      </div>
+      <div className="sensor-text-item">
+        <i className="fas fa-thermometer-half sensor-icon"></i>
+        <div className="sensor-text-content">
+          <span className="sensor-label">OUT</span>
+          <span className="sensor-value">
+            {outdoorTemperature !== null && outdoorTemperature !== undefined
+              ? `${outdoorTemperature.toFixed(1)}°`
+              : "--°"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const busImageBlock = (
+    <div className="image-sensor-wrapper">
+      <div className="image-container">
+        <img src={ducatoImage} alt="Ducato" className="ducato-image" />
+      </div>
+    </div>
+  );
+
   const mainColumn = (
     <>
-        {/* Date and sensor text labels: Date, IN temp, IN humidity, OUT temp */}
-        <div className="sensor-text-row">
-          <div className="sensor-text-item date-text-item">
-            <div className="sensor-text-content">
-              <span className="sensor-label date-label">{dayName}</span>
-              <span className="sensor-value date-value">{dateString}</span>
+      <div className="top-metrics-row">
+        {isTabletLandscape ? (
+          <>
+            <div className="sensor-clock-cluster">
+              {clockSlot}
+              {sensorTextRow}
             </div>
-          </div>
-          <div className="sensor-text-item">
-            <i className="fas fa-thermometer-half sensor-icon"></i>
-            <div className="sensor-text-content">
-              <span className="sensor-label">IN</span>
-              <span className="sensor-value">
-                {indoorTemperature !== null && indoorTemperature !== undefined 
-                  ? `${indoorTemperature.toFixed(1)}°` 
-                  : "--°"}
-              </span>
+            {busImageBlock}
+          </>
+        ) : (
+          <>
+            {sensorTextRow}
+            <div className="image-clock-container">
+              {clockSlot}
+              {busImageBlock}
             </div>
-          </div>
-          <div className="sensor-text-item">
-            <i className="fas fa-tint sensor-icon"></i>
-            <div className="sensor-text-content">
-              <span className="sensor-label">IN</span>
-              <span className="sensor-value">
-                {indoorHumidity !== null && indoorHumidity !== undefined 
-                  ? `${indoorHumidity.toFixed(0)}%` 
-                  : "--%"}
-              </span>
-            </div>
-          </div>
-          <div className="sensor-text-item">
-            <i className="fas fa-thermometer-half sensor-icon"></i>
-            <div className="sensor-text-content">
-              <span className="sensor-label">OUT</span>
-              <span className="sensor-value">
-                {outdoorTemperature !== null && outdoorTemperature !== undefined 
-                  ? `${outdoorTemperature.toFixed(1)}°` 
-                  : "--°"}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="image-clock-container">
-          <ClockDateCard 
-            indoorTemp={indoorTemperature}
-            outdoorTemp={outdoorTemperature}
-            humidity={indoorHumidity}
-          />
-          <div className="image-sensor-wrapper">
-            <div className="image-container">
-              <img src={ducatoImage} alt="Ducato" className="ducato-image" />
-            </div>
-          </div>
-        </div>
+          </>
+        )}
+      </div>
 
         <div className="main-content">
         {/* LED Group Card */}
