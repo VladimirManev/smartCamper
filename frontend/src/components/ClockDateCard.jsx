@@ -17,6 +17,13 @@ export const ClockDateCard = () => {
   const hours = String(time.getHours()).padStart(2, "0");
   const minutes = String(time.getMinutes()).padStart(2, "0");
   const timeString = `${hours}:${minutes}`;
+  const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" })
+    .format(time)
+    .toLowerCase();
+  const monthName = new Intl.DateTimeFormat("en-US", { month: "long" })
+    .format(time)
+    .toLowerCase();
+  const dateLine = `${time.getDate()} ${monthName}`;
 
   return (
     <div className="clock-date-card">
@@ -24,6 +31,10 @@ export const ClockDateCard = () => {
         <time className="clock-time" dateTime={time.toISOString()}>
           {timeString}
         </time>
+      </div>
+      <div className="clock-calendar" aria-label="Date">
+        <div className="clock-calendar-line">{dayName}</div>
+        <div className="clock-calendar-line">{dateLine}</div>
       </div>
     </div>
   );
