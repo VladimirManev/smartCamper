@@ -579,15 +579,8 @@ body {
     font-size: 13px;
   }
 
-  .clock-button {
-    width: 80px;
-    height: 80px;
-    min-width: 80px;
-    min-height: 80px;
-  }
-
   .clock-time {
-    font-size: 1rem;
+    font-size: 48px;
   }
 
   .date-value {
@@ -686,15 +679,8 @@ body {
     font-size: 12px;
   }
 
-  .clock-button {
-    width: 75px;
-    height: 75px;
-    min-width: 75px;
-    min-height: 75px;
-  }
-
   .clock-time {
-    font-size: 0.95rem;
+    font-size: 32px;
   }
 
   .date-value {
@@ -792,16 +778,8 @@ body {
     font-size: 13px;
   }
 
-  /* Clock responsive - tablet size (proportional to base 70px) */
-  .clock-button {
-    width: 80px;
-    height: 80px;
-    min-width: 80px;
-    min-height: 80px;
-  }
-
   .clock-time {
-    font-size: 1rem;
+    font-size: 34px;
   }
 
   .date-value {
@@ -864,16 +842,8 @@ body {
     font-size: 14px;
   }
 
-  /* Clock responsive - desktop size (proportional to base 70px) */
-  .clock-button {
-    width: 90px;
-    height: 90px;
-    min-width: 90px;
-    min-height: 90px;
-  }
-
   .clock-time {
-    font-size: 1.1rem;
+    font-size: 40px;
   }
 
   .date-value {
@@ -2366,6 +2336,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 /* Small phones (iPhone 7, iPhone SE, etc. - 375px width) */
 @media (max-width: 400px) {
+  .clock-time {
+    font-size: 32px;
+  }
+
   .water-tank-readout {
     font-size: 11px;
   }
@@ -2558,48 +2532,19 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 /* Sensor text styles - used below image (replaces circles) */
 
-.clock-button {
-  width: 84px;
-  height: 84px;
-  min-width: 84px;
-  min-height: 84px;
-  background: var(--color-bg-secondary);
-  border-radius: 50%;
-  /* Softer inward shadows + refined glow effect */
-  box-shadow: inset 2px 2px 6px var(--color-shadow-inset-bottom),
-    inset -2px -2px 6px var(--color-shadow-inset-top),
-    /* Narrow concentrated glow line */
-    0 0 1px var(--color-accent-blue),
-    0 0 2px var(--color-accent-blue),
-    0 0 3px var(--color-accent-blue-80),
-    /* Wide pale glow */
-    0 0 8px var(--color-accent-blue-30),
-    0 0 16px var(--color-accent-blue-15);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.clock-seconds-arc {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  transform: rotate(0deg);
-}
-
+/* Plain digital clock (Inter loaded from index.html) */
 .clock-time {
-  position: relative;
-  z-index: 2;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--color-accent-blue);
-  text-shadow: 0 0 10px var(--color-accent-blue-80),
-    0 0 18px var(--color-accent-blue-50);
-  font-family: "Segoe UI", "Roboto Mono", monospace;
-  letter-spacing: 0.05em;
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Top row for date circle - removed, now using orbit positioning */
@@ -3115,6 +3060,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
   .app.app--tablet-landscape .image-clock-container {
     flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .clock-time {
+    font-size: 48px;
   }
 
   .app.app--tablet-landscape .ducato-image {
