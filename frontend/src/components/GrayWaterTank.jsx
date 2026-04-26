@@ -103,7 +103,7 @@ export const GrayWaterTank = ({ level, temperature, disabled = false, onLongPres
   return (
     <div ref={cardRef}>
       <Card
-        name=""
+        name="Gray Water"
         icon={null}
         buttonState="off"
         iconState={disabled ? "gray" : "active"}
