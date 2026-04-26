@@ -113,7 +113,7 @@ body {
   top: 1rem;
   left: 1rem;
   display: flex;
-  gap: 0.75rem;
+  gap: 0.85rem;
   align-items: center;
   z-index: 10;
 }
@@ -125,113 +125,146 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Status number circles (for backend connection) */
+/* Backend dot — same width/height as .signal-indicator__icon-wrap so row aligns */
 .status-number {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 0.35rem;
-  border: 1.5px solid;
-  background: var(--color-bg-secondary-80);
-  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  background: transparent;
 }
 
 .status-number i {
-  font-size: 0.3rem;
+  font-size: 0.68rem;
+  line-height: 1;
 }
 
 .status-number.online {
   color: var(--color-accent-blue) !important;
-  border-color: var(--color-accent-blue) !important;
-  text-shadow: 0 0 6px var(--color-accent-blue-60) !important;
-  box-shadow: 0 0 10px var(--color-accent-blue-40) !important;
+  text-shadow: 0 0 10px var(--color-accent-blue-60) !important;
 }
 
 .status-number.offline {
   color: var(--color-accent-red) !important;
-  border-color: var(--color-accent-red) !important;
-  text-shadow: 0 0 6px var(--color-accent-red-60) !important;
-  box-shadow: 0 0 10px var(--color-accent-red-40) !important;
+  text-shadow: 0 0 10px var(--color-accent-red-60) !important;
 }
 
-/* Signal Indicator - WiFi signal strength indicator */
+/* Signal Indicator - WiFi + digit in bottom-right of icon area */
 .signal-indicator {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.15rem 0.35rem;
-  background: var(--color-bg-secondary-80);
-  backdrop-filter: blur(10px);
-  border-radius: 0.35rem;
-  border: 1px solid;
-  transition: all 0.3s ease;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  transition: color 0.25s ease;
 }
 
-/* Module number */
+.signal-indicator__icon-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signal-indicator__icon-wrap .signal-wifi-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Module number — bottom-right corner of antenna */
 .signal-module-number {
-  font-size: 0.5rem;
+  position: absolute;
+  right: -0.02rem;
+  bottom: 0.04rem;
+  font-size: 0.46rem;
   font-weight: 700;
   line-height: 1;
-  min-width: 0.4rem;
-  text-align: center;
+  min-width: 0.35rem;
+  text-align: right;
+  pointer-events: none;
 }
 
-/* Signal bars container */
-.signal-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.1rem;
-  height: 0.55rem;
-  margin-left: 0.08rem;
+.signal-indicator.online .signal-module-number {
+  color: var(--color-accent-blue);
+  text-shadow:
+    0 0 4px var(--color-bg-primary),
+    0 0 8px var(--color-accent-blue-40);
 }
 
-/* Individual signal bar */
-.signal-bar {
-  width: 0.15rem;
-  background: var(--color-accent-gray-30);
-  border-radius: 0.08rem 0.08rem 0 0;
-  transition: all 0.3s ease;
+.signal-wifi-svg {
+  display: block;
+  margin: 0;
 }
 
-/* Bar heights - first is smallest, others increase */
-.signal-bar.bar-1 {
-  height: 0.18rem;
+.signal-wifi-arc {
+  stroke: currentColor;
+  fill: none;
+  opacity: 0.22;
+  transition: opacity 0.2s ease;
 }
 
-.signal-bar.bar-2 {
-  height: 0.3rem;
+.signal-wifi-arc.is-active {
+  opacity: 1;
 }
 
-.signal-bar.bar-3 {
-  height: 0.4rem;
+.signal-wifi-dot {
+  fill: currentColor;
+  opacity: 0.22;
+  transition: opacity 0.2s ease;
 }
 
-.signal-bar.bar-4 {
-  height: 0.55rem;
-}
-
-/* Active bars (filled with current color) */
-.signal-bar.active {
-  background: currentColor;
+.signal-wifi-dot.is-active {
+  opacity: 1;
 }
 
 /* Color classes - only online (blue) and offline (red) */
 .signal-indicator.online {
-  color: var(--color-accent-blue); /* Blue */
-  border-color: var(--color-accent-blue);
-  text-shadow: 0 0 8px var(--color-accent-blue-50);
-  box-shadow: 0 0 12px var(--color-accent-blue-30);
+  color: var(--color-accent-blue);
+  text-shadow: 0 0 10px var(--color-accent-blue-50);
 }
 
 .signal-indicator.offline {
-  color: var(--color-accent-red); /* Red */
-  border-color: var(--color-accent-red);
-  text-shadow: 0 0 8px var(--color-accent-red-50);
-  box-shadow: 0 0 12px var(--color-accent-red-30);
+  color: var(--color-accent-red);
+  text-shadow: 0 0 10px var(--color-accent-red-50);
+}
+
+.signal-indicator.offline .signal-module-number {
+  color: var(--color-accent-red);
+  text-shadow:
+    0 0 4px var(--color-bg-primary),
+    0 0 8px var(--color-accent-red-60);
+}
+
+.signal-indicator.offline .signal-wifi-arc {
+  stroke: #fb7185;
+}
+
+.signal-indicator.offline .signal-wifi-arc:not(.is-active) {
+  opacity: 0.52;
+}
+
+.signal-indicator.offline .signal-wifi-arc.is-active {
+  opacity: 1;
+}
+
+.signal-indicator.offline .signal-wifi-dot {
+  fill: #fb7185;
+  opacity: 0.72;
+}
+
+.signal-indicator.offline .signal-wifi-dot.is-active {
+  opacity: 1;
 }
 
 /* Status item hover moved to @media (hover: hover) below */
@@ -1947,7 +1980,7 @@ body {
 }
 
 .led-modal-arc-dimmer--disabled {
-  opacity: 0.55;
+  opacity: 0.62;
   pointer-events: none;
 }
 
@@ -2493,7 +2526,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 .clock-date-card--time-only {
   gap: 0;
-  padding: 0.35rem 0.5rem 0 0;
+  padding: 1.35rem 0.5rem 0 1.5rem;
   margin-left: 0;
   align-items: flex-start;
 }
@@ -2563,11 +2596,41 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   font-variant-numeric: tabular-nums;
 }
 
+.clock-calendar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0;
+  min-height: 0;
+}
+
 .clock-calendar {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
+}
+
+.night-mode-chip {
+  margin-top: auto;
+  transform: translateY(-40px);
+  align-self: stretch;
+  text-align: center;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  padding: 0.35rem 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-accent-blue-30);
+  background: var(--color-bg-secondary);
+  box-shadow: 0 2px 8px var(--color-accent-blue-20),
+    inset 1px 1px 3px var(--color-shadow-inset-bottom),
+    inset -1px -1px 3px var(--color-shadow-inset-top);
 }
 
 .clock-calendar-line {
@@ -2811,22 +2874,32 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   transform: translateY(0);
 }
 
-/* Responsive design - Status icons */
+/* Responsive design - Status icons (narrow screens: smaller row — fits ~375px without crowding) */
 @media (max-width: 768px) {
   .status-icons {
     top: 0.5rem;
     left: 0.5rem;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   .status-number {
-    width: 1rem;
-    height: 1rem;
-    font-size: 0.5rem;
+    width: 2.2rem;
+    height: 2.2rem;
   }
 
   .status-number i {
+    font-size: 0.62rem;
+  }
+
+  .signal-indicator__icon-wrap {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .signal-module-number {
     font-size: 0.4rem;
+    right: 0;
+    bottom: 0.02rem;
   }
 
   .app {
@@ -2838,19 +2911,29 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 @media (max-width: 480px) {
   .status-icons {
-    top: 0.5rem;
-    left: 0.5rem;
-    gap: 0.5rem;
+    top: 0.45rem;
+    left: 0.45rem;
+    gap: 0.32rem;
   }
 
   .status-number {
-    width: 1.45rem;
-    height: 1.45rem;
-    font-size: 0.72rem;
+    width: 1.85rem;
+    height: 1.85rem;
   }
 
   .status-number i {
     font-size: 0.52rem;
+  }
+
+  .signal-indicator__icon-wrap {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .signal-module-number {
+    font-size: 0.36rem;
+    right: 0;
+    bottom: 0;
   }
 
   .app {
@@ -2860,21 +2943,55 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   }
 }
 
-@media (max-width: 375px) {
+@media (max-width: 400px) {
   .status-icons {
     top: 0.4rem;
-    left: 0.4rem;
-    gap: 0.4rem;
+    left: 0.35rem;
+    gap: 0.26rem;
   }
 
   .status-number {
-    width: 1rem;
-    height: 1rem;
-    font-size: 0.5rem;
+    width: 1.68rem;
+    height: 1.68rem;
   }
 
   .status-number i {
-    font-size: 0.5rem;
+    font-size: 0.48rem;
+  }
+
+  .signal-indicator__icon-wrap {
+    width: 1.68rem;
+    height: 1.68rem;
+  }
+
+  .signal-module-number {
+    font-size: 0.34rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .status-icons {
+    top: 0.35rem;
+    left: 0.3rem;
+    gap: 0.22rem;
+  }
+
+  .status-number {
+    width: 1.58rem;
+    height: 1.58rem;
+  }
+
+  .status-number i {
+    font-size: 0.45rem;
+  }
+
+  .signal-indicator__icon-wrap {
+    width: 1.58rem;
+    height: 1.58rem;
+  }
+
+  .signal-module-number {
+    font-size: 0.32rem;
   }
 
   .sensor-card i {
@@ -2894,19 +3011,27 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 @media (max-width: 360px) {
   .status-icons {
-    top: 0.25rem;
+    top: 0.3rem;
     left: 0.25rem;
-    gap: 0.4rem;
+    gap: 0.2rem;
   }
 
   .status-number {
-    width: 1.35rem;
-    height: 1.35rem;
-    font-size: 0.68rem;
+    width: 1.52rem;
+    height: 1.52rem;
   }
 
   .status-number i {
-    font-size: 0.48rem;
+    font-size: 0.43rem;
+  }
+
+  .signal-indicator__icon-wrap {
+    width: 1.52rem;
+    height: 1.52rem;
+  }
+
+  .signal-module-number {
+    font-size: 0.3rem;
   }
 
   .app {
@@ -2938,6 +3063,8 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     justify-content: flex-start;
     text-align: left;
     overflow: hidden;
+    /* Same physical card size in main menu + embedded modal grids */
+    --tablet-split-card-size: clamp(68px, min(11.5vw, 13vh), 102px);
   }
 
   .app.app--tablet-landscape .tablet-split {
@@ -2967,12 +3094,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   }
 
   .app.app--tablet-landscape .panel-surface {
-    border: 1px solid var(--color-accent-blue-30);
-    border-radius: 14px;
-    background: var(--color-bg-secondary-80);
-    box-shadow:
-      0 0 0 1px var(--color-white-5),
-      inset 0 1px 0 var(--color-white-5);
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     min-height: 0;
   }
 
@@ -2990,12 +3115,12 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     grid-auto-rows: min-content;
-    gap: 10px;
+    gap: 0.5rem;
     padding: 0.35rem;
     width: 100%;
     margin: 0;
-    margin-top: auto;
-    justify-items: stretch;
+    margin-top: 0;
+    justify-items: center;
     align-items: stretch;
     align-content: center;
     flex: 0 0 57%;
@@ -3007,87 +3132,107 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-wrapper {
-    gap: 0;
-    width: 100%;
+    gap: 0.25rem;
+    width: auto;
     max-width: 100%;
-    height: 100%;
-    justify-self: stretch;
-    align-self: stretch;
+    height: auto;
+    justify-self: center;
+    align-self: start;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-wrapper > .card-label {
-    display: none;
+  /* Labels under cards (main + embedded) */
+  .app.app--tablet-landscape .card-wrapper > .card-label {
+    max-width: 100%;
+    font-size: 0.8rem;
+    line-height: 1.35;
   }
 
   /* GrayWaterTank wraps Card in an extra div — must fill grid cell like other cards */
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
     min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 0.25rem;
   }
 
+  /* Fixed square — matches embedded .modal-grid cards (uses --tablet-split-card-size) */
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card,
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .sensor-card {
-    width: 100%;
-    max-width: none;
-    height: auto;
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .sensor-card,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root .led-card {
+    width: var(--tablet-split-card-size);
+    height: var(--tablet-split-card-size);
+    min-width: var(--tablet-split-card-size);
+    min-height: var(--tablet-split-card-size);
+    max-width: var(--tablet-split-card-size);
+    max-height: var(--tablet-split-card-size);
+    box-sizing: border-box;
     aspect-ratio: 1;
-    min-width: 0;
-    min-height: 0;
-    max-height: none;
     margin: 0 auto;
-    padding: 0.3rem 0.35rem 0.25rem;
-    border-radius: 18px;
-    flex-direction: column-reverse;
+    padding: 0.5rem;
+    border-radius: 16px;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0;
   }
 
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card .led-name {
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--color-text-primary);
-    text-align: center;
-    margin: 0;
-    padding: 0 0.1rem;
-    line-height: 1.15;
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid:not(.table-modal-column) {
+    grid-template-columns: repeat(auto-fill, minmax(var(--tablet-split-card-size), 1fr));
+    gap: 0.5rem;
+    justify-items: center;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid:not(.table-modal-column) .card-wrapper {
+    gap: 0.25rem;
+    width: auto;
     max-width: 100%;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
   }
 
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .neumorphic-button {
-    width: min(78px, 58%);
-    height: min(78px, 58%);
-    min-width: min(78px, 58%);
-    min-height: min(78px, 58%);
-    max-width: min(78px, 58%);
-    max-height: min(78px, 58%);
-    flex-shrink: 0;
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid:not(.table-modal-column) .led-card,
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid:not(.table-modal-column) .sensor-card {
+    width: var(--tablet-split-card-size);
+    height: var(--tablet-split-card-size);
+    min-width: var(--tablet-split-card-size);
+    min-height: var(--tablet-split-card-size);
+    max-width: var(--tablet-split-card-size);
+    max-height: var(--tablet-split-card-size);
+    box-sizing: border-box;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    padding: 0.5rem;
+    border-radius: 16px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
   }
 
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card .icon-container {
-    --icon-size: 36px;
-  }
-
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .water-tank-readout {
-    font-size: 17px;
-  }
-
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .button-text {
-    font-size: 0.82rem;
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid.table-modal-column .led-card {
+    width: var(--tablet-split-card-size);
+    height: var(--tablet-split-card-size);
+    min-width: var(--tablet-split-card-size);
+    min-height: var(--tablet-split-card-size);
+    max-width: var(--tablet-split-card-size);
+    max-height: var(--tablet-split-card-size);
+    box-sizing: border-box;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
@@ -3101,35 +3246,95 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     align-items: center;
     width: 100%;
     min-width: 0;
-    gap: 1rem;
-    flex: none;
+    gap: 3rem;
+    flex: 0 0 auto;
   }
 
-  .app.app--tablet-landscape .tablet-split__left-inner .tablet-calendar-below {
+  .app.app--tablet-landscape .tablet-split__left-inner .tablet-calendar-bus-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
     width: 100%;
-    padding-left: 0.15rem;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    padding-left: 1.5rem;
   }
 
   .app.app--tablet-landscape
     .tablet-split__left-inner
-    .tablet-calendar-below
-    .clock-calendar {
-    align-items: flex-start;
+    .tablet-calendar-bus-row
+    .clock-calendar-block {
+    flex: 0 1 auto;
+    align-self: stretch;
+    min-height: 0;
   }
 
   .app.app--tablet-landscape
     .tablet-split__left-inner
-    .tablet-calendar-below
+    .tablet-calendar-bus-row
     .clock-calendar-line {
     font-size: 17px;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-bus-row
+    .night-mode-chip {
+    font-size: 0.75rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 12px;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-bus-row
+    > .image-sensor-wrapper {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    margin-top: 0;
+    max-width: none;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-bus-row
+    .image-container {
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-bus-row
+    .ducato-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .sensor-clock-cluster .sensor-text-row {
     width: auto;
     flex: 1;
-    justify-content: flex-start;
-    gap: 1.2rem;
     flex-shrink: 1;
+    justify-content: flex-start;
+    gap: 3rem;
     min-width: 0;
   }
 
@@ -3165,14 +3370,6 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     font-size: 1.15rem;
   }
 
-  .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row > .image-sensor-wrapper {
-    flex-shrink: 0;
-    margin-top: 0.35rem;
-    width: 100%;
-    max-width: 100%;
-    align-self: center;
-  }
-
   .app.app--tablet-landscape .clock-time {
     font-size: 48px;
   }
@@ -3183,16 +3380,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     flex-shrink: 0;
   }
 
-  .app.app--tablet-landscape .ducato-image {
-    max-width: 120%;
-    max-height: 13.5rem;
-    width: auto;
-  }
-
   .app.app--tablet-landscape .tablet-split__right-header {
     flex-shrink: 0;
     padding: 0.35rem 0.45rem;
-    border-bottom: 1px solid var(--color-accent-blue-20);
+    border-bottom: none;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -3205,7 +3396,27 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     width: 100%;
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.55rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header .status-number {
+    width: 2.65rem;
+    height: 2.65rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header .status-number i {
+    font-size: 0.72rem;
+    margin-top: 16px;
+    margin-left: 16px;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header .signal-indicator__icon-wrap {
+    width: 2.65rem;
+    height: 2.65rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header .signal-module-number {
+    font-size: 0.48rem;
   }
 
   .app.app--tablet-landscape .tablet-split__panel-wrap {
@@ -3222,10 +3433,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--color-bg-secondary);
-    border-radius: 12px;
-    border: 1px solid var(--color-accent-blue-20);
-    box-shadow: inset 0 1px 0 var(--color-white-5);
+    background: var(--color-bg-primary);
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
   }
 
   .app.app--tablet-landscape .tablet-embedded-panel__header.modal-header {
@@ -3234,13 +3445,24 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     display: flex;
     align-items: center;
     gap: 0.35rem;
+    border-bottom: none;
+    background: transparent;
   }
 
+  /* No title on tablet; top bar only when nested (back). */
   .app.app--tablet-landscape .tablet-embedded-panel__title {
-    flex: 1;
-    text-align: center;
-    font-size: 1rem;
-    min-width: 0;
+    display: none;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-embedded-panel__header.modal-header:not(:has(.tablet-embedded-panel__back)) {
+    display: none;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-embedded-panel__header.modal-header:has(.tablet-embedded-panel__back) {
+    justify-content: space-between;
+    padding: 0.45rem 0.5rem;
   }
 
   .app.app--tablet-landscape .tablet-embedded-panel__header-spacer {
@@ -3254,5 +3476,57 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    background: transparent;
+    /* Space where the modal title bar was so content does not sit flush to the top */
+    padding: 1.55rem 0.65rem 0.75rem;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-embedded-panel:not(:has(.tablet-embedded-panel__back))
+    .tablet-embedded-panel__body.modal-content {
+    padding-top: 2.35rem;
+  }
+}
+
+/* 7" landscape short height (e.g. 1024×600): more room for detail panel content */
+@media (min-width: 900px) and (orientation: landscape) and (max-height: 640px) {
+  .app.app--tablet-landscape {
+    padding: 0.45rem 0.55rem;
+    --tablet-split-card-size: clamp(56px, min(9.5vw, 11.5vh), 88px);
+  }
+
+  .app.app--tablet-landscape .tablet-split {
+    gap: 0.5rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header {
+    padding: 0.7rem 3rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__panel-wrap {
+    padding: 0.28rem 0.32rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__header.modal-header {
+    padding: 0.38rem 0.45rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body.modal-content {
+    padding: 1.2rem 0.5rem 0.6rem;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-embedded-panel:not(:has(.tablet-embedded-panel__back))
+    .tablet-embedded-panel__body.modal-content {
+    padding-top: 1.85rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid {
+    gap: 0.35rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .damper-preset-container {
+    margin-bottom: 12px;
+    padding: 0 4px;
   }
 }
