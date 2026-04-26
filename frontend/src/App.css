@@ -2945,3 +2945,162 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     gap: 0.5rem;
   }
 }
+
+/* 7" / tablet landscape (e.g. 1024×600 fullscreen): 55% menu + 45% detail panel */
+@media (min-width: 900px) and (orientation: landscape) {
+  .app.app--tablet-landscape {
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
+    padding: 0.6rem 0.75rem;
+    gap: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    text-align: left;
+    overflow: hidden;
+  }
+
+  .app.app--tablet-landscape .tablet-split {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left {
+    flex: 55 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right {
+    flex: 45 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .app.app--tablet-landscape .panel-surface {
+    border: 1px solid var(--color-accent-blue-30);
+    border-radius: 14px;
+    background: var(--color-bg-secondary-80);
+    box-shadow:
+      0 0 0 1px var(--color-white-5),
+      inset 0 1px 0 var(--color-white-5);
+    min-height: 0;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.45rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-rows: min-content;
+    gap: 0.3rem;
+    padding: 0.35rem;
+    width: 100%;
+    margin: 0;
+    justify-items: center;
+    align-content: start;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .app.app--tablet-landscape .sensor-text-row {
+    flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .image-clock-container {
+    flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .ducato-image {
+    max-width: 100%;
+    max-height: 9rem;
+    width: auto;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header {
+    flex-shrink: 0;
+    padding: 0.35rem 0.45rem;
+    border-bottom: 1px solid var(--color-accent-blue-20);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .app.app--tablet-landscape .tablet-split__right-header .status-icons {
+    position: static;
+    top: auto;
+    left: auto;
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__panel-wrap {
+    flex: 1;
+    min-height: 0;
+    padding: 0.45rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--color-bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--color-accent-blue-20);
+    box-shadow: inset 0 1px 0 var(--color-white-5);
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__header.modal-header {
+    flex-shrink: 0;
+    padding: 0.55rem 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__title {
+    flex: 1;
+    text-align: center;
+    font-size: 1rem;
+    min-width: 0;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__header-spacer {
+    width: 2.25rem;
+    flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body.modal-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+}

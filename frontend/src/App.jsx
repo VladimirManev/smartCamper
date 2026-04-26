@@ -4,8 +4,9 @@
  * Uses custom hooks and components for separation of concerns
  */
 
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useSocket } from "./hooks/useSocket";
+import { useTabletLandscape } from "./hooks/useTabletLandscape";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
 import { useLEDController } from "./hooks/useLEDController";
@@ -31,6 +32,7 @@ import { ECGIndicator } from "./components/ECGIndicator";
 import { ClockDateCard } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
 import { CardModal } from "./components/CardModal";
+import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
 import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
 import {
   LEDStripModalContent,
@@ -49,7 +51,15 @@ import {
 } from "./utils/radiantGroupAggregate";
 import "./App.css";
 
+const DEFAULT_TABLET_PANEL_MODAL = {
+  cardType: "lighting-group",
+  cardName: "Light",
+  cardData: null,
+};
+
 function App() {
+  const isTabletLandscape = useTabletLandscape();
+
   // Socket connection
   const { socket, connected } = useSocket();
 
@@ -185,6 +195,25 @@ function App() {
   const closeModal = () => {
     setModalStack((prevStack) => prevStack.slice(0, -1));
   };
+
+  /** Main-menu cards: on tablet landscape replace the right panel; on phone push fullscreen modal. */
+  const activateFromMainMenu = useCallback(
+    (cardType, cardName, cardData = null) => {
+      if (isTabletLandscape) {
+        setModalStack([{ cardType, cardName, cardData }]);
+      } else {
+        setModalStack((prev) => [...prev, { cardType, cardName, cardData }]);
+      }
+    },
+    [isTabletLandscape]
+  );
+
+  useEffect(() => {
+    if (!isTabletLandscape) return;
+    setModalStack((prev) =>
+      prev.length === 0 ? [DEFAULT_TABLET_PANEL_MODAL] : prev
+    );
+  }, [isTabletLandscape]);
 
   // Get current (top) modal
   const currentModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
@@ -909,11 +938,8 @@ function App() {
     });
   };
 
-  return (
-    <div className="app">
-      <StatusIcons socket={socket} backendConnected={connected} />
-
-      <div className="content-with-image">
+  const mainColumn = (
+    <>
         {/* Date and sensor text labels: Date, IN temp, IN humidity, OUT temp */}
         <div className="sensor-text-row">
           <div className="sensor-text-item date-text-item">
@@ -975,7 +1001,7 @@ function App() {
         <div className="card-wrapper">
           <LEDGroupCard
             name="Light"
-            onClick={() => openModal("lighting-group", "Light")}
+            onClick={() => activateFromMainMenu("lighting-group", "Light")}
             onLongPress={handleLightingGroupLongPress}
             disabled={!isModule2Online}
             anyActive={lightingGroupActive}
@@ -987,7 +1013,7 @@ function App() {
         <div className="card-wrapper">
           <FloorHeatingGroupCard
             name="Radiant"
-            onClick={() => openModal("floor-heating-group", "Radiant")}
+            onClick={() => activateFromMainMenu("floor-heating-group", "Radiant")}
             onLongPress={handleRadiantGroupLongPress}
             disabled={!isModule3Online}
             anyActive={radiantGroupActive}
@@ -999,7 +1025,7 @@ function App() {
         <div className="card-wrapper">
           <DamperGroupCard
             name="Airflow"
-            onClick={() => openModal("damper-group", "Airflow")}
+            onClick={() => activateFromMainMenu("damper-group", "Airflow")}
             disabled={!isModule4Online}
           />
           <p className="card-label">Airflow</p>
@@ -1009,7 +1035,7 @@ function App() {
         <div className="card-wrapper">
           <TableGroupCard
             name="Table"
-            onClick={() => openModal("table-group", "Table")}
+            onClick={() => activateFromMainMenu("table-group", "Table")}
             disabled={!isModule4Online}
           />
           <p className="card-label">Table</p>
@@ -1019,7 +1045,7 @@ function App() {
         <div className="card-wrapper">
           <LevelingGroupCard
             name="Level"
-            onClick={() => openModal("leveling", "Level")}
+            onClick={() => activateFromMainMenu("leveling", "Level")}
             disabled={!isModule3Online}
           />
           <p className="card-label">Level</p>
@@ -1029,7 +1055,7 @@ function App() {
         <div className="card-wrapper">
           <SettingsCard
             name="Settings"
-            onClick={() => openModal("settings", "Settings")}
+            onClick={() => activateFromMainMenu("settings", "Settings")}
             onLongPress={() => console.log("Settings card long pressed")}
           />
           <p className="card-label">Settings</p>
@@ -1041,7 +1067,7 @@ function App() {
             level={grayWaterLevel}
             temperature={grayWaterTemperature}
             disabled={!isModule1Online}
-            onLongPress={() => openModal("gray-water", "Gray Water")}
+            onLongPress={() => activateFromMainMenu("gray-water", "Gray Water")}
           />
           <p className="card-label">Gray Water</p>
         </div>
@@ -1052,7 +1078,13 @@ function App() {
             name="Audio"
             strip={appliances[0]}
             onClick={() => handleApplianceToggle(0)}
-            onLongPress={() => openModal("led", "Audio", { strip: appliances[0], type: "relay", index: 0 })}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Audio", {
+                strip: appliances[0],
+                type: "relay",
+                index: 0,
+              })
+            }
             type="relay"
             icon="audio"
             disabled={!isModule5Online}
@@ -1066,7 +1098,13 @@ function App() {
             name="Pump"
             strip={appliances[1]}
             onClick={() => handleApplianceToggle(1)}
-            onLongPress={() => openModal("led", "Pump", { strip: appliances[1], type: "relay", index: 1 })}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Pump", {
+                strip: appliances[1],
+                type: "relay",
+                index: 1,
+              })
+            }
             type="relay"
             icon="pump"
             disabled={!isModule5Online}
@@ -1080,7 +1118,13 @@ function App() {
             name="Fridge"
             strip={appliances[2]}
             onClick={() => handleApplianceToggle(2)}
-            onLongPress={() => openModal("led", "Fridge", { strip: appliances[2], type: "relay", index: 2 })}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Fridge", {
+                strip: appliances[2],
+                type: "relay",
+                index: 2,
+              })
+            }
             type="relay"
             icon="fridge"
             disabled={!isModule5Online}
@@ -1094,7 +1138,13 @@ function App() {
             name="WC Fan"
             strip={appliances[3]}
             onClick={() => handleApplianceToggle(3)}
-            onLongPress={() => openModal("led", "WC Fan", { strip: appliances[3], type: "relay", index: 3 })}
+            onLongPress={() =>
+              activateFromMainMenu("led", "WC Fan", {
+                strip: appliances[3],
+                type: "relay",
+                index: 3,
+              })
+            }
             type="relay"
             icon="fan"
             disabled={!isModule5Online}
@@ -1108,7 +1158,13 @@ function App() {
             name="Boiler"
             strip={appliances[4]}
             onClick={() => handleApplianceToggle(4)}
-            onLongPress={() => openModal("led", "Boiler", { strip: appliances[4], type: "relay", index: 4 })}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Boiler", {
+                strip: appliances[4],
+                type: "relay",
+                index: 4,
+              })
+            }
             type="relay"
             icon="boiler"
             disabled={!isModule5Online}
@@ -1122,7 +1178,13 @@ function App() {
             name="Inverter"
             strip={appliances[5]}
             onClick={() => handleApplianceToggle(5)}
-            onLongPress={() => openModal("led", "Inverter", { strip: appliances[5], type: "relay", index: 5 })}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Inverter", {
+                strip: appliances[5],
+                type: "relay",
+                index: 5,
+              })
+            }
             type="relay"
             icon="inverter"
             disabled={!isModule5Online}
@@ -1130,24 +1192,59 @@ function App() {
           <p className="card-label">Inverter</p>
         </div>
       </div>
-      </div>
+    </>
+  );
 
-      {/* Card Modal - render all modals in stack */}
-      {modalStack.map((modal, index) => {
-        const isTopModal = index === modalStack.length - 1;
-        return (
-          <CardModal
-            key={index}
-            isOpen={true}
-            onClose={isTopModal ? closeModal : null}
-            title={modal.cardName}
-            isNested={!isTopModal}
-            zIndex={1000 + index}
-          >
-            {renderModalContent(modal)}
-          </CardModal>
-        );
-      })}
+  return (
+    <div className={`app${isTabletLandscape ? " app--tablet-landscape" : ""}`}>
+      {isTabletLandscape ? (
+        <div className="tablet-split">
+          <div className="tablet-split__left panel-surface">
+            <div className="content-with-image tablet-split__left-inner">
+              {mainColumn}
+            </div>
+          </div>
+          <div className="tablet-split__right panel-surface">
+            <div className="tablet-split__right-header">
+              <StatusIcons socket={socket} backendConnected={connected} />
+            </div>
+            <div className="tablet-split__panel-wrap">
+              {currentModal && (
+                <EmbeddedModalPanel
+                  title={currentModal.cardName}
+                  isNested={modalStack.length > 1}
+                  onBack={closeModal}
+                  onCloseRoot={() => setModalStack([DEFAULT_TABLET_PANEL_MODAL])}
+                >
+                  {renderModalContent(currentModal)}
+                </EmbeddedModalPanel>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <StatusIcons socket={socket} backendConnected={connected} />
+          <div className="content-with-image">{mainColumn}</div>
+        </>
+      )}
+
+      {!isTabletLandscape &&
+        modalStack.map((modal, index) => {
+          const isTopModal = index === modalStack.length - 1;
+          return (
+            <CardModal
+              key={index}
+              isOpen={true}
+              onClose={isTopModal ? closeModal : null}
+              title={modal.cardName}
+              isNested={!isTopModal}
+              zIndex={1000 + index}
+            >
+              {renderModalContent(modal)}
+            </CardModal>
+          );
+        })}
     </div>
   );
 }
