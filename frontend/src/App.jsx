@@ -1199,7 +1199,7 @@ function App() {
     <div className={`app${isTabletLandscape ? " app--tablet-landscape" : ""}`}>
       {isTabletLandscape ? (
         <div className="tablet-split">
-          <div className="tablet-split__left panel-surface">
+          <div className="tablet-split__left">
             <div className="content-with-image tablet-split__left-inner">
               {mainColumn}
             </div>
