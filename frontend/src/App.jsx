@@ -7,6 +7,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useSocket } from "./hooks/useSocket";
 import { useTabletLandscape } from "./hooks/useTabletLandscape";
+import { usePortrait } from "./hooks/usePortrait";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
 import { useLEDController } from "./hooks/useLEDController";
@@ -56,9 +57,11 @@ const DEFAULT_TABLET_PANEL_MODAL = {
   cardName: "Light",
   cardData: null,
 };
+const DEFAULT_LIGHTING_DETAIL = { type: "strip", index: 1, name: "Main" };
 
 function App() {
   const isTabletLandscape = useTabletLandscape();
+  const isPortrait = usePortrait();
 
   // Socket connection
   const { socket, connected } = useSocket();
@@ -92,7 +95,7 @@ function App() {
 
   // Sensor data (clears when module goes offline)
   const { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature } =
-    useSensorData(socket, isModuleOnline, moduleStatuses);
+    useSensorData(socket, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
   const isModule1Online = isModuleOnline("module-1");
@@ -147,25 +150,34 @@ function App() {
 
   // Modal state - stack of modals (must be defined before useLeveling)
   const [modalStack, setModalStack] = useState([]);
+  const [selectedLightingDetail, setSelectedLightingDetail] = useState(
+    DEFAULT_LIGHTING_DETAIL
+  );
 
   // Leveling controller - check if leveling modal is open
   const isLevelingModalOpen = modalStack.some(modal => modal.cardType === "leveling");
   const { pitch, roll, lastDataTimestamp } = useLeveling(socket, isLevelingModalOpen);
 
   const GRAY_WATER_MODULE_ID = "module-1";
-  const isGrayWaterModalTop =
-    modalStack.length > 0 && modalStack[modalStack.length - 1].cardType === "gray-water";
 
-  // While gray water modal is open, ask backend to force module-1 (fresh level + sensors) every 5s
+  /**
+   * While Gray Water is the visible modal (top of stack), poll module-1 for fresh MQTT data.
+   * Stops when: stack top changes, stack empties, socket disconnects, or unmount (cleanup clears interval).
+   */
   useEffect(() => {
-    if (!socket || !connected || !isGrayWaterModalTop) return;
+    const grayWaterIsVisible =
+      modalStack.length > 0 &&
+      modalStack[modalStack.length - 1].cardType === "gray-water";
+    if (!socket || !connected || !grayWaterIsVisible) return;
+
     const emit = () => {
+      if (!socket.connected) return;
       socket.emit("forceModuleUpdate", { moduleId: GRAY_WATER_MODULE_ID });
     };
     emit();
     const id = setInterval(emit, 5000);
     return () => clearInterval(id);
-  }, [socket, connected, isGrayWaterModalTop]);
+  }, [socket, connected, modalStack]);
   
   // Damper preset selection state
   const [selectedPreset, setSelectedPreset] = useState("Manual");
@@ -225,72 +237,111 @@ function App() {
     const { cardType } = modal;
 
     if (cardType === "lighting-group") {
+      const lightingCards = [
+        { name: "Main", type: "strip", index: 1, strip: ledStrips[1], onClick: () => handleStripToggle(1) },
+        { name: "Kitchen", type: "strip", index: 0, strip: ledStrips[0], onClick: () => handleStripToggle(0) },
+        { name: "Bedroom", type: "strip", index: 4, strip: ledStrips[4], onClick: () => handleStripToggle(4) },
+        { name: "Bathroom", type: "strip", index: 3, strip: ledStrips[3], onClick: handleBathroomModeCycle },
+        { name: "Ambient", type: "relay", index: 0, strip: relays[0], onClick: handleRelayToggle },
+      ];
+
+      const detailType = selectedLightingDetail?.type || "strip";
+      const detailIndex = selectedLightingDetail?.index ?? 1;
+      const detailName = selectedLightingDetail?.name || "Main";
+      const detailStrip =
+        detailType === "strip" ? ledStrips[detailIndex] : relays[detailIndex];
+
       // Render all LED cards in grid
       return (
-        <div className="modal-grid">
-          <div className="card-wrapper">
-            <LEDCard
-              name="Main"
-              strip={ledStrips[1]}
-              onClick={() => handleStripToggle(1)}
-              onLongPress={() => openModal("led", "Main", { strip: ledStrips[1], type: "strip", index: 1 })}
-              type="strip"
-              disabled={!isModule2Online}
-            />
-            <p className="card-label">Main</p>
+        <>
+          <div className="modal-grid">
+            {lightingCards.map((card) => (
+              <div className="card-wrapper" key={`${card.type}-${card.index}`}>
+                <LEDCard
+                  name={card.name}
+                  strip={card.strip}
+                  onClick={
+                    isTabletLandscape
+                      ? () =>
+                          setSelectedLightingDetail({
+                            type: card.type,
+                            index: card.index,
+                            name: card.name,
+                          })
+                      : card.onClick
+                  }
+                  onLongPress={
+                    isTabletLandscape
+                      ? undefined
+                      : () =>
+                          openModal("led", card.name, {
+                            strip: card.strip,
+                            type: card.type,
+                            index: card.index,
+                          })
+                  }
+                  type={card.type}
+                  disabled={!isModule2Online}
+                />
+                <p className="card-label">{card.name}</p>
+              </div>
+            ))}
           </div>
-          <div className="card-wrapper">
-            <LEDCard
-              name="Kitchen"
-              strip={ledStrips[0]}
-              onClick={() => handleStripToggle(0)}
-              onLongPress={() => openModal("led", "Kitchen", { strip: ledStrips[0], type: "strip", index: 0 })}
-              type="strip"
-              disabled={!isModule2Online}
-            />
-            <p className="card-label">Kitchen</p>
-          </div>
-          <div className="card-wrapper">
-            <LEDCard
-              name="Bedroom"
-              strip={ledStrips[4]}
-              onClick={() => handleStripToggle(4)}
-              onLongPress={() => openModal("led", "Bedroom", { strip: ledStrips[4], type: "strip", index: 4 })}
-              type="strip"
-              disabled={!isModule2Online}
-            />
-            <p className="card-label">Bedroom</p>
-          </div>
-          <div className="card-wrapper">
-            <LEDCard
-              name="Bathroom"
-              strip={ledStrips[3]}
-              onClick={handleBathroomModeCycle}
-              onLongPress={() => openModal("led", "Bathroom", { strip: ledStrips[3], type: "strip", index: 3 })}
-              type="strip"
-              disabled={!isModule2Online}
-            />
-            <p className="card-label">Bathroom</p>
-          </div>
-          <div className="card-wrapper">
-            <LEDCard
-              name="Ambient"
-              strip={relays[0]}
-              onClick={handleRelayToggle}
-              onLongPress={() => openModal("led", "Ambient", { strip: relays[0], type: "relay", index: 0 })}
-              type="relay"
-              disabled={!isModule2Online}
-            />
-            <p className="card-label">Ambient</p>
-          </div>
-        </div>
+
+          {isTabletLandscape && (
+            <div className="tablet-light-main-detail">
+              {detailType === "strip" ? (
+                <LEDStripModalContent
+                  variant="strip"
+                  strip={detailStrip}
+                  stripIndex={detailIndex}
+                  onBrightness={(value) => {
+                    if (!isModule2Online) return;
+                    sendLEDCommand({
+                      type: "strip",
+                      index: detailIndex,
+                      action: "brightness",
+                      value,
+                    });
+                  }}
+                  onToggle={() => {
+                    if (detailIndex === 3) {
+                      handleBathroomModeCycle();
+                      return;
+                    }
+                    handleStripToggle(detailIndex);
+                  }}
+                  disabled={!isModule2Online}
+                  sendStripApply={(payload) => {
+                    if (!isModule2Online) return;
+                    sendLEDCommand({
+                      type: "strip",
+                      index: detailIndex,
+                      action: "apply",
+                      payload,
+                    });
+                  }}
+                />
+              ) : (
+                <LEDStripModalContent
+                  variant="relay"
+                  strip={detailStrip}
+                  onToggle={handleRelayToggle}
+                  disabled={!isModule2Online}
+                  icon="bulb"
+                  relayStyle="ambient"
+                />
+              )}
+            </div>
+          )}
+        </>
       );
     }
 
     if (cardType === "floor-heating-group") {
       // Render all floor heating cards in grid
       return (
-        <div className="modal-grid">
+        <div className="modal-grid modal-grid--radiant">
           <div className="card-wrapper">
             <FloorHeatingCard
               name="Central 1"
@@ -358,56 +409,56 @@ function App() {
             />
           </div>
           <div className="modal-grid">
-          <div className="card-wrapper">
-            <DamperCard
-              name="Front"
-              damper={dampers[0]}
-              onClick={() => handleDamperToggle(0)}
-              onLongPress={() => openModal("damper", "Front", { damper: dampers[0], index: 0 })}
-              disabled={!isModule4Online}
-            />
-            <p className="card-label">Front</p>
-          </div>
-          <div className="card-wrapper">
-            <DamperCard
-              name="Rear"
-              damper={dampers[1]}
-              onClick={() => handleDamperToggle(1)}
-              onLongPress={() => openModal("damper", "Rear", { damper: dampers[1], index: 1 })}
-              disabled={!isModule4Online}
-            />
-            <p className="card-label">Rear</p>
-          </div>
-          <div className="card-wrapper">
-            <DamperCard
-              name="Bath"
-              damper={dampers[2]}
-              onClick={() => handleDamperToggle(2)}
-              onLongPress={() => openModal("damper", "Bath", { damper: dampers[2], index: 2 })}
-              disabled={!isModule4Online}
-            />
-            <p className="card-label">Bath</p>
-          </div>
-          <div className="card-wrapper">
-            <DamperCard
-              name="Shoes"
-              damper={dampers[3]}
-              onClick={() => handleDamperToggle(3)}
-              onLongPress={() => openModal("damper", "Shoes", { damper: dampers[3], index: 3 })}
-              disabled={!isModule4Online}
-            />
-            <p className="card-label">Shoes</p>
-          </div>
-          <div className="card-wrapper">
-            <DamperCard
-              name="Cockpit"
-              damper={dampers[4]}
-              onClick={() => handleDamperToggle(4)}
-              onLongPress={() => openModal("damper", "Cockpit", { damper: dampers[4], index: 4 })}
-              disabled={!isModule4Online}
-            />
-            <p className="card-label">Cockpit</p>
-          </div>
+            <div className="card-wrapper">
+              <DamperCard
+                name="Front"
+                damper={dampers[0]}
+                onClick={() => handleDamperToggle(0)}
+                onLongPress={() => openModal("damper", "Front", { damper: dampers[0], index: 0 })}
+                disabled={!isModule4Online}
+              />
+              <p className="card-label">Front</p>
+            </div>
+            <div className="card-wrapper">
+              <DamperCard
+                name="Rear"
+                damper={dampers[1]}
+                onClick={() => handleDamperToggle(1)}
+                onLongPress={() => openModal("damper", "Rear", { damper: dampers[1], index: 1 })}
+                disabled={!isModule4Online}
+              />
+              <p className="card-label">Rear</p>
+            </div>
+            <div className="card-wrapper">
+              <DamperCard
+                name="Bath"
+                damper={dampers[2]}
+                onClick={() => handleDamperToggle(2)}
+                onLongPress={() => openModal("damper", "Bath", { damper: dampers[2], index: 2 })}
+                disabled={!isModule4Online}
+              />
+              <p className="card-label">Bath</p>
+            </div>
+            <div className="card-wrapper">
+              <DamperCard
+                name="Shoes"
+                damper={dampers[3]}
+                onClick={() => handleDamperToggle(3)}
+                onLongPress={() => openModal("damper", "Shoes", { damper: dampers[3], index: 3 })}
+                disabled={!isModule4Online}
+              />
+              <p className="card-label">Shoes</p>
+            </div>
+            <div className="card-wrapper">
+              <DamperCard
+                name="Cockpit"
+                damper={dampers[4]}
+                onClick={() => handleDamperToggle(4)}
+                onLongPress={() => openModal("damper", "Cockpit", { damper: dampers[4], index: 4 })}
+                disabled={!isModule4Online}
+              />
+              <p className="card-label">Cockpit</p>
+            </div>
           </div>
         </div>
       );
@@ -598,6 +649,7 @@ function App() {
               onToggle={handleRelayToggle}
               disabled={!isModule2Online}
               icon="bulb"
+              relayStyle="ambient"
             />
           );
         }
@@ -1002,16 +1054,16 @@ function App() {
               {clockSlotTimeOnly}
               {sensorTextRow}
             </div>
-            <div className="tablet-calendar-below">
+            <div className="tablet-calendar-bus-row">
               <ClockCalendarLines />
+              {busImageBlock}
             </div>
-            {busImageBlock}
           </>
         ) : (
           <>
             {sensorTextRow}
             <div className="image-clock-container">
-              {clockSlotWithCalendar}
+              {isPortrait ? clockSlotTimeOnly : clockSlotWithCalendar}
               {busImageBlock}
             </div>
           </>
@@ -1023,7 +1075,10 @@ function App() {
         <div className="card-wrapper">
           <LEDGroupCard
             name="Light"
-            onClick={() => activateFromMainMenu("lighting-group", "Light")}
+            onClick={() => {
+              setSelectedLightingDetail(DEFAULT_LIGHTING_DETAIL);
+              activateFromMainMenu("lighting-group", "Light");
+            }}
             onLongPress={handleLightingGroupLongPress}
             disabled={!isModule2Online}
             anyActive={lightingGroupActive}
@@ -1089,6 +1144,7 @@ function App() {
             level={grayWaterLevel}
             temperature={grayWaterTemperature}
             disabled={!isModule1Online}
+            onClick={() => activateFromMainMenu("gray-water", "Gray Water")}
             onLongPress={() => activateFromMainMenu("gray-water", "Gray Water")}
           />
           <p className="card-label">Gray Water</p>
@@ -1236,7 +1292,6 @@ function App() {
                   title={currentModal.cardName}
                   isNested={modalStack.length > 1}
                   onBack={closeModal}
-                  onCloseRoot={() => setModalStack([DEFAULT_TABLET_PANEL_MODAL])}
                 >
                   {renderModalContent(currentModal)}
                 </EmbeddedModalPanel>

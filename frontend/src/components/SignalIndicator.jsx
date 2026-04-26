@@ -1,71 +1,93 @@
 /**
- * SignalIndicator Component
- * Displays WiFi signal strength indicator with antenna icon, module number, and signal bars
- * Similar to mobile phone signal indicator
+ * SignalIndicator — WiFi fan (two arcs) + dot under apex + module digit in corner
  */
 
 /**
- * Calculate number of bars to show based on RSSI value
- * @param {number|null} rssi - WiFi RSSI value in dBm
- * @returns {number} Number of bars to show (0-4)
+ * @param {number|null} rssi - WiFi RSSI in dBm
+ * @returns {number} Bars 0–4
  */
 const getSignalBars = (rssi) => {
   if (rssi === null || rssi === undefined || rssi === -999) {
-    return 0; // No WiFi
+    return 0;
   }
-  
-  if (rssi >= -50) {
-    return 4; // Excellent signal (-30 to -50 dBm)
-  } else if (rssi >= -60) {
-    return 3; // Very good signal (-50 to -60 dBm)
-  } else if (rssi >= -70) {
-    return 2; // Good signal (-60 to -70 dBm)
-  } else if (rssi >= -80) {
-    return 1; // Weak signal (-70 to -80 dBm)
-  } else {
-    return 0; // Very weak signal (below -80 dBm)
-  }
+  if (rssi >= -50) return 4;
+  if (rssi >= -60) return 3;
+  if (rssi >= -70) return 2;
+  if (rssi >= -80) return 1;
+  return 0;
+};
+
+/** 0 = none, 1 = inner arc only, 2 = both arcs */
+const getArcTier = (bars) => (bars <= 0 ? 0 : Math.min(2, bars));
+
+const CX = 12;
+const CY = 21.85;
+const ANGLE0 = (144 * Math.PI) / 180;
+const ANGLE1 = (36 * Math.PI) / 180;
+
+function arcPath(r) {
+  const sx = CX + r * Math.cos(ANGLE0);
+  const sy = CY - r * Math.sin(ANGLE0);
+  const ex = CX + r * Math.cos(ANGLE1);
+  const ey = CY - r * Math.sin(ANGLE1);
+  return `M${sx.toFixed(2)} ${sy.toFixed(2)}A${r} ${r} 0 0 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+}
+
+const ARC_PATHS = {
+  outer: arcPath(9),
+  inner: arcPath(4.1),
 };
 
 /**
- * Get color class based on connection status
- * @param {boolean} isOnline - Whether module is online
- * @returns {string} Color class name
+ * @param {Object} props
+ * @param {string} props.moduleNumber
+ * @param {boolean} props.isOnline
+ * @param {number|null} props.rssi
+ * @param {string} props.label
  */
-const getSignalColor = (isOnline) => {
-  return isOnline ? "online" : "offline";
-};
-
-/**
- * SignalIndicator component
- * @param {Object} props - Component props
- * @param {string} props.moduleId - Module identifier (e.g., "module-1")
- * @param {string} props.moduleNumber - Module number to display (e.g., "1")
- * @param {boolean} props.isOnline - Whether module is online
- * @param {number|null} props.rssi - WiFi RSSI value in dBm
- * @param {string} props.label - Tooltip label
- */
-export const SignalIndicator = ({ moduleId, moduleNumber, isOnline, rssi, label }) => {
-  // If module is offline, always show 0 bars regardless of RSSI
+export const SignalIndicator = ({ moduleNumber, isOnline, rssi, label }) => {
   const bars = isOnline ? getSignalBars(rssi) : 0;
-  const colorClass = getSignalColor(isOnline);
-  
+  const arcTier = isOnline ? getArcTier(bars) : 0;
+  const colorClass = isOnline ? "online" : "offline";
+  const title =
+    label ||
+    `Module ${moduleNumber} — ${
+      isOnline && rssi !== null && rssi !== undefined && rssi !== -999
+        ? `${rssi} dBm`
+        : isOnline
+          ? "No RSSI"
+          : "Offline"
+    }`;
+
   return (
-    <div 
-      className={`signal-indicator ${colorClass}`}
-      title={label || `Module ${moduleNumber} - Signal: ${isOnline && rssi !== null && rssi !== -999 ? rssi + ' dBm' : 'No signal'}`}
-    >
-      {/* Module number */}
-      <span className="signal-module-number">{moduleNumber}</span>
-      
-      {/* Signal bars - first is smallest, last is tallest */}
-      <div className="signal-bars">
-        <div className={`signal-bar bar-1 ${bars >= 1 ? 'active' : ''}`}></div>
-        <div className={`signal-bar bar-2 ${bars >= 2 ? 'active' : ''}`}></div>
-        <div className={`signal-bar bar-3 ${bars >= 3 ? 'active' : ''}`}></div>
-        <div className={`signal-bar bar-4 ${bars >= 4 ? 'active' : ''}`}></div>
+    <div className={`signal-indicator ${colorClass}`} title={title}>
+      <div className="signal-indicator__icon-wrap">
+        <svg className="signal-wifi-svg" viewBox="0 0 24 24" aria-hidden>
+          <path
+            className={`signal-wifi-arc ${arcTier >= 2 ? "is-active" : ""}`}
+            d={ARC_PATHS.outer}
+            fill="none"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            className={`signal-wifi-arc ${arcTier >= 1 ? "is-active" : ""}`}
+            d={ARC_PATHS.inner}
+            fill="none"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle
+            className={`signal-wifi-dot ${isOnline ? "is-active" : ""}`}
+            cx="12"
+            cy="22.05"
+            r="1.08"
+          />
+        </svg>
+        <span className="signal-module-number">{moduleNumber}</span>
       </div>
     </div>
   );
 };
-

@@ -31,9 +31,14 @@ export function ClockCalendarLines() {
   const { dayName, dateLine } = formatCalendarLines(time);
 
   return (
-    <div className="clock-calendar" aria-label="Date">
-      <div className="clock-calendar-line">{dayName}</div>
-      <div className="clock-calendar-line">{dateLine}</div>
+    <div className="clock-calendar-block">
+      <div className="clock-calendar" aria-label="Date">
+        <div className="clock-calendar-line">{dayName}</div>
+        <div className="clock-calendar-line">{dateLine}</div>
+      </div>
+      <div className="night-mode-chip" role="status">
+        Night mode
+      </div>
     </div>
   );
 }

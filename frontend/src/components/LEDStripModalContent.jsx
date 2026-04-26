@@ -137,6 +137,7 @@ export function LEDStripModalContent({
   disabled,
   icon = "bulb",
   sendStripApply,
+  relayStyle = "default",
 }) {
   const debounceRef = useRef(null);
   const brightnessForApplyRef = useRef(1);
@@ -276,6 +277,73 @@ export function LEDStripModalContent({
   );
 
   if (variant === "relay") {
+    const relayIsOn = strip?.state === "ON";
+    const bulbIcon = (
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M12 2C9.24 2 7 4.24 7 7c0 1.57.8 2.95 2 3.74V14c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-3.26c1.2-.79 2-2.17 2-3.74 0-2.76-2.24-5-5-5z"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill={relayIsOn ? "currentColor" : "none"}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="10" y1="21" x2="14" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+
+    if (relayStyle === "ambient") {
+      return (
+        <div
+          className={`led-strip-modal led-strip-modal--ambient-relay ${
+            disabled ? "led-strip-modal--ambient-relay-disabled" : ""
+          } ${relayIsOn ? "is-on" : "is-off"}`}
+        >
+          <div className="led-modal-ambient__frame">
+            <svg
+              className="led-modal-ambient__ring"
+              viewBox="0 0 200 200"
+              aria-hidden
+            >
+              <circle
+                className="led-modal-ambient__ring-track"
+                cx="100"
+                cy="100"
+                r="80"
+              />
+              <circle
+                className="led-modal-ambient__ring-active"
+                cx="100"
+                cy="100"
+                r="80"
+              />
+            </svg>
+
+            <button
+              type="button"
+              className={`led-modal-arc-dimmer__bulb neumorphic-button ${
+                relayIsOn ? "on" : "off"
+              }`}
+              disabled={disabled}
+              onClick={onToggle}
+              aria-label="Toggle ambient light"
+            >
+              <span className="button-text">
+                <div
+                  className={`icon-container ${
+                    relayIsOn ? "icon-active" : "icon-inactive"
+                  }`}
+                >
+                  {bulbIcon}
+                </div>
+              </span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="led-strip-modal led-strip-modal--relay">
         <div className="led-strip-modal__card">

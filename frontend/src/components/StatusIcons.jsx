@@ -1,7 +1,7 @@
 /**
  * StatusIcons Component
  * Displays connection status icons for backend and modules
- * Uses signal indicators for modules (antenna + number + signal bars)
+ * Backend: dot (same slot height as antennas). Modules: WiFi arcs + dot + number.
  */
 
 import { useModuleStatus } from "../hooks/useModuleStatus";
@@ -47,14 +47,14 @@ export const StatusIcons = ({ socket, backendConnected }) => {
 
   return (
     <div className="status-icons">
-      {/* Backend connection status */}
+      {/* Backend — dot; box matches antenna height for vertical alignment */}
       <span
         className={`status-item status-number ${
           backendConnected ? "online" : "offline"
         }`}
         title="Backend Connection"
       >
-        <i className="fas fa-circle"></i>
+        <i className="fas fa-circle" aria-hidden />
       </span>
 
       {/* Module signal indicators */}
@@ -66,7 +66,6 @@ export const StatusIcons = ({ socket, backendConnected }) => {
         return (
           <SignalIndicator
             key={module.id}
-            moduleId={module.id}
             moduleNumber={module.number}
             isOnline={isOnline}
             rssi={rssi}

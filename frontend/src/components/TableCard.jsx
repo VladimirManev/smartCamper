@@ -46,18 +46,7 @@ export const TableCard = ({
   const hasTriggeredTouch = useRef(false);
   const DEBOUNCE_DELAY = 300; // ms - prevent rapid double clicks
   const MAX_TOUCH_MOVE = 15; // pixels - max movement to consider it a tap (not drag)
-  
-  // Determine button class and icon class
-  let buttonClass = "neumorphic-button";
-  let iconClass = "icon-gray"; // Gray when inactive
-  
-  if (isActive) {
-    buttonClass += " on";
-    iconClass = "icon-active"; // Active icon color
-  } else {
-    buttonClass += " off";
-  }
-  
+
   // HOLD MODE HANDLERS
   const handleHoldStart = (e) => {
     if (disabled || !isHoldMode) return;
@@ -220,66 +209,55 @@ export const TableCard = ({
     };
   }, [isHoldMode, onHoldEnd]);
   
-  // Determine arrow points - single arrow, larger for auto mode
-  let arrowPoints1, arrowPoints2;
+  // Auto: double chevrons; hold: single chevron (viewBox 0 0 100 100). dy centers glyph vertically at y=50.
+  let arrowPoints1;
+  let arrowPoints2 = null;
+  let arrowCenterDy = 0;
   if (direction === "up") {
     if (isAuto) {
-      // Large single arrow up (2-3x bigger)
-      arrowPoints1 = "50,10 35,40 50,30 65,40";  // Large arrow up
-      arrowPoints2 = null;
+      arrowPoints1 = "50,12 39,30 50,22 61,30";
+      arrowPoints2 = "50,26 39,44 50,36 61,44";
+      arrowCenterDy = 22; /* content ~y12–44 → center 28 */
     } else {
-      // Single arrow up
-      arrowPoints1 = "50,20 45,35 50,30 55,35";
-      arrowPoints2 = null;
+      arrowPoints1 = "50,16 38,48 50,36 62,48";
+      arrowCenterDy = 18; /* ~y16–48 → center 32 */
     }
+  } else if (isAuto) {
+    arrowPoints1 = "50,70 39,58 50,62 61,58";
+    arrowPoints2 = "50,88 39,72 50,80 61,72";
+    arrowCenterDy = -23; /* ~y58–88 → center 73 */
   } else {
-    if (isAuto) {
-      // Large single arrow down (2-3x bigger)
-      arrowPoints1 = "50,90 35,60 50,70 65,60";  // Large arrow down
-      arrowPoints2 = null;
-    } else {
-      // Single arrow down - pointing down (tip at bottom, base at top)
-      arrowPoints1 = "50,80 45,65 50,70 55,65";
-      arrowPoints2 = null;
-    }
+    arrowPoints1 = "50,84 38,52 50,64 62,52";
+    arrowCenterDy = -18; /* ~y52–84 → center 68 */
   }
-  
+
   // Table icon SVG
   const tableIcon = (
     <svg className="table-icon" viewBox="0 0 100 100">
-      {/* Table (horizontal line) */}
-      <line
-        x1="20"
-        y1="50"
-        x2="80"
-        y2="50"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-      {/* Arrow(s) - single or double (stacked) based on isAuto */}
-      <polygon
-        points={arrowPoints1}
-        fill="currentColor"
-        stroke="currentColor"
-        strokeWidth="0.5"
-        strokeLinejoin="round"
-      />
-      {arrowPoints2 && (
+      <g transform={`translate(0 ${arrowCenterDy})`}>
         <polygon
-          points={arrowPoints2}
+          points={arrowPoints1}
           fill="currentColor"
           stroke="currentColor"
-          strokeWidth="0.5"
+          strokeWidth="1.25"
           strokeLinejoin="round"
         />
-      )}
+        {arrowPoints2 && (
+          <polygon
+            points={arrowPoints2}
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth="1.25"
+            strokeLinejoin="round"
+          />
+        )}
+      </g>
     </svg>
   );
 
-  // Determine button state and icon state
+  // Card reads iconState → class icon-${iconState}; "gray" is only 0.4 opacity — use inactive for idle arrows
   const buttonState = isActive ? "on" : "off";
-  const iconState = isActive ? "active" : "gray";
+  const iconState = isActive ? "active" : "inactive";
 
   // Custom handlers for hold mode (includes global event listeners)
   const customHandlers = isHoldMode ? {

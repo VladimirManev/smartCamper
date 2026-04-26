@@ -1070,6 +1070,16 @@ body {
   padding: 0 10px;
 }
 
+/* Airflow on phone / CardModal: larger damper SVGs only (card + button sizes unchanged) */
+.app:not(.app--tablet-landscape)
+  .modal-content:has(.damper-preset-container)
+  .damper-preset-container
+  ~ .modal-grid:not(.table-modal-column)
+  .led-card
+  .icon-container {
+  --icon-size: clamp(34px, min(10vw, 11vmin), 44px);
+}
+
 .damper-preset-label {
   display: block;
   margin-bottom: 8px;
@@ -1524,7 +1534,7 @@ body {
   min-height: 1.2em;
 }
 
-/* Gray water detail modal: tank centered on top, readouts row below */
+/* Gray water detail modal: tank on top, level + temp stacked below */
 .gray-water-modal {
   display: flex;
   flex-direction: column;
@@ -1567,11 +1577,10 @@ body {
 
 .gray-water-modal-stats {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  align-items: flex-end;
-  gap: 2rem 2.5rem;
+  gap: 1.25rem;
   width: 100%;
   padding: 0.5rem 0 0;
   margin-top: 0.25rem;
@@ -1583,7 +1592,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
-  min-width: 5.5rem;
+  width: 100%;
+  max-width: 16rem;
 }
 
 .gray-water-modal-stat-label {
@@ -1594,7 +1604,7 @@ body {
 }
 
 .gray-water-modal-stat-value {
-  font-size: clamp(1.9rem, 8vw, 2.85rem);
+  font-size: clamp(1.35rem, 5.5vw, 2.1rem);
   font-weight: 700;
   line-height: 1.05;
   color: var(--color-text-primary);
@@ -1615,15 +1625,11 @@ body {
   }
 
   .gray-water-modal-stat-value {
-    font-size: clamp(1.7rem, 9vw, 2.5rem);
+    font-size: clamp(1.2rem, 6.5vw, 1.85rem);
   }
 
   .gray-water-modal-stats {
-    gap: 1.25rem 1.75rem;
-  }
-
-  .gray-water-modal-stat {
-    min-width: 5rem;
+    gap: 1rem;
   }
 }
 
@@ -1932,10 +1938,12 @@ body {
 
 .led-strip-modal--strip .led-modal-arc-dimmer__frame {
   width: min(76vw, 228px);
+  margin-top: -0.55rem;
+  margin-bottom: -0.3rem;
 }
 
 .led-strip-modal--strip .led-modal-arc-dimmer {
-  gap: 0.2rem;
+  gap: 0;
 }
 
 .led-strip-modal--strip button.led-modal-arc-dimmer__bulb.neumorphic-button {
@@ -1953,11 +1961,67 @@ body {
 .led-strip-modal--strip .led-modal-arc-dimmer__value {
   font-size: 0.88rem;
   font-weight: 600;
+  margin-top: -0.28rem;
 }
 
 .led-strip-modal--relay .led-strip-modal__card {
   transform: scale(1.32);
   transform-origin: center center;
+}
+
+.led-strip-modal--ambient-relay {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.led-strip-modal--ambient-relay-disabled {
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.led-modal-ambient__frame {
+  position: relative;
+  width: min(76vw, 228px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: -0.55rem auto -0.2rem;
+}
+
+.led-modal-ambient__ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.led-modal-ambient__ring-track {
+  fill: none;
+  stroke: var(--color-text-secondary);
+  stroke-width: 10;
+  opacity: 0.22;
+}
+
+.led-modal-ambient__ring-active {
+  fill: none;
+  stroke: var(--color-accent-blue);
+  stroke-width: 10;
+  opacity: 0.32;
+}
+
+.led-strip-modal--ambient-relay.is-on .led-modal-ambient__ring-active {
+  opacity: 1;
+}
+
+.led-strip-modal--ambient-relay .led-modal-arc-dimmer__bulb .icon-container svg {
+  width: clamp(2rem, 16vw, 2.6rem);
+  height: clamp(2rem, 16vw, 2.6rem);
+}
+
+.led-strip-modal--ambient-relay button.led-modal-arc-dimmer__bulb.neumorphic-button {
+  width: clamp(4.25rem, 34vw, 5.75rem);
+  height: clamp(4.25rem, 34vw, 5.75rem);
+  min-width: 4.25rem;
+  min-height: 4.25rem;
 }
 
 .led-strip-modal__card .led-name {
@@ -2133,26 +2197,42 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   justify-items: center;
 }
 
+.tablet-light-main-detail {
+  margin-top: 0.55rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.tablet-light-main-detail .led-strip-light-dropdown {
+  width: min(100%, 240px);
+  margin: 0 auto;
+}
+
 .modal-grid.table-modal-column {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.5rem;
   min-height: 100%;
   padding: 1rem 0;
 }
 
-/* Landscape orientation - table cards in row */
-@media (orientation: landscape) {
-  .modal-grid.table-modal-column {
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 0.5rem;
-    min-height: 100%;
-  }
+/* Table modal: arrow glyph — large + slight scale for readability */
+.modal-grid.table-modal-column .led-card .icon-container {
+  --icon-size: clamp(52px, 15vw, 76px);
+}
+
+.modal-grid.table-modal-column .led-card .icon-container .table-icon {
+  display: block;
+  transform: scale(1.12);
+  transform-origin: center center;
+}
+
+/* Table modal: idle arrows must stay readable (global icon-gray is 0.4 opacity) */
+.modal-grid.table-modal-column .led-card .icon-container.icon-inactive {
+  opacity: 0.88;
+  color: var(--color-icon-blue, var(--color-accent-blue));
 }
 
 /* Scrollbar styling for modal content */
@@ -3191,6 +3271,18 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     justify-items: center;
   }
 
+  /* Radiant group: four equal columns — space grows between cards (beats generic auto-fill rule) */
+  .app.app--tablet-landscape
+    .tablet-embedded-panel__body
+    .modal-grid.modal-grid--radiant {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    justify-items: center;
+    align-items: start;
+    width: 100%;
+  }
+
   .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid:not(.table-modal-column) .card-wrapper {
     gap: 0.25rem;
     width: auto;
@@ -3228,6 +3320,75 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     max-width: var(--tablet-split-card-size);
     max-height: var(--tablet-split-card-size);
     box-sizing: border-box;
+  }
+
+  /* Table modal column: keep visible vertical gap (short-height media was forcing 0.35rem on all .modal-grid) */
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid.table-modal-column {
+    gap: 1.5rem;
+  }
+
+  /* Settings (embedded): larger type; compact row; dropdown arrow flush right inside button */
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-row {
+    max-width: 22rem;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-label {
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-dropdown {
+    /* Global .settings-dropdown has max-width: 150px — must override or width never exceeds 150px */
+    width: min(170px, 49%);
+    max-width: min(170px, 49%);
+    flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-dropdown .custom-dropdown-button {
+    position: relative;
+    font-size: 1rem;
+    padding: 0.8rem 2.15rem 0.8rem 0.95rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-dropdown .custom-dropdown-arrow {
+    position: absolute;
+    right: 0.65rem;
+    top: 50%;
+    margin-left: 0;
+    transform: translateY(-50%);
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-dropdown .custom-dropdown-arrow.open {
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .settings-dropdown .custom-dropdown-option {
+    font-size: 1rem;
+    padding: 0.8rem 0.95rem;
+  }
+
+  /* Airflow (damper-group): preset CustomDropdown + damper blade icons — tablet embedded only */
+  .app.app--tablet-landscape .tablet-embedded-panel__body .damper-preset-container .custom-dropdown-button {
+    font-size: 1.05rem;
+    padding: 0.92rem 2.6rem 0.92rem 1rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .damper-preset-container .custom-dropdown-option {
+    font-size: 1.05rem;
+    padding: 0.82rem 1rem;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-embedded-panel__body
+    .damper-preset-container
+    ~ .modal-grid
+    .led-card
+    .icon-container {
+    --icon-size: clamp(38px, 5.8vw, 50px);
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row {
@@ -3522,8 +3683,12 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     padding-top: 1.85rem;
   }
 
-  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid {
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid:not(.table-modal-column) {
     gap: 0.35rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .modal-grid.table-modal-column {
+    gap: 1.5rem;
   }
 
   .app.app--tablet-landscape .tablet-embedded-panel__body .damper-preset-container {

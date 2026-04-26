@@ -65,6 +65,8 @@ export default defineConfig({
     })
   ],
   server: {
+    // Listen on LAN too — open http://<this-machine-ip>:<port>/ from phone/tablet on same Wi‑Fi
+    host: true,
     port: 5174,
     watch: {
       usePolling: true,

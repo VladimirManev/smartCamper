@@ -4,31 +4,41 @@
  * Clears data when source module goes offline
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /**
  * Custom hook for sensor data
  * @param {Object} socket - Socket.io instance
- * @param {Function} isModuleOnline - Function to check if module is online
- * @param {Object} moduleStatuses - Object with module statuses (for dependency tracking)
+ * @param {Object} moduleStatuses - moduleId -> status (used to know if module-1 is online)
  * @returns {Object} { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature }
  */
-export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
+export const useSensorData = (socket, moduleStatuses) => {
   const [indoorTemperature, setIndoorTemperature] = useState(null);
   const [indoorHumidity, setIndoorHumidity] = useState(null);
   const [outdoorTemperature, setOutdoorTemperature] = useState(null);
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
   const [grayWaterTemperature, setGrayWaterTemperature] = useState(null);
 
+  const moduleStatusesRef = useRef(moduleStatuses);
+  moduleStatusesRef.current = moduleStatuses;
+
   useEffect(() => {
     if (!socket) {
       return;
     }
 
-    // Listen for sensor updates
+    // Ref is only updated on React render; moduleStatusUpdate + sensorUpdate often arrive
+    // in the same tick before re-render — sync ref here so sensor handler sees module-1 online.
+    const syncModulesFromSocket = (data) => {
+      if (data?.modules) {
+        moduleStatusesRef.current = data.modules;
+      }
+    };
+
     const handleSensorUpdate = (data) => {
-      // Only update if module is online
-      if (!isModuleOnline || !isModuleOnline("module-1")) {
+      const module1Online =
+        moduleStatusesRef.current["module-1"]?.status === "online";
+      if (!module1Online) {
         return;
       }
 
@@ -58,34 +68,26 @@ export const useSensorData = (socket, isModuleOnline, moduleStatuses) => {
       }
     };
 
+    socket.on("moduleStatusUpdate", syncModulesFromSocket);
     socket.on("sensorUpdate", handleSensorUpdate);
 
-    // Cleanup
     return () => {
+      socket.off("moduleStatusUpdate", syncModulesFromSocket);
       socket.off("sensorUpdate", handleSensorUpdate);
     };
-  }, [socket, isModuleOnline]);
+  }, [socket]);
 
-  // Clear sensor data when module goes offline
+  // Clear sensor data when module-1 goes offline (ref in listener avoids stale "offline" on each render)
   useEffect(() => {
-    if (isModuleOnline) {
-      const module1Online = isModuleOnline("module-1");
-      if (!module1Online) {
-        setIndoorTemperature(null);
-        setIndoorHumidity(null);
-        setOutdoorTemperature(null);
-        setGrayWaterLevel(null);  // Clear gray water level when module-1 goes offline
-        setGrayWaterTemperature(null);  // Clear gray water temperature when module-1 goes offline
-      }
-    } else {
-      // If isModuleOnline is not available, clear data
+    const module1Online = moduleStatuses["module-1"]?.status === "online";
+    if (!module1Online) {
       setIndoorTemperature(null);
       setIndoorHumidity(null);
       setOutdoorTemperature(null);
       setGrayWaterLevel(null);
       setGrayWaterTemperature(null);
     }
-  }, [isModuleOnline, moduleStatuses]);
+  }, [moduleStatuses]);
 
   return {
     indoorTemperature,
