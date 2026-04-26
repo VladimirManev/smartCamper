@@ -3012,8 +3012,8 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     grid-auto-rows: min-content;
-    gap: 0.3rem;
-    padding: 0.45rem;
+    gap: 3px;
+    padding: 0.35rem;
     width: 100%;
     margin: 0;
     margin-top: auto;
@@ -3033,10 +3033,51 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
       inset 0 1px 0 var(--color-white-5);
   }
 
-  .app.app--tablet-landscape .main-content .neumorphic-button .button-text i,
-  .app.app--tablet-landscape .main-content .neumorphic-button .button-text svg {
-    transform: scale(1.45);
-    transform-origin: center;
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-wrapper {
+    gap: 0.12rem;
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .sensor-card {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    aspect-ratio: 1;
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+    margin: 0 auto;
+    padding: 0.35rem;
+    border-radius: 18px;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .neumorphic-button {
+    width: min(96px, 74%);
+    height: min(96px, 74%);
+    min-width: min(96px, 74%);
+    min-height: min(96px, 74%);
+    max-width: min(96px, 74%);
+    max-height: min(96px, 74%);
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card .icon-container {
+    --icon-size: 44px;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-label {
+    max-width: 100%;
+    font-size: 0.68rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .water-tank-readout {
+    font-size: 15px;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .button-text {
+    font-size: 0.72rem;
   }
 
   .app.app--tablet-landscape .sensor-text-row {
