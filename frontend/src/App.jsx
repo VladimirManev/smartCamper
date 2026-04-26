@@ -29,7 +29,7 @@ import { TableGroupCard } from "./components/TableGroupCard";
 import { LevelingGroupCard } from "./components/LevelingGroupCard";
 import { LevelingGauge } from "./components/LevelingGauge";
 import { ECGIndicator } from "./components/ECGIndicator";
-import { ClockDateCard } from "./components/ClockDateCard";
+import { ClockDateCard, ClockCalendarLines } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
 import { CardModal } from "./components/CardModal";
 import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
@@ -938,13 +938,8 @@ function App() {
     });
   };
 
-  const clockSlot = (
-    <ClockDateCard
-      indoorTemp={indoorTemperature}
-      outdoorTemp={outdoorTemperature}
-      humidity={indoorHumidity}
-    />
-  );
+  const clockSlotWithCalendar = <ClockDateCard showCalendar />;
+  const clockSlotTimeOnly = <ClockDateCard showCalendar={false} />;
 
   const sensorTextRow = (
     <div className="sensor-text-row">
@@ -1004,8 +999,11 @@ function App() {
         {isTabletLandscape ? (
           <>
             <div className="sensor-clock-cluster">
-              {clockSlot}
+              {clockSlotTimeOnly}
               {sensorTextRow}
+            </div>
+            <div className="tablet-calendar-below">
+              <ClockCalendarLines />
             </div>
             {busImageBlock}
           </>
@@ -1013,7 +1011,7 @@ function App() {
           <>
             {sensorTextRow}
             <div className="image-clock-container">
-              {clockSlot}
+              {clockSlotWithCalendar}
               {busImageBlock}
             </div>
           </>

@@ -2491,6 +2491,13 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   margin-left: 1rem;
 }
 
+.clock-date-card--time-only {
+  gap: 0;
+  padding: 0.35rem 0.5rem 0 0;
+  margin-left: 0;
+  align-items: flex-start;
+}
+
 /* Date text container - below clock */
 .date-text-container {
   display: flex;
@@ -3081,10 +3088,10 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.35rem;
     width: 100%;
   }
 
@@ -3092,9 +3099,29 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     display: flex;
     flex-direction: row;
     align-items: center;
-    flex: 1;
+    width: 100%;
     min-width: 0;
     gap: 1rem;
+    flex: none;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .tablet-calendar-below {
+    width: 100%;
+    padding-left: 0.15rem;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-below
+    .clock-calendar {
+    align-items: flex-start;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-below
+    .clock-calendar-line {
+    font-size: 17px;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .sensor-clock-cluster .sensor-text-row {
@@ -3140,9 +3167,9 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
   .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row > .image-sensor-wrapper {
     flex-shrink: 0;
-    margin-top: 0;
-    flex: 0 1 auto;
-    max-width: 48%;
+    margin-top: 0.35rem;
+    width: 100%;
+    max-width: 100%;
     align-self: center;
   }
 
@@ -3153,14 +3180,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   .app.app--tablet-landscape .sensor-clock-cluster .clock-date-card {
     margin-left: 0;
     margin-top: 0;
-    padding: 0.35rem 0.5rem 0 0;
-    align-items: flex-start;
-    gap: 0.3rem;
     flex-shrink: 0;
-  }
-
-  .app.app--tablet-landscape .sensor-clock-cluster .clock-calendar-line {
-    font-size: 17px;
   }
 
   .app.app--tablet-landscape .ducato-image {
