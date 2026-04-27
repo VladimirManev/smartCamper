@@ -154,6 +154,100 @@ function randomSensorPayload() {
   };
 }
 
+function createInitialLedState() {
+  return JSON.parse(JSON.stringify(STATIC.ledStatusUpdate.data));
+}
+
+function emitLedStatus(socket, ledState) {
+  socket.emit("ledStatusUpdate", {
+    type: "full",
+    data: ledState,
+    timestamp: ts(),
+  });
+}
+
+function handleMockLedCommand(socket, ledState, payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  if (payload.type === "relay" && payload.action === "toggle") {
+    const current = ledState.relays?.[0]?.state === "ON";
+    if (!ledState.relays) ledState.relays = {};
+    ledState.relays[0] = { state: current ? "OFF" : "ON" };
+    emitLedStatus(socket, ledState);
+    return;
+  }
+
+  if (payload.type !== "strip" || typeof payload.index !== "number" || !payload.action) {
+    return;
+  }
+
+  const idx = String(payload.index);
+  const strip = ledState.strips?.[idx];
+  if (!strip) {
+    return;
+  }
+
+  if (payload.action === "on") {
+    strip.state = "ON";
+    if ((strip.brightness ?? 0) <= 0) {
+      strip.brightness = 60;
+    }
+  } else if (payload.action === "off") {
+    strip.state = "OFF";
+  } else if (payload.action === "toggle") {
+    strip.state = strip.state === "ON" ? "OFF" : "ON";
+  } else if (payload.action === "brightness" && typeof payload.value === "number") {
+    strip.brightness = Math.max(0, Math.min(100, Math.round(payload.value)));
+    strip.state = strip.brightness > 0 ? "ON" : "OFF";
+  } else if (payload.action === "mode" && typeof payload.value === "string") {
+    strip.mode = payload.value.toUpperCase();
+    strip.state = strip.mode === "OFF" ? "OFF" : "ON";
+  } else if (payload.action === "apply" && payload.payload && typeof payload.payload === "object") {
+    Object.assign(strip, payload.payload);
+    if (typeof strip.mode === "string") {
+      strip.mode = strip.mode.toUpperCase();
+    }
+    if (strip.state !== "ON" && strip.state !== "OFF") {
+      strip.state = "ON";
+    }
+  }
+
+  emitLedStatus(socket, ledState);
+}
+
+function createInitialApplianceState() {
+  return JSON.parse(JSON.stringify(STATIC.applianceStatusUpdate.data));
+}
+
+function emitApplianceStatus(socket, applianceState) {
+  socket.emit("applianceStatusUpdate", {
+    type: "full",
+    data: applianceState,
+    timestamp: ts(),
+  });
+}
+
+function handleMockApplianceCommand(socket, applianceState, payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  if (payload.type !== "relay" || payload.action !== "toggle") {
+    return;
+  }
+
+  const index = String(payload.index);
+  const relay = applianceState.relays?.[index];
+  if (!relay) {
+    return;
+  }
+
+  relay.state = relay.state === "ON" ? "OFF" : "ON";
+  emitApplianceStatus(socket, applianceState);
+}
+
 function sendAll(io, socket) {
   const stamp = ts();
   socket.emit("moduleStatusUpdate", {
@@ -196,6 +290,8 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
   console.log(`[mock] client connected ${socket.id}`);
+  const ledState = createInitialLedState();
+  const applianceState = createInitialApplianceState();
 
   // Let the browser attach Socket.io listeners before the first burst (React useEffect).
   const connectDelayMs = Number(process.env.MOCK_CONNECT_DELAY_MS || 450);
@@ -208,13 +304,25 @@ io.on("connection", (socket) => {
     }, sensorIntervalMs);
   }, connectDelayMs);
 
+  socket.on("ledCommand", (payload) => {
+    handleMockLedCommand(socket, ledState, payload);
+    if (process.env.DEBUG_MOCK_SOCKET) {
+      console.log("[mock] ledCommand", payload);
+    }
+  });
+
+  socket.on("applianceCommand", (payload) => {
+    handleMockApplianceCommand(socket, applianceState, payload);
+    if (process.env.DEBUG_MOCK_SOCKET) {
+      console.log("[mock] applianceCommand", payload);
+    }
+  });
+
   const noop = [
-    "ledCommand",
     "floorHeatingCommand",
     "levelingCommand",
     "damperCommand",
     "tableCommand",
-    "applianceCommand",
     "forceModuleUpdate",
   ];
   for (const ev of noop) {

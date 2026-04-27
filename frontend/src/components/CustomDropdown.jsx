@@ -25,6 +25,8 @@ export const CustomDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const pointerTriggeredToggleRef = useRef(false);
+  const pointerTriggeredSelectRef = useRef(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -98,7 +100,21 @@ export const CustomDropdown = ({
         ref={buttonRef}
         type="button"
         className={`custom-dropdown-button ${disabled ? "disabled" : ""} ${isOpen ? "open" : ""}`}
-        onClick={handleToggle}
+        style={{ touchAction: "manipulation" }}
+        onPointerUp={(e) => {
+          if (disabled) return;
+          if (e.pointerType === "touch" || e.pointerType === "pen") {
+            pointerTriggeredToggleRef.current = true;
+            handleToggle();
+          }
+        }}
+        onClick={() => {
+          if (pointerTriggeredToggleRef.current) {
+            pointerTriggeredToggleRef.current = false;
+            return;
+          }
+          handleToggle();
+        }}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -134,7 +150,21 @@ export const CustomDropdown = ({
               className={`custom-dropdown-option ${
                 option.value === value ? "selected" : ""
               }`}
-              onClick={() => handleSelect(option.value)}
+              style={{ touchAction: "manipulation" }}
+              onPointerUp={(e) => {
+                if (disabled) return;
+                if (e.pointerType === "touch" || e.pointerType === "pen") {
+                  pointerTriggeredSelectRef.current = true;
+                  handleSelect(option.value);
+                }
+              }}
+              onClick={() => {
+                if (pointerTriggeredSelectRef.current) {
+                  pointerTriggeredSelectRef.current = false;
+                  return;
+                }
+                handleSelect(option.value);
+              }}
             >
               {option.label}
             </button>

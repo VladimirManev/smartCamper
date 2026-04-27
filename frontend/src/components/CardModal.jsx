@@ -15,6 +15,7 @@ export const CardModal = ({ isOpen, onClose, title, children, isNested = false, 
   const modalRef = useRef(null);
   const overlayRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
+  const pointerTriggeredCloseRef = useRef(false);
 
   // Handle click outside to close
   const handleOverlayClick = (event) => {
@@ -109,6 +110,14 @@ export const CardModal = ({ isOpen, onClose, title, children, isNested = false, 
     <div 
       className={`modal-overlay ${isClosing ? "closing" : ""} ${isNested ? "nested" : ""}`}
       ref={overlayRef} 
+      onPointerDown={(event) => {
+        if (event.target === overlayRef.current && !isNested && onClose) {
+          pointerTriggeredCloseRef.current = true;
+          event.preventDefault();
+          event.stopPropagation();
+          handleClose();
+        }
+      }}
       onClick={handleOverlayClick}
       style={{ zIndex }}
     >
@@ -120,7 +129,27 @@ export const CardModal = ({ isOpen, onClose, title, children, isNested = false, 
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           {!isNested && (
-            <button className="modal-close-button" onClick={handleClose} aria-label="Close">
+            <button
+              className="modal-close-button"
+              style={{ touchAction: "manipulation" }}
+              onPointerUp={(e) => {
+                if (!onClose) return;
+                if (e.pointerType === "touch" || e.pointerType === "pen") {
+                  pointerTriggeredCloseRef.current = true;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleClose();
+                }
+              }}
+              onClick={(e) => {
+                if (pointerTriggeredCloseRef.current) {
+                  pointerTriggeredCloseRef.current = false;
+                  return;
+                }
+                handleClose();
+              }}
+              aria-label="Close"
+            >
             <svg
               width="20"
               height="20"

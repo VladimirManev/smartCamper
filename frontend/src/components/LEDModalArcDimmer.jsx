@@ -55,6 +55,7 @@ export function LEDModalArcDimmer({
   const lastValueRef = useRef(displayBrightness);
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
   const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+  const pointerTriggeredClickRef = useRef(false);
 
   const isOn = strip?.state === "ON";
   const mode = strip?.mode;
@@ -138,6 +139,11 @@ export function LEDModalArcDimmer({
     onBrightnessDrag(b);
   };
 
+  const triggerToggle = useCallback(() => {
+    if (disabled) return;
+    onToggle();
+  }, [disabled, onToggle]);
+
   const bulbIcon = (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -216,10 +222,23 @@ export function LEDModalArcDimmer({
           type="button"
           className={buttonClass}
           disabled={disabled}
-          onClick={(e) => {
+          style={{ touchAction: "manipulation" }}
+          onPointerUp={(e) => {
             e.stopPropagation();
             if (disabled) return;
-            onToggle();
+            if (e.pointerType === "touch" || e.pointerType === "pen") {
+              pointerTriggeredClickRef.current = true;
+              triggerToggle();
+            }
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            // Ignore synthetic click after touch/pen pointer interaction.
+            if (pointerTriggeredClickRef.current) {
+              pointerTriggeredClickRef.current = false;
+              return;
+            }
+            triggerToggle();
           }}
           aria-label={mode === "AUTO" ? "Cycle bathroom mode" : "Toggle light"}
         >

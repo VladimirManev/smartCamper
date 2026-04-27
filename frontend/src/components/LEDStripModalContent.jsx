@@ -140,6 +140,7 @@ export function LEDStripModalContent({
   relayStyle = "default",
 }) {
   const debounceRef = useRef(null);
+  const ambientPointerTriggeredClickRef = useRef(false);
   const brightnessForApplyRef = useRef(1);
   const hueBarRef = useRef(null);
   const hueDragRef = useRef(false);
@@ -276,6 +277,13 @@ export function LEDStripModalContent({
     [sendStripApply, disabled, applyPayloadBase, sendRgbHue, strip?.channels]
   );
 
+  const triggerAmbientToggle = useCallback(() => {
+    if (disabled) return;
+    if (typeof onToggle === "function") {
+      onToggle();
+    }
+  }, [disabled, onToggle]);
+
   if (variant === "relay") {
     const relayIsOn = strip?.state === "ON";
     const bulbIcon = (
@@ -326,7 +334,21 @@ export function LEDStripModalContent({
                 relayIsOn ? "on" : "off"
               }`}
               disabled={disabled}
-              onClick={onToggle}
+              style={{ touchAction: "manipulation" }}
+              onPointerUp={(e) => {
+                if (disabled) return;
+                if (e.pointerType === "touch" || e.pointerType === "pen") {
+                  ambientPointerTriggeredClickRef.current = true;
+                  triggerAmbientToggle();
+                }
+              }}
+              onClick={() => {
+                if (ambientPointerTriggeredClickRef.current) {
+                  ambientPointerTriggeredClickRef.current = false;
+                  return;
+                }
+                triggerAmbientToggle();
+              }}
               aria-label="Toggle ambient light"
             >
               <span className="button-text">
