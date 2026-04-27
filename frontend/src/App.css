@@ -3250,8 +3250,8 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     --tablet-hero-scale: 0.8;
     --tablet-hero-pos-x: 55%;
     --tablet-hero-pos-y: 82%;
-    --tablet-hero-nudge-x: 50px;
-    --tablet-hero-nudge-y: -100px;
+    --tablet-hero-nudge-x: 100px;
+    --tablet-hero-nudge-y: -200px;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop {
