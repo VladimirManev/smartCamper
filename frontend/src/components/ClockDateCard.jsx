@@ -3,7 +3,6 @@
  */
 
 import { useState, useEffect } from "react";
-import { THEME_NIGHT_KEY } from "../themes";
 
 function formatCalendarLines(date) {
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" })
@@ -16,20 +15,21 @@ function formatCalendarLines(date) {
   return { dayName, dateLine };
 }
 
+const APPEARANCE_MODE_LABEL = {
+  day: "Day",
+  night: "Night",
+  automatic: "Automatic",
+};
+
 /**
  * Day + date lines (Inter 12–15px / 400). Separate from clock so layout can place it outside the temps row.
- * Tablet: appearance chip — toggle when settings Mode is Automatic; status only for Day/Night.
+ * Tablet: chip cycles Mode (Day → Night → Automatic), same state as Settings.
  *
  * @param {Object} props
- * @param {string} props.resolvedTheme - Applied palette key ("Light Gray" | "Midnight Glass")
- * @param {'day'|'night'|'automatic'} props.settingsMode
- * @param {() => void} [props.onAppearanceToggle]
+ * @param {'day'|'night'|'automatic'} props.appearanceMode
+ * @param {() => void} props.onCycleAppearanceMode
  */
-export function ClockCalendarLines({
-  resolvedTheme,
-  settingsMode,
-  onAppearanceToggle,
-}) {
+export function ClockCalendarLines({ appearanceMode, onCycleAppearanceMode }) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -40,10 +40,7 @@ export function ClockCalendarLines({
   }, []);
 
   const { dayName, dateLine } = formatCalendarLines(time);
-
-  const isNightLook = resolvedTheme === THEME_NIGHT_KEY;
-  const chipLabel = isNightLook ? "Night mode" : "Day mode";
-  const isToggle = settingsMode === "automatic" && typeof onAppearanceToggle === "function";
+  const chipLabel = APPEARANCE_MODE_LABEL[appearanceMode] ?? appearanceMode;
 
   return (
     <div className="clock-calendar-block">
@@ -51,20 +48,14 @@ export function ClockCalendarLines({
         <div className="clock-calendar-line">{dayName}</div>
         <div className="clock-calendar-line">{dateLine}</div>
       </div>
-      {isToggle ? (
-        <button
-          type="button"
-          className="night-mode-chip night-mode-chip--toggle"
-          onClick={onAppearanceToggle}
-          aria-pressed={isNightLook}
-        >
-          {chipLabel}
-        </button>
-      ) : (
-        <div className="night-mode-chip" role="status">
-          {chipLabel}
-        </div>
-      )}
+      <button
+        type="button"
+        className="night-mode-chip night-mode-chip--toggle"
+        onClick={onCycleAppearanceMode}
+        aria-label={`Appearance mode: ${chipLabel}. Tap to switch mode.`}
+      >
+        {chipLabel}
+      </button>
     </div>
   );
 }

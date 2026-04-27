@@ -189,47 +189,28 @@ function App() {
   const expectedPresetAngles = useRef(null);
   const isApplyingPreset = useRef(false);
 
-  // Appearance: Settings Mode (day / night / automatic) + optional auto override from tablet chip
+  // Appearance: day / night / automatic (same state from Settings or tablet chip)
   const [uiAppearanceMode, setUiAppearanceMode] = useState("night");
-  const [autoThemeOverride, setAutoThemeOverride] = useState(null);
-  const prevMainStripOnRef = useRef(undefined);
 
   const resolvedTheme = useMemo(() => {
     if (uiAppearanceMode === "day") return THEME_DAY_KEY;
     if (uiAppearanceMode === "night") return THEME_NIGHT_KEY;
-    if (autoThemeOverride) return autoThemeOverride;
     const mainOn = ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state === "ON";
     return mainOn ? THEME_NIGHT_KEY : THEME_DAY_KEY;
-  }, [uiAppearanceMode, autoThemeOverride, ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state]);
+  }, [uiAppearanceMode, ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state]);
 
   useEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
-  useEffect(() => {
-    const isOn = ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state === "ON";
-    if (uiAppearanceMode !== "automatic") {
-      prevMainStripOnRef.current = isOn;
-      return;
-    }
-    const prev = prevMainStripOnRef.current;
-    prevMainStripOnRef.current = isOn;
-    if (prev === undefined) return;
-    if (prev !== isOn) {
-      setAutoThemeOverride(null);
-    }
-  }, [ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state, uiAppearanceMode]);
-
-  const mainStripState = ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state;
-  const handleTabletAppearanceToggle = useCallback(() => {
-    if (uiAppearanceMode !== "automatic") return;
-    setAutoThemeOverride((prev) => {
-      const mainOn = mainStripState === "ON";
-      const fromAuto = mainOn ? THEME_NIGHT_KEY : THEME_DAY_KEY;
-      const effectiveNow = prev ?? fromAuto;
-      return effectiveNow === THEME_NIGHT_KEY ? THEME_DAY_KEY : THEME_NIGHT_KEY;
+  /** Tablet chip: Night → Day → Automatic → Night (covers default Night first) */
+  const cycleAppearanceMode = useCallback(() => {
+    setUiAppearanceMode((prev) => {
+      if (prev === "night") return "day";
+      if (prev === "day") return "automatic";
+      return "night";
     });
-  }, [uiAppearanceMode, mainStripState]);
+  }, []);
 
   const openModal = (cardType, cardName, cardData = null) => {
     setModalStack((prevStack) => [
@@ -626,10 +607,7 @@ function App() {
             <label className="settings-label">Mode</label>
             <CustomDropdown
               value={uiAppearanceMode}
-              onChange={(mode) => {
-                setUiAppearanceMode(mode);
-                setAutoThemeOverride(null);
-              }}
+              onChange={(mode) => setUiAppearanceMode(mode)}
               options={[
                 { value: "day", label: "Day" },
                 { value: "night", label: "Night" },
@@ -1094,9 +1072,8 @@ function App() {
             </div>
             <div className="tablet-calendar-bus-row">
               <ClockCalendarLines
-                resolvedTheme={resolvedTheme}
-                settingsMode={uiAppearanceMode}
-                onAppearanceToggle={handleTabletAppearanceToggle}
+                appearanceMode={uiAppearanceMode}
+                onCycleAppearanceMode={cycleAppearanceMode}
               />
               {busImageBlock}
             </div>

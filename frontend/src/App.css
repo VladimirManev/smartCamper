@@ -2716,9 +2716,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 .night-mode-chip--toggle {
   cursor: pointer;
   width: 100%;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .night-mode-chip--toggle:active {
