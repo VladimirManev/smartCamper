@@ -421,7 +421,7 @@ body {
 @media (max-width: 811px) and (orientation: portrait) {
   .app:not(.app--tablet-landscape) .content-with-image {
     gap: 0.3rem;
-    padding-top: 0.35rem;
+    padding-top: 0.6rem;
   }
 
   .app:not(.app--tablet-landscape) .top-metrics-row {
