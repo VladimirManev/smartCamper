@@ -3246,12 +3246,14 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
      *   --tablet-hero-pos-y     object-position Y % — 0% top … 100% bottom (sky vs van / ground)
      *   --tablet-hero-nudge-x   extra pan in px after crop (+ = shift photo right in frame)
      *   --tablet-hero-nudge-y   extra pan in px (+ = shift photo down in frame)
+     *   --tablet-hero-vignette  edge fade to black (0 = off, ~0.92–0.98 = strong)
      */
     --tablet-hero-scale: 0.65;
     --tablet-hero-pos-x: 55%;
     --tablet-hero-pos-y: 82%;
     --tablet-hero-nudge-x: 130px;
     --tablet-hero-nudge-y: -140px;
+    --tablet-hero-vignette: 0.96;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop {
@@ -3261,6 +3263,23 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
+  }
+
+  /* Strong edge fade toward black (over photo, under UI) */
+  .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 62% 58% at 50% 48%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0) 28%,
+      rgba(0, 0, 0, calc(var(--tablet-hero-vignette) * 0.55)) 52%,
+      rgba(0, 0, 0, var(--tablet-hero-vignette)) 100%
+    );
+    box-shadow: inset 0 0 90px 72px rgba(0, 0, 0, calc(var(--tablet-hero-vignette) * 0.88));
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop__img {
