@@ -280,7 +280,7 @@ body {
   max-width: 100%;
 }
 
-/* Night hero (phone portrait): full-bleed layer under sensors, clock, and menu */
+/* Night hero: backdrop layer (tablet landscape left panel); hidden elsewhere */
 .hero-bus-backdrop {
   display: none;
 }
@@ -449,39 +449,6 @@ body {
 
   .app:not(.app--tablet-landscape) .content-with-image > .main-content .card-wrapper {
     gap: 0.15rem;
-  }
-
-  .app:not(.app--tablet-landscape) .hero-bus-backdrop {
-    display: block;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: min(58vh, 460px);
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-
-  .app:not(.app--tablet-landscape) .hero-bus-backdrop__img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: 58% 90%;
-    user-select: none;
-    pointer-events: none;
-    -webkit-user-select: none;
-  }
-
-  .app:not(.app--tablet-landscape) .top-metrics-row,
-  .app:not(.app--tablet-landscape) .main-content {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Keeps flex slot next to clock; van comes from .hero-bus-backdrop */
-  .app:not(.app--tablet-landscape) .hero-bus-inline {
-    visibility: hidden;
   }
 }
 
@@ -3264,6 +3231,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner {
+    position: relative;
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -3271,6 +3239,51 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     flex-direction: column;
     gap: 0.35rem;
     padding: 0.45rem;
+    /*
+     * Hero van background — tune only these (left panel, tablet landscape):
+     *   --tablet-hero-scale     zoom (1 = default; >1 larger/cropped edges, <1 smaller letterbox feel)
+     *   --tablet-hero-pos-x     object-position X % — 0% left … 100% right (which part of photo sits in frame)
+     *   --tablet-hero-pos-y     object-position Y % — 0% top … 100% bottom (sky vs van / ground)
+     *   --tablet-hero-nudge-x   extra pan in px after crop (+ = shift photo right in frame)
+     *   --tablet-hero-nudge-y   extra pan in px (+ = shift photo down in frame)
+     */
+    --tablet-hero-scale: 1;
+    --tablet-hero-pos-x: 55%;
+    --tablet-hero-pos-y: 82%;
+    --tablet-hero-nudge-x: 0px;
+    --tablet-hero-nudge-y: 0px;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--tablet-hero-pos-x) var(--tablet-hero-pos-y);
+    transform: translate(var(--tablet-hero-nudge-x), var(--tablet-hero-nudge-y))
+      scale(var(--tablet-hero-scale));
+    transform-origin: center center;
+    user-select: none;
+    pointer-events: none;
+    -webkit-user-select: none;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .top-metrics-row,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app.app--tablet-landscape .hero-bus-inline {
+    visibility: hidden;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .main-content {
