@@ -41,7 +41,7 @@ import {
 } from "./components/LEDStripModalContent";
 import { CustomDropdown } from "./components/CustomDropdown";
 import { applyTheme, THEME_DAY_KEY, THEME_NIGHT_KEY } from "./themes";
-import ducatoImage from "./assets/ducato.png";
+import vanHeroNight from "./assets/van-hero-night.png";
 import {
   getLightingGroupAggregate,
   getLightingMasterOffPlan,
@@ -1053,13 +1053,20 @@ function App() {
   const busImageBlock = (
     <div className="image-sensor-wrapper">
       <div className="image-container">
-        <img src={ducatoImage} alt="Ducato" className="ducato-image" />
+        <img
+          src={vanHeroNight}
+          alt="Camper van"
+          className="ducato-image hero-bus-inline"
+        />
       </div>
     </div>
   );
 
   const mainColumn = (
     <>
+      <div className="hero-bus-backdrop" aria-hidden="true">
+        <img src={vanHeroNight} alt="" className="hero-bus-backdrop__img" />
+      </div>
       <div className="top-metrics-row">
         {isTabletLandscape ? (
           <>
