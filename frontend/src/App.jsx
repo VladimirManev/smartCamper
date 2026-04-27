@@ -1286,7 +1286,7 @@ function App() {
           <p className="card-label">Inverter</p>
         </div>
 
-        {/* TEST: placeholder cards for 3×6 grid — remove when layout is finalized */}
+        {/* Placeholder cards (tablet 3×6 menu); disabled relays for layout preview */}
         {[
           { label: "Aux", icon: "bulb" },
           { label: "Outlet", icon: "bulb" },

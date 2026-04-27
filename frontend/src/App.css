@@ -417,58 +417,6 @@ body {
   justify-items: center; /* Center items within grid cells */
 }
 
-/* TEST: main menu 3×6 on phone portrait — revert when layout is finalized */
-@media (max-width: 811px) and (orientation: portrait) {
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0.3rem;
-    padding: 0.5rem 0.4rem;
-  }
-
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .card-label {
-    max-width: 100%;
-    font-size: 0.52rem;
-  }
-
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .sensor-card,
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .led-card {
-    width: min(100%, 54px);
-    height: min(100%, 54px);
-    min-width: 0;
-    min-height: 0;
-    max-width: 54px;
-    max-height: 54px;
-    padding: 0.35rem;
-    border-radius: 12px;
-  }
-
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .gray-water-card-root .led-card {
-    width: min(100%, 54px);
-    height: min(100%, 54px);
-    min-width: 0;
-    min-height: 0;
-    max-width: 54px;
-    max-height: 54px;
-    padding: 0.35rem;
-    border-radius: 12px;
-  }
-
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .neumorphic-button {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
-  }
-
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .led-card .icon-container {
-    --icon-size: 22px;
-  }
-
-  .app:not(.app--tablet-landscape) .content-with-image > .main-content .water-tank-readout {
-    font-size: 10px;
-  }
-}
-
 /* Landscape orientation on phones (lying down) - elements side by side in row */
 @media (orientation: landscape) and (max-width: 767px) {
   .content-with-image {
