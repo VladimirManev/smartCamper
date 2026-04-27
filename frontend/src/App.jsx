@@ -1285,6 +1285,28 @@ function App() {
           />
           <p className="card-label">Inverter</p>
         </div>
+
+        {/* TEST: placeholder cards for 3×6 grid — remove when layout is finalized */}
+        {[
+          { label: "Aux", icon: "bulb" },
+          { label: "Outlet", icon: "bulb" },
+          { label: "Solar", icon: "bulb" },
+          { label: "AC", icon: "fan" },
+          { label: "Vent", icon: "fan" },
+        ].map(({ label, icon }) => (
+          <div className="card-wrapper" key={`menu-test-${label}`}>
+            <LEDCard
+              name={label}
+              strip={{ state: "OFF", brightness: 0 }}
+              onClick={() => {}}
+              onLongPress={() => {}}
+              type="relay"
+              icon={icon}
+              disabled
+            />
+            <p className="card-label">{label}</p>
+          </div>
+        ))}
       </div>
     </>
   );
