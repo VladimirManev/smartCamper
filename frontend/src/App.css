@@ -2711,11 +2711,14 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   box-shadow: 0 2px 8px var(--color-accent-blue-20),
     inset 1px 1px 3px var(--color-shadow-inset-bottom),
     inset -1px -1px 3px var(--color-shadow-inset-top);
+  box-sizing: border-box;
 }
 
 .night-mode-chip--toggle {
   cursor: pointer;
   width: 100%;
+  min-width: 12.5rem;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -3442,6 +3445,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     flex: 0 1 auto;
     align-self: stretch;
     min-height: 0;
+    min-width: 12.5rem;
   }
 
   .app.app--tablet-landscape
@@ -3458,6 +3462,13 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     font-size: 0.75rem;
     padding: 0.45rem 0.55rem;
     border-radius: 12px;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-split__left-inner
+    .tablet-calendar-bus-row
+    .night-mode-chip--toggle {
+    min-width: 12.5rem;
   }
 
   .app.app--tablet-landscape

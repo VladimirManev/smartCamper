@@ -50,6 +50,7 @@ import {
   getRadiantGroupAggregate,
   getRadiantMasterOffPlan,
 } from "./utils/radiantGroupAggregate";
+import { APPEARANCE_MODE_OPTIONS } from "./constants/appearanceModeLabels";
 import "./App.css";
 
 const DEFAULT_TABLET_PANEL_MODAL = {
@@ -604,15 +605,11 @@ function App() {
       return (
         <>
           <div className="settings-row">
-            <label className="settings-label">Mode</label>
+            <label className="settings-label">Appearance mode</label>
             <CustomDropdown
               value={uiAppearanceMode}
               onChange={(mode) => setUiAppearanceMode(mode)}
-              options={[
-                { value: "day", label: "Day" },
-                { value: "night", label: "Night" },
-                { value: "automatic", label: "Automatic" },
-              ]}
+              options={APPEARANCE_MODE_OPTIONS}
               disabled={false}
               className="settings-dropdown"
             />
