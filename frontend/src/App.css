@@ -2713,6 +2713,18 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     inset -1px -1px 3px var(--color-shadow-inset-top);
 }
 
+.night-mode-chip--toggle {
+  cursor: pointer;
+  width: 100%;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.night-mode-chip--toggle:active {
+  opacity: 0.92;
+}
+
 .clock-calendar-line {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;

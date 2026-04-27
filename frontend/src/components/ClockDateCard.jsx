@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { THEME_NIGHT_KEY } from "../themes";
 
 function formatCalendarLines(date) {
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" })
@@ -17,8 +18,18 @@ function formatCalendarLines(date) {
 
 /**
  * Day + date lines (Inter 12–15px / 400). Separate from clock so layout can place it outside the temps row.
+ * Tablet: appearance chip — toggle when settings Mode is Automatic; status only for Day/Night.
+ *
+ * @param {Object} props
+ * @param {string} props.resolvedTheme - Applied palette key ("Light Gray" | "Midnight Glass")
+ * @param {'day'|'night'|'automatic'} props.settingsMode
+ * @param {() => void} [props.onAppearanceToggle]
  */
-export function ClockCalendarLines() {
+export function ClockCalendarLines({
+  resolvedTheme,
+  settingsMode,
+  onAppearanceToggle,
+}) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -30,15 +41,30 @@ export function ClockCalendarLines() {
 
   const { dayName, dateLine } = formatCalendarLines(time);
 
+  const isNightLook = resolvedTheme === THEME_NIGHT_KEY;
+  const chipLabel = isNightLook ? "Night mode" : "Day mode";
+  const isToggle = settingsMode === "automatic" && typeof onAppearanceToggle === "function";
+
   return (
     <div className="clock-calendar-block">
       <div className="clock-calendar" aria-label="Date">
         <div className="clock-calendar-line">{dayName}</div>
         <div className="clock-calendar-line">{dateLine}</div>
       </div>
-      <div className="night-mode-chip" role="status">
-        Night mode
-      </div>
+      {isToggle ? (
+        <button
+          type="button"
+          className="night-mode-chip night-mode-chip--toggle"
+          onClick={onAppearanceToggle}
+          aria-pressed={isNightLook}
+        >
+          {chipLabel}
+        </button>
+      ) : (
+        <div className="night-mode-chip" role="status">
+          {chipLabel}
+        </div>
+      )}
     </div>
   );
 }

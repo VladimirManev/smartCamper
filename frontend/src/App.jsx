@@ -40,7 +40,7 @@ import {
   getApplianceModalIcon,
 } from "./components/LEDStripModalContent";
 import { CustomDropdown } from "./components/CustomDropdown";
-import { themes, applyTheme, getThemeNames } from "./themes";
+import { applyTheme, THEME_DAY_KEY, THEME_NIGHT_KEY } from "./themes";
 import ducatoImage from "./assets/ducato.png";
 import {
   getLightingGroupAggregate,
@@ -58,6 +58,9 @@ const DEFAULT_TABLET_PANEL_MODAL = {
   cardData: null,
 };
 const DEFAULT_LIGHTING_DETAIL = { type: "strip", index: 1, name: "Main" };
+
+/** Main strip only — drives Automatic appearance and clears manual override on state change */
+const APPEARANCE_MAIN_STRIP_INDEX = 1;
 
 function App() {
   const isTabletLandscape = useTabletLandscape();
@@ -186,16 +189,47 @@ function App() {
   const expectedPresetAngles = useRef(null);
   const isApplyingPreset = useRef(false);
 
-  // Settings state
-  const [colorTheme, setColorTheme] = useState("Dark Blue");
-  
-  // Apply theme on mount and when theme changes
+  // Appearance: Settings Mode (day / night / automatic) + optional auto override from tablet chip
+  const [uiAppearanceMode, setUiAppearanceMode] = useState("night");
+  const [autoThemeOverride, setAutoThemeOverride] = useState(null);
+  const prevMainStripOnRef = useRef(undefined);
+
+  const resolvedTheme = useMemo(() => {
+    if (uiAppearanceMode === "day") return THEME_DAY_KEY;
+    if (uiAppearanceMode === "night") return THEME_NIGHT_KEY;
+    if (autoThemeOverride) return autoThemeOverride;
+    const mainOn = ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state === "ON";
+    return mainOn ? THEME_NIGHT_KEY : THEME_DAY_KEY;
+  }, [uiAppearanceMode, autoThemeOverride, ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state]);
+
   useEffect(() => {
-    applyTheme(colorTheme);
-  }, [colorTheme]);
-  
-  // Get available theme names for dropdown
-  const availableThemes = getThemeNames();
+    applyTheme(resolvedTheme);
+  }, [resolvedTheme]);
+
+  useEffect(() => {
+    const isOn = ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state === "ON";
+    if (uiAppearanceMode !== "automatic") {
+      prevMainStripOnRef.current = isOn;
+      return;
+    }
+    const prev = prevMainStripOnRef.current;
+    prevMainStripOnRef.current = isOn;
+    if (prev === undefined) return;
+    if (prev !== isOn) {
+      setAutoThemeOverride(null);
+    }
+  }, [ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state, uiAppearanceMode]);
+
+  const mainStripState = ledStrips[APPEARANCE_MAIN_STRIP_INDEX]?.state;
+  const handleTabletAppearanceToggle = useCallback(() => {
+    if (uiAppearanceMode !== "automatic") return;
+    setAutoThemeOverride((prev) => {
+      const mainOn = mainStripState === "ON";
+      const fromAuto = mainOn ? THEME_NIGHT_KEY : THEME_DAY_KEY;
+      const effectiveNow = prev ?? fromAuto;
+      return effectiveNow === THEME_NIGHT_KEY ? THEME_DAY_KEY : THEME_NIGHT_KEY;
+    });
+  }, [uiAppearanceMode, mainStripState]);
 
   const openModal = (cardType, cardName, cardData = null) => {
     setModalStack((prevStack) => [
@@ -589,14 +623,18 @@ function App() {
       return (
         <>
           <div className="settings-row">
-            <label className="settings-label">Color Theme</label>
+            <label className="settings-label">Mode</label>
             <CustomDropdown
-              value={colorTheme}
-              onChange={(theme) => setColorTheme(theme)}
-              options={availableThemes.map(themeName => ({
-                value: themeName,
-                label: themeName
-              }))}
+              value={uiAppearanceMode}
+              onChange={(mode) => {
+                setUiAppearanceMode(mode);
+                setAutoThemeOverride(null);
+              }}
+              options={[
+                { value: "day", label: "Day" },
+                { value: "night", label: "Night" },
+                { value: "automatic", label: "Automatic" },
+              ]}
               disabled={false}
               className="settings-dropdown"
             />
@@ -1055,7 +1093,11 @@ function App() {
               {sensorTextRow}
             </div>
             <div className="tablet-calendar-bus-row">
-              <ClockCalendarLines />
+              <ClockCalendarLines
+                resolvedTheme={resolvedTheme}
+                settingsMode={uiAppearanceMode}
+                onAppearanceToggle={handleTabletAppearanceToggle}
+              />
               {busImageBlock}
             </div>
           </>

@@ -3,73 +3,11 @@
  * Manages color themes for the application
  */
 
+/** Keys in `themes` — day/night appearance */
+export const THEME_DAY_KEY = "Light Gray";
+export const THEME_NIGHT_KEY = "Midnight Glass";
+
 export const themes = {
-  "Dark Blue": {
-    name: "Dark Blue",
-    colors: {
-      // Background colors
-      bgPrimary: "#0f172a",
-      bgSecondary: "#1e293b",
-      
-      // Accent colors
-      accentBlue: "#3b82f6",
-      accentBlueDark: "#2563eb",
-      accentRed: "#ef4444",
-      accentGray: "#94a3b8",
-      
-      // Icon color - same as accent blue for consistency
-      iconBlue: "#3b82f6",
-      
-      // Text colors
-      textPrimary: "#f5f5f5",
-      textSecondary: "#94a3b8",
-      
-      // Transparent variations
-      bgPrimary85: "rgba(15, 23, 42, 0.85)",
-      bgPrimary95: "rgba(15, 23, 42, 0.95)",
-      bgSecondary50: "rgba(30, 41, 59, 0.5)",
-      bgSecondary80: "rgba(30, 41, 59, 0.8)",
-      
-      accentBlue10: "rgba(59, 130, 246, 0.1)",
-      accentBlue15: "rgba(59, 130, 246, 0.15)",
-      accentBlue20: "rgba(59, 130, 246, 0.2)",
-      accentBlue30: "rgba(59, 130, 246, 0.3)",
-      accentBlue40: "rgba(59, 130, 246, 0.4)",
-      accentBlue50: "rgba(59, 130, 246, 0.5)",
-      accentBlue60: "rgba(59, 130, 246, 0.6)",
-      accentBlue70: "rgba(59, 130, 246, 0.7)",
-      accentBlue80: "rgba(59, 130, 246, 0.8)",
-      accentBlue85: "rgba(59, 130, 246, 0.85)",
-      accentBlue90: "rgba(59, 130, 246, 0.9)",
-      accentBlue95: "rgba(59, 130, 246, 0.95)",
-      
-      // Icon blue variations (same as accent blue for Dark Blue theme)
-      iconBlue10: "rgba(59, 130, 246, 0.1)",
-      iconBlue20: "rgba(59, 130, 246, 0.2)",
-      iconBlue30: "rgba(59, 130, 246, 0.3)",
-      iconBlue40: "rgba(59, 130, 246, 0.4)",
-      iconBlue50: "rgba(59, 130, 246, 0.5)",
-      iconBlue60: "rgba(59, 130, 246, 0.6)",
-      iconBlue70: "rgba(59, 130, 246, 0.7)",
-      iconBlue80: "rgba(59, 130, 246, 0.8)",
-      
-      accentRed30: "rgba(239, 68, 68, 0.3)",
-      accentRed40: "rgba(239, 68, 68, 0.4)",
-      accentRed50: "rgba(239, 68, 68, 0.5)",
-      accentRed60: "rgba(239, 68, 68, 0.6)",
-      accentRed80: "rgba(239, 68, 68, 0.8)",
-      
-      accentGray30: "rgba(148, 163, 184, 0.3)",
-      
-      black20: "rgba(0, 0, 0, 0.2)",
-      black30: "rgba(0, 0, 0, 0.3)",
-      black50: "rgba(0, 0, 0, 0.5)",
-      
-      white3: "rgba(255, 255, 255, 0.03)",
-      white5: "rgba(255, 255, 255, 0.05)",
-      white10: "rgba(255, 255, 255, 0.1)",
-    },
-  },
   "Light Gray": {
     name: "Light Gray",
     colors: {
@@ -288,7 +226,6 @@ export const applyTheme = (themeName) => {
   const colorFilterMap = {
     '#6ba3ff': 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(200deg) brightness(1.05) contrast(1)', // Midnight Glass icon blue (same as water)
     '#5b9fff': 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(200deg) brightness(1.05) contrast(1)', // Midnight Glass dark
-    '#3b82f6': 'brightness(0) saturate(100%) invert(45%) sepia(96%) saturate(2000%) hue-rotate(210deg) brightness(1) contrast(1)', // Dark Blue
     '#475569': 'brightness(0) saturate(100%) invert(50%) sepia(20%) saturate(500%) hue-rotate(200deg) brightness(0.8) contrast(1.2)', // Light Gray
   };
   
