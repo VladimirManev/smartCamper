@@ -417,6 +417,30 @@ body {
   justify-items: center; /* Center items within grid cells */
 }
 
+/* Phone portrait: tighter vertical spacing so main menu sits higher and rows are closer */
+@media (max-width: 811px) and (orientation: portrait) {
+  .app:not(.app--tablet-landscape) .content-with-image {
+    gap: 0.3rem;
+  }
+
+  .app:not(.app--tablet-landscape) .top-metrics-row {
+    gap: 0.35rem;
+  }
+
+  .app:not(.app--tablet-landscape) .image-sensor-wrapper {
+    margin-top: 0.45rem;
+  }
+
+  .app:not(.app--tablet-landscape) .content-with-image > .main-content {
+    padding: 0.35rem 0.75rem 0.65rem;
+    gap: 0.22rem 0.5rem;
+  }
+
+  .app:not(.app--tablet-landscape) .content-with-image > .main-content .card-wrapper {
+    gap: 0.15rem;
+  }
+}
+
 /* Landscape orientation on phones (lying down) - elements side by side in row */
 @media (orientation: landscape) and (max-width: 767px) {
   .content-with-image {
