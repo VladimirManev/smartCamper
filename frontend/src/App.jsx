@@ -1300,7 +1300,11 @@ function App() {
   );
 
   return (
-    <div className={`app${isTabletLandscape ? " app--tablet-landscape" : ""}`}>
+    <div
+      className={`app${isTabletLandscape ? " app--tablet-landscape" : ""}${
+        resolvedTheme === THEME_DAY_KEY ? " app--theme-day" : " app--theme-night"
+      }`}
+    >
       {isTabletLandscape ? (
         <div className="tablet-split">
           <div className="tablet-split__left">

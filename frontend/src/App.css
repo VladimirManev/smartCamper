@@ -3254,6 +3254,11 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     --tablet-hero-nudge-y: 30px;
   }
 
+  /* Day mode: keep hero image at original size (no extra zoom) */
+  .app.app--tablet-landscape.app--theme-day .tablet-split__left-inner {
+    --tablet-hero-scale: 1;
+  }
+
   .app.app--tablet-landscape .tablet-split__left-inner .hero-bus-backdrop {
     display: block;
     position: absolute;
