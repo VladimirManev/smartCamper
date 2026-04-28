@@ -3267,6 +3267,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    opacity: 0.8;
     object-position: var(--tablet-hero-pos-x) var(--tablet-hero-pos-y);
     transform: translate(var(--tablet-hero-nudge-x), var(--tablet-hero-nudge-y))
       scale(var(--tablet-hero-scale));
