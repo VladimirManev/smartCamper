@@ -42,6 +42,7 @@ import {
 import { CustomDropdown } from "./components/CustomDropdown";
 import { applyTheme, THEME_DAY_KEY, THEME_NIGHT_KEY } from "./themes";
 import vanHeroNight from "./assets/van-hero-night.png";
+import vanHeroDay from "./assets/van-hero-day.png";
 import {
   getLightingGroupAggregate,
   getLightingMasterOffPlan,
@@ -1050,11 +1051,13 @@ function App() {
     </div>
   );
 
+  const heroBusImage = resolvedTheme === THEME_DAY_KEY ? vanHeroDay : vanHeroNight;
+
   const busImageBlock = (
     <div className="image-sensor-wrapper">
       <div className="image-container">
         <img
-          src={vanHeroNight}
+          src={heroBusImage}
           alt="Camper van"
           className="ducato-image hero-bus-inline"
         />
@@ -1065,7 +1068,7 @@ function App() {
   const mainColumn = (
     <>
       <div className="hero-bus-backdrop" aria-hidden="true">
-        <img src={vanHeroNight} alt="" className="hero-bus-backdrop__img" />
+        <img src={heroBusImage} alt="" className="hero-bus-backdrop__img" />
       </div>
       <div className="top-metrics-row">
         {isTabletLandscape ? (
