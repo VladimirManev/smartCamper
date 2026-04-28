@@ -77,8 +77,8 @@ export const themes = {
   "Midnight Glass": {
     name: "Midnight Glass",
     colors: {
-      // Background colors - almost black with subtle blue/gray hint
-      bgPrimary: "#0E1015",
+      // Background colors - matched to darkest pines on right side of night hero image
+      bgPrimary: "#101d31",
       bgSecondary: "#1C1F26", // Dark glass/metal surface
       
       // Accent colors - refined neon blue, less saturated
