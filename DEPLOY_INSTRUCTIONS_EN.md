@@ -14,16 +14,25 @@ From the project directory, run:
 ./deploy-to-raspberry.sh
 ```
 
+For Raspberry Pi without internet (recommended):
+
+```bash
+./deploy-to-raspberry.sh --offline-pi
+```
+
 The script automatically:
 - ✅ Tests SSH connection
 - ✅ Uploads changed files (backend, frontend)
-- ✅ Installs dependencies
-- ✅ Builds frontend
+- ✅ Installs dependencies (when needed)
+- ✅ Builds frontend (standard mode)
 - ✅ Restarts backend service
 
 ## 📋 Options
 
 ```bash
+# Offline mode for Pi without internet (build locally, upload dist)
+./deploy-to-raspberry.sh --offline-pi
+
 # Build frontend before deploying (faster on Pi)
 ./deploy-to-raspberry.sh --build-frontend
 
@@ -135,7 +144,8 @@ sudo apt install -y nodejs
 **Solution:**
 1. Check Node.js version: `node --version` (should be 20.x or 22.x)
 2. Check logs: `sudo journalctl -u smartcamper-backend -n 50`
-3. Try manual build: 
+3. If Pi has no internet, use `./deploy-to-raspberry.sh --offline-pi`
+4. Try manual build (when internet is available): 
    ```bash
    ssh vmanev@192.168.4.1
    cd ~/smartCamper/frontend
@@ -149,6 +159,9 @@ sudo apt install -y nodejs
 ```bash
 # Deploy changes
 ./deploy-to-raspberry.sh
+
+# Deploy offline (Pi without internet)
+./deploy-to-raspberry.sh --offline-pi
 
 # Clean node_modules on Pi
 ./clean-node-modules-on-pi.sh
@@ -172,6 +185,7 @@ You can open it in your browser and see the changes.
 ## 📌 Notes
 
 - The script only uploads changed files (rsync)
-- `node_modules` and `dist` are not uploaded (installed/built on Pi)
+- `node_modules` are not uploaded
+- `dist` is uploaded only in `--offline-pi` mode
 - Backend service is automatically restarted after changes
 - If you have problems, see the "Troubleshooting" section above

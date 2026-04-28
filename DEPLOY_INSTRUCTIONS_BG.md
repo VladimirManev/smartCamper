@@ -14,16 +14,25 @@
 ./deploy-to-raspberry.sh
 ```
 
+За Raspberry Pi без интернет (препоръчително):
+
+```bash
+./deploy-to-raspberry.sh --offline-pi
+```
+
 Скриптът автоматично:
 - ✅ Тества SSH връзката
 - ✅ Качва променените файлове (backend, frontend)
-- ✅ Инсталира зависимости
-- ✅ Прави build на frontend
+- ✅ Инсталира зависимости (ако е нужно)
+- ✅ Прави build на frontend (стандартен режим)
 - ✅ Рестартира backend service
 
 ## 📋 Опции
 
 ```bash
+# Offline режим за Pi без интернет (build локално, качва dist)
+./deploy-to-raspberry.sh --offline-pi
+
 # Build на frontend преди качване (по-бързо на Pi)
 ./deploy-to-raspberry.sh --build-frontend
 
@@ -135,7 +144,8 @@ sudo apt install -y nodejs
 **Решение:**
 1. Провери Node.js версията: `node --version` (трябва да е 20.x или 22.x)
 2. Провери логове: `sudo journalctl -u smartcamper-backend -n 50`
-3. Опитай ръчно build: 
+3. Ако Pi няма интернет, използвай `./deploy-to-raspberry.sh --offline-pi`
+4. Опитай ръчно build (когато има интернет): 
    ```bash
    ssh vmanev@192.168.4.1
    cd ~/smartCamper/frontend
@@ -149,6 +159,9 @@ sudo apt install -y nodejs
 ```bash
 # Качи промените
 ./deploy-to-raspberry.sh
+
+# Качи офлайн (Pi без интернет)
+./deploy-to-raspberry.sh --offline-pi
 
 # Почисти node_modules на Pi
 ./clean-node-modules-on-pi.sh
@@ -172,6 +185,7 @@ ssh vmanev@192.168.4.1 "sudo journalctl -u smartcamper-backend -n 50"
 ## 📌 Бележки
 
 - Скриптът качва само променените файлове (rsync)
-- `node_modules` и `dist` не се качват (инсталират се/правят се на Pi)
+- `node_modules` не се качват
+- `dist` се качва само при `--offline-pi`
 - Backend service се рестартира автоматично след промени
 - Ако има проблеми, виж секцията "Отстраняване на проблеми" по-горе

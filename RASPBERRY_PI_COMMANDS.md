@@ -13,6 +13,9 @@ cd /path/to/smartCamper
 # Основна команда (качва всичко)
 ./deploy-to-raspberry.sh
 
+# Офлайн режим за Pi без интернет (препоръчително)
+./deploy-to-raspberry.sh --offline-pi
+
 # Опции:
 ./deploy-to-raspberry.sh --build-frontend    # Build на frontend преди качване
 ./deploy-to-raspberry.sh --skip-frontend     # Пропусни frontend
@@ -32,8 +35,9 @@ cd /path/to/smartCamper
 
 1. Скриптът качва файловете през SSH/rsync
 2. Автоматично изпълнява `update-from-local.sh` на Raspberry Pi
-3. Скриптът на Pi инсталира зависимости и прави build
-4. Рестартира backend service ако е нужно
+3. В стандартен режим скриптът на Pi инсталира зависимости и прави build
+4. В `--offline-pi` режим frontend build се прави локално и `dist` се качва на Pi
+5. Рестартира backend service ако е нужно
 
 ## Обновяване от Git (старият метод - изисква интернет)
 

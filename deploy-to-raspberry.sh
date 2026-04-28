@@ -85,6 +85,7 @@ fi
 BUILD_FRONTEND=false
 SKIP_FRONTEND=false
 SKIP_BACKEND=false
+OFFLINE_PI=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -98,6 +99,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-backend)
             SKIP_BACKEND=true
+            shift
+            ;;
+        --offline-pi)
+            OFFLINE_PI=true
             shift
             ;;
         --ip)
@@ -119,6 +124,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --build-frontend    Build frontend locally before deploying"
             echo "  --skip-frontend     Skip deploying frontend files"
             echo "  --skip-backend      Skip deploying backend files"
+            echo "  --offline-pi        Build frontend locally and skip frontend build on Pi"
             echo "  --ip IP             Raspberry Pi IP address (default: $RASPBERRY_IP)"
             echo "  --user USER         Raspberry Pi username (default: $RASPBERRY_USER)"
             echo "  --password PASS     SSH password (will prompt if not provided)"
@@ -136,6 +142,12 @@ done
 echo -e "${BLUE}🚀 Deploying SmartCamper to Raspberry Pi...${NC}"
 echo -e "${YELLOW}📍 Target: ${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}${NC}"
 echo ""
+
+if [ "$OFFLINE_PI" = true ]; then
+    BUILD_FRONTEND=true
+    echo -e "${YELLOW}📴 Offline Pi mode enabled: frontend will be built locally and Pi build will be skipped.${NC}"
+    echo ""
+fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -356,6 +368,14 @@ if [ "$SKIP_FRONTEND" = false ]; then
         "$PROJECT_DIR/frontend/" \
         "${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}/frontend/"
     echo ""
+
+    if [ "$OFFLINE_PI" = true ]; then
+        echo -e "${BLUE}📦 Deploying frontend dist (offline Pi mode)...${NC}"
+        eval rsync -avz --progress $RSYNC_SSH_OPTS --delete \
+            "$PROJECT_DIR/frontend/dist/" \
+            "${RASPBERRY_USER}@${RASPBERRY_IP}:${RASPBERRY_PATH}/frontend/dist/"
+        echo ""
+    fi
 fi
 
 # Deploy root files (only specific files)
@@ -400,10 +420,15 @@ rm -f "$RSYNC_EXCLUDE_FILE"
 
 # Run update script on Raspberry Pi
 echo -e "${GREEN}🔄 Running update script on Raspberry Pi...${NC}"
+REMOTE_ENV=""
+if [ "$OFFLINE_PI" = true ]; then
+    REMOTE_ENV="SKIP_FRONTEND_BUILD=true "
+fi
+
 if [[ "$SSH_CMD" == *"sshpass"* ]]; then
-    eval "$SSH_CMD ${RASPBERRY_USER}@${RASPBERRY_IP} 'cd ${RASPBERRY_PATH} && chmod +x update-from-local.sh && ./update-from-local.sh'"
+    eval "$SSH_CMD ${RASPBERRY_USER}@${RASPBERRY_IP} 'cd ${RASPBERRY_PATH} && chmod +x update-from-local.sh && ${REMOTE_ENV}./update-from-local.sh'"
 else
-    $SSH_CMD "${RASPBERRY_USER}@${RASPBERRY_IP}" "cd ${RASPBERRY_PATH} && chmod +x update-from-local.sh && ./update-from-local.sh"
+    $SSH_CMD "${RASPBERRY_USER}@${RASPBERRY_IP}" "cd ${RASPBERRY_PATH} && chmod +x update-from-local.sh && ${REMOTE_ENV}./update-from-local.sh"
 fi
 
 if [ $? -eq 0 ]; then

@@ -13,6 +13,30 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}🔄 Updating SmartCamper from local files...${NC}"
 
+install_npm_dependencies() {
+    local dir="$1"
+    local scope="$2"
+    cd "$dir"
+
+    # If internet is unavailable and dependencies already exist, continue in offline mode.
+    if ! getent hosts registry.npmjs.org >/dev/null 2>&1; then
+        if [ -d "node_modules" ]; then
+            echo -e "${YELLOW}⚠️  No internet on Raspberry Pi. Skipping ${scope} npm install and using existing node_modules.${NC}"
+            return 0
+        fi
+        echo -e "${RED}❌ No internet on Raspberry Pi and ${scope} node_modules is missing.${NC}"
+        echo -e "${YELLOW}   Connect Pi to internet once to install dependencies, then deploy offline.${NC}"
+        return 1
+    fi
+
+    # Use deterministic install when lockfile exists; fallback otherwise.
+    if [ -f "package-lock.json" ]; then
+        npm ci --no-audit --no-fund --prefer-offline
+    else
+        npm install --no-audit --no-fund --prefer-offline
+    fi
+}
+
 # Determine project path (from home directory)
 PROJECT_DIR="$HOME/smartCamper"
 
@@ -25,6 +49,11 @@ fi
 # Go to project directory
 cd "$PROJECT_DIR"
 
+# Optional mode: frontend is already built locally and uploaded.
+if [ "${SKIP_FRONTEND_BUILD:-false}" = "true" ]; then
+    echo -e "${YELLOW}⏭️  Skipping frontend build on Raspberry Pi (SKIP_FRONTEND_BUILD=true).${NC}"
+    FRONTEND_NEEDS_BUILD=false
+else
 # Check if frontend needs to be built
 FRONTEND_NEEDS_BUILD=false
 if [ -d "frontend" ]; then
@@ -42,6 +71,7 @@ if [ -d "frontend" ]; then
         fi
     fi
 fi
+fi
 
 # Build frontend if needed
 if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
@@ -49,19 +79,16 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
     cd "$PROJECT_DIR/frontend"
     
     # Install dependencies if needed
-    if [ ! -d "node_modules" ] || \
-       ([ -f "package.json" ] && [ "package.json" -nt "node_modules" ]); then
+    FRONTEND_LOCKFILE_CHANGED=false
+    if [ -f "package-lock.json" ]; then
+        if [ ! -f "node_modules/.package-lock.json" ] || [ "package-lock.json" -nt "node_modules/.package-lock.json" ]; then
+            FRONTEND_LOCKFILE_CHANGED=true
+        fi
+    fi
+
+    if [ ! -d "node_modules" ] || [ "$FRONTEND_LOCKFILE_CHANGED" = true ]; then
         echo -e "${YELLOW}📥 Installing frontend dependencies...${NC}"
-        # Remove node_modules if it exists to avoid ENOTEMPTY errors
-        if [ -d "node_modules" ]; then
-            echo -e "${YELLOW}🧹 Cleaning old node_modules...${NC}"
-            rm -rf node_modules
-        fi
-        # Also remove package-lock.json to ensure clean install
-        if [ -f "package-lock.json" ]; then
-            rm -f package-lock.json
-        fi
-        npm install
+        install_npm_dependencies "$PROJECT_DIR/frontend" "frontend"
     fi
     
     # Build
@@ -83,16 +110,16 @@ fi
 # Install backend dependencies if needed
 BACKEND_NEEDS_RESTART=false
 if [ -d "backend" ]; then
-    if [ ! -d "backend/node_modules" ] || \
-       ([ -f "backend/package.json" ] && [ "backend/package.json" -nt "backend/node_modules" ]); then
-        echo -e "${YELLOW}📥 Installing backend dependencies...${NC}"
-        cd "$PROJECT_DIR/backend"
-        # Remove node_modules if it exists to avoid ENOTEMPTY errors
-        if [ -d "node_modules" ]; then
-            echo -e "${YELLOW}🧹 Cleaning old node_modules...${NC}"
-            rm -rf node_modules
+    BACKEND_LOCKFILE_CHANGED=false
+    if [ -f "backend/package-lock.json" ]; then
+        if [ ! -f "backend/node_modules/.package-lock.json" ] || [ "backend/package-lock.json" -nt "backend/node_modules/.package-lock.json" ]; then
+            BACKEND_LOCKFILE_CHANGED=true
         fi
-        npm install
+    fi
+
+    if [ ! -d "backend/node_modules" ] || [ "$BACKEND_LOCKFILE_CHANGED" = true ]; then
+        echo -e "${YELLOW}📥 Installing backend dependencies...${NC}"
+        install_npm_dependencies "$PROJECT_DIR/backend" "backend"
         cd "$PROJECT_DIR"
         BACKEND_NEEDS_RESTART=true
     fi
