@@ -52,6 +52,7 @@ const STATIC = {
     outdoorTemperature: 7.5,
     grayWaterLevel: 42,
     grayWaterTemperature: 17.2,
+    batteryLevel: 68,
     timestamp: ts(),
   },
   ledStatusUpdate: {
@@ -150,6 +151,54 @@ function randomSensorPayload() {
     outdoorTemperature: Math.round((7 + Math.cos(t / 19) * 4) * 10) / 10,
     grayWaterLevel: Math.min(95, Math.max(5, Math.round(40 + Math.sin(t / 23) * 15))),
     grayWaterTemperature: Math.round((17 + Math.sin(t / 21) * 2) * 10) / 10,
+    batteryLevel: Math.min(98, Math.max(8, Math.round(55 + Math.sin(t / 31) * 40))),
+    timestamp: ts(),
+  };
+}
+
+function randomBatterySystemPayload() {
+  const t = Date.now() / 1000;
+  const batteryLevel = Math.min(
+    98,
+    Math.max(8, Math.round(55 + Math.sin(t / 31) * 40))
+  );
+  const sun = 0.55 + 0.45 * Math.max(0, Math.sin(t / 25));
+  return {
+    batteryLevel,
+    nodes: {
+      charger230v: {
+        voltage: 230,
+        current: Math.round((2.2 + Math.sin(t / 11) * 1.4) * 10) / 10,
+      },
+      dcDcBooster: {
+        voltage: Math.round((14.1 + Math.sin(t / 9) * 0.3) * 10) / 10,
+        current: Math.round((12 + Math.sin(t / 7) * 8) * 10) / 10,
+      },
+      alternator: {
+        voltage: Math.round((13.8 + Math.sin(t / 8) * 0.4) * 10) / 10,
+        current: Math.round((18 + Math.sin(t / 6) * 12) * 10) / 10,
+      },
+      solarController1: {
+        power: Math.round(280 * sun + Math.sin(t / 5) * 40),
+        voltage: Math.round((18.4 + Math.sin(t / 10) * 0.8) * 10) / 10,
+      },
+      solarController2: {
+        power: Math.round(240 * sun + Math.cos(t / 6) * 35),
+        voltage: Math.round((18.1 + Math.cos(t / 11) * 0.7) * 10) / 10,
+      },
+      solarPanelGroup1: {
+        power: Math.round(320 * sun),
+        voltage: Math.round((19 + Math.sin(t / 12) * 0.6) * 10) / 10,
+      },
+      solarPanelGroup2: {
+        power: Math.round(290 * sun),
+        voltage: Math.round((18.7 + Math.cos(t / 13) * 0.5) * 10) / 10,
+      },
+      dcLoads: {
+        power: Math.round(120 + 80 * (1 - batteryLevel / 100) + Math.sin(t / 4) * 30),
+        voltage: Math.round((12.6 + Math.sin(t / 15) * 0.4) * 10) / 10,
+      },
+    },
     timestamp: ts(),
   };
 }
@@ -256,6 +305,7 @@ function sendAll(io, socket) {
   });
 
   socket.emit("sensorUpdate", { ...STATIC.sensorUpdate, timestamp: stamp });
+  socket.emit("batterySystemUpdate", randomBatterySystemPayload());
   socket.emit("ledStatusUpdate", {
     ...STATIC.ledStatusUpdate,
     data: STATIC.ledStatusUpdate.data,
@@ -279,6 +329,7 @@ function sendAll(io, socket) {
   [150, 600].forEach((ms) => {
     setTimeout(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
+      socket.emit("batterySystemUpdate", randomBatterySystemPayload());
     }, ms);
   });
 }
@@ -301,6 +352,7 @@ io.on("connection", (socket) => {
     const sensorIntervalMs = Number(process.env.MOCK_SENSOR_INTERVAL_MS || 4000);
     sensorTimer = setInterval(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
+      socket.emit("batterySystemUpdate", randomBatterySystemPayload());
     }, sensorIntervalMs);
   }, connectDelayMs);
 

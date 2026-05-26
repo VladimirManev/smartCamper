@@ -10,6 +10,7 @@ import { useTabletLandscape } from "./hooks/useTabletLandscape";
 import { usePortrait } from "./hooks/usePortrait";
 import { useModuleStatus } from "./hooks/useModuleStatus";
 import { useSensorData } from "./hooks/useSensorData";
+import { useBatterySystem } from "./hooks/useBatterySystem";
 import { useLEDController } from "./hooks/useLEDController";
 import { useFloorHeating } from "./hooks/useFloorHeating";
 import { useDamperController } from "./hooks/useDamperController";
@@ -19,6 +20,7 @@ import { useApplianceController } from "./hooks/useApplianceController";
 import { StatusIcons } from "./components/StatusIcons";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
+import { BatteryCard } from "./components/BatteryCard";
 import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
 import { DamperCard } from "./components/DamperCard";
@@ -35,6 +37,7 @@ import { SettingsCard } from "./components/SettingsCard";
 import { CardModal } from "./components/CardModal";
 import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
 import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
+import { BatteryModalContent } from "./components/BatteryModalContent";
 import {
   LEDStripModalContent,
   getApplianceModalIcon,
@@ -99,8 +102,16 @@ function App() {
   const { isModuleOnline, moduleStatuses } = useModuleStatus(socket);
 
   // Sensor data (clears when module goes offline)
-  const { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature } =
-    useSensorData(socket, moduleStatuses);
+  const {
+    indoorTemperature,
+    indoorHumidity,
+    outdoorTemperature,
+    grayWaterLevel,
+    grayWaterTemperature,
+    batteryLevel,
+  } = useSensorData(socket, moduleStatuses);
+
+  const { nodes: batterySystemNodes } = useBatterySystem(socket, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
   const isModule1Online = isModuleOnline("module-1");
@@ -596,6 +607,16 @@ function App() {
         <GrayWaterModalContent
           level={grayWaterLevel}
           temperature={grayWaterTemperature}
+          disabled={!isModule1Online}
+        />
+      );
+    }
+
+    if (cardType === "battery") {
+      return (
+        <BatteryModalContent
+          batteryLevel={batteryLevel}
+          nodes={batterySystemNodes}
           disabled={!isModule1Online}
         />
       );
@@ -1174,6 +1195,17 @@ function App() {
             onLongPress={() => activateFromMainMenu("gray-water", "Gray Water")}
           />
           <p className="card-label">Gray Water</p>
+        </div>
+
+        {/* Battery */}
+        <div className="card-wrapper">
+          <BatteryCard
+            charge={batteryLevel}
+            disabled={!isModule1Online}
+            onClick={() => activateFromMainMenu("battery", "Battery")}
+            onLongPress={() => activateFromMainMenu("battery", "Battery")}
+          />
+          <p className="card-label">Battery</p>
         </div>
 
         {/* Audio System */}

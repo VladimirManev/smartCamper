@@ -10,7 +10,7 @@ import { useState, useEffect, useRef } from "react";
  * Custom hook for sensor data
  * @param {Object} socket - Socket.io instance
  * @param {Object} moduleStatuses - moduleId -> status (used to know if module-1 is online)
- * @returns {Object} { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature }
+ * @returns {Object} { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature, batteryLevel }
  */
 export const useSensorData = (socket, moduleStatuses) => {
   const [indoorTemperature, setIndoorTemperature] = useState(null);
@@ -18,6 +18,7 @@ export const useSensorData = (socket, moduleStatuses) => {
   const [outdoorTemperature, setOutdoorTemperature] = useState(null);
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
   const [grayWaterTemperature, setGrayWaterTemperature] = useState(null);
+  const [batteryLevel, setBatteryLevel] = useState(null);
 
   const moduleStatusesRef = useRef(moduleStatuses);
   moduleStatusesRef.current = moduleStatuses;
@@ -66,6 +67,11 @@ export const useSensorData = (socket, moduleStatuses) => {
       if (data.grayWaterTemperature !== undefined && data.grayWaterTemperature !== null) {
         setGrayWaterTemperature(data.grayWaterTemperature);
       }
+
+      // Update battery charge if present
+      if (data.batteryLevel !== undefined && data.batteryLevel !== null) {
+        setBatteryLevel(data.batteryLevel);
+      }
     };
 
     socket.on("moduleStatusUpdate", syncModulesFromSocket);
@@ -86,6 +92,7 @@ export const useSensorData = (socket, moduleStatuses) => {
       setOutdoorTemperature(null);
       setGrayWaterLevel(null);
       setGrayWaterTemperature(null);
+      setBatteryLevel(null);
     }
   }, [moduleStatuses]);
 
@@ -95,6 +102,7 @@ export const useSensorData = (socket, moduleStatuses) => {
     outdoorTemperature,
     grayWaterLevel,
     grayWaterTemperature,
+    batteryLevel,
   };
 };
 

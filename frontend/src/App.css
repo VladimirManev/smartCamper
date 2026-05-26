@@ -1569,6 +1569,288 @@ body {
   min-height: 1.2em;
 }
 
+/* Battery card — iOS-style SVG indicator */
+.battery-card {
+  position: relative;
+  overflow: visible;
+}
+
+.battery-card .neumorphic-button {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.battery-card .neumorphic-button > * {
+  grid-area: 1 / 1;
+}
+
+.battery-card-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.14rem;
+  padding-bottom: 0.3rem;
+  box-sizing: border-box;
+  transform: translateY(-2px);
+  pointer-events: none;
+}
+
+.battery-ios-pct {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+.battery-ios-icon {
+  display: block;
+  width: min(74%, 3.05rem);
+  height: auto;
+  overflow: visible;
+}
+
+.battery-ios-body,
+.battery-ios-cap {
+  fill: rgba(0, 0, 0, 0.22);
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.battery-ios-fill {
+  transition: width 0.45s ease, fill 0.35s ease;
+}
+
+/* Day theme: lighter inner well */
+.app--theme-day .battery-ios-body,
+.app--theme-day .battery-ios-cap {
+  fill: rgba(0, 0, 0, 0.07);
+}
+
+/* Battery modal — energy diagram (phase 1) */
+.battery-modal {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0.15rem 0 0.35rem;
+  box-sizing: border-box;
+}
+
+.battery-energy-diagram {
+  --battery-node-size: clamp(3.65rem, 15vw, 4.5rem);
+  position: relative;
+  width: 100%;
+  max-width: 26rem;
+  aspect-ratio: 100 / 72;
+  min-height: 11.5rem;
+}
+
+.battery-energy-diagram__wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.battery-energy-diagram__wire {
+  fill: none;
+  stroke: var(--color-accent-blue);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
+.battery-energy-diagram__arrowhead {
+  fill: var(--color-accent-blue);
+}
+
+.battery-energy-diagram__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto auto;
+  width: 100%;
+  height: 100%;
+  gap: 0.35rem 0.25rem;
+  align-items: center;
+  justify-items: center;
+}
+
+.battery-energy-diagram__slot--r0c0 {
+  grid-column: 1;
+  grid-row: 1;
+}
+.battery-energy-diagram__slot--r0c1 {
+  grid-column: 2;
+  grid-row: 1;
+}
+.battery-energy-diagram__slot--r0c2 {
+  grid-column: 3;
+  grid-row: 1;
+}
+.battery-energy-diagram__slot--r1c0 {
+  grid-column: 1;
+  grid-row: 2;
+}
+.battery-energy-diagram__slot--battery {
+  grid-column: 2;
+  grid-row: 2;
+}
+.battery-energy-diagram__slot--r1c2 {
+  grid-column: 3;
+  grid-row: 2;
+}
+.battery-energy-diagram__slot--r2c0 {
+  grid-column: 1;
+  grid-row: 3;
+}
+.battery-energy-diagram__slot--r2c1 {
+  grid-column: 2;
+  grid-row: 3;
+}
+.battery-energy-diagram__slot--r2c2 {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+.battery-energy-diagram__slot:not(.battery-energy-diagram__slot--battery) {
+  width: var(--battery-node-size);
+  height: var(--battery-node-size);
+  flex-shrink: 0;
+}
+
+.battery-energy-diagram__slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+.battery-energy-diagram__slot--battery {
+  width: var(--battery-node-size);
+  min-height: calc(var(--battery-node-size) * 1.15);
+}
+
+.battery-node-card {
+  width: 100%;
+  height: 100%;
+  padding: 0.22rem 0.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-accent-blue-30);
+  background: rgba(8, 14, 28, 0.55);
+  box-shadow: 0 0 8px var(--color-accent-blue-20);
+  text-align: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.08rem;
+  overflow: hidden;
+}
+
+.battery-node-card__icon {
+  color: var(--color-accent-blue);
+  font-size: 0.9rem;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.battery-node-card__label {
+  font-size: 0.48rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.battery-node-card__metrics {
+  font-size: 0.44rem;
+  font-weight: 500;
+  color: var(--color-accent-blue);
+  line-height: 1.15;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.battery-node-card--disabled,
+.battery-energy-diagram--disabled .battery-node-card {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.battery-diagram-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.battery-diagram-center__svg {
+  width: clamp(2.75rem, 11vw, 3.35rem);
+  height: auto;
+  display: block;
+}
+
+.battery-diagram-center__shell,
+.battery-diagram-center__cap {
+  fill: rgba(0, 0, 0, 0.28);
+  stroke: var(--color-accent-gray);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.battery-diagram-center__fill {
+  transition: height 0.45s ease, y 0.45s ease, fill 0.35s ease;
+}
+
+.battery-diagram-center__pct {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  paint-order: stroke fill;
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 0.4px;
+}
+
+.battery-diagram-center--disabled {
+  opacity: 0.45;
+  filter: grayscale(0.65);
+}
+
+.battery-energy-diagram--disabled .battery-energy-diagram__wire {
+  opacity: 0.25;
+}
+
+.app--theme-day .battery-node-card {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.app--theme-day .battery-diagram-center__shell,
+.app--theme-day .battery-diagram-center__cap {
+  fill: rgba(255, 255, 255, 0.5);
+}
+
 /* Gray water detail modal: tank on top, level + temp stacked below */
 .gray-water-modal {
   display: flex;
@@ -3343,8 +3625,9 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     line-height: 1.35;
   }
 
-  /* GrayWaterTank wraps Card in an extra div — must fill grid cell like other cards */
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root {
+  /* GrayWaterTank / BatteryCard wrap Card in an extra div — must fill grid cell like other cards */
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .battery-card-root {
     width: auto;
     max-width: 100%;
     min-width: 0;
@@ -3358,7 +3641,8 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   /* Fixed square — matches embedded .modal-grid cards (uses --tablet-split-card-size) */
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card,
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .sensor-card,
-  .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root .led-card {
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root .led-card,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .battery-card-root .led-card {
     width: var(--tablet-split-card-size);
     height: var(--tablet-split-card-size);
     min-width: var(--tablet-split-card-size);
@@ -3814,4 +4098,40 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     margin-bottom: 12px;
     padding: 0 4px;
   }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-modal {
+    padding: 0 0 0.15rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-energy-diagram {
+    max-width: 100%;
+    min-height: 10.5rem;
+    aspect-ratio: 100 / 68;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-energy-diagram {
+    --battery-node-size: 3.55rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__icon {
+    font-size: 0.78rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__label {
+    font-size: 0.44rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__metrics {
+    font-size: 0.4rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-diagram-center__svg {
+    width: 2.65rem;
+  }
+}
+
+/* Phone fullscreen battery modal — allow vertical scroll if needed */
+.modal-content:has(.battery-modal) {
+  overflow-y: auto;
+  padding: 0.85rem 0.65rem 1rem;
 }
