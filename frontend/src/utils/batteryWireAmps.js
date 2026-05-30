@@ -1,0 +1,103 @@
+/**
+ * Wire current (A) labels — derive from node metrics when backend omits wireAmps.
+ */
+
+/**
+ * @param {number|null|undefined} power
+ * @param {number|null|undefined} voltage
+ */
+function ampsFromPowerVoltage(power, voltage) {
+  if (power == null || voltage == null || voltage <= 0) return 0;
+  return Math.round((Number(power) / Number(voltage)) * 10) / 10;
+}
+
+/**
+ * @param {Object} nodes
+ * @returns {Record<string, number>}
+ */
+export function deriveWireAmpsFromNodes(nodes = {}) {
+  return {
+    "solar1-mppt1": ampsFromPowerVoltage(
+      nodes.solarPanelGroup1?.power,
+      nodes.solarPanelGroup1?.voltage
+    ),
+    "solar2-mppt2": ampsFromPowerVoltage(
+      nodes.solarPanelGroup2?.power,
+      nodes.solarPanelGroup2?.voltage
+    ),
+    "alternator-dcdc": Number(nodes.alternator?.current) || 0,
+    "dcdc-battery": Number(nodes.dcDcBooster?.current) || 0,
+    "mppt1-battery": ampsFromPowerVoltage(
+      nodes.solarController1?.power,
+      nodes.solarController1?.voltage
+    ),
+    "mppt2-battery": ampsFromPowerVoltage(
+      nodes.solarController2?.power,
+      nodes.solarController2?.voltage
+    ),
+    "loads-battery": ampsFromPowerVoltage(
+      nodes.dcLoads?.power,
+      nodes.dcLoads?.voltage
+    ),
+    "ac-battery": ampsFromPowerVoltage(
+      (nodes.charger230v?.voltage ?? 230) * (nodes.charger230v?.current ?? 0),
+      12.6
+    ),
+  };
+}
+
+/**
+ * @param {number|null|undefined} amps
+ */
+export function formatWireAmps(amps) {
+  if (amps == null || Number.isNaN(Number(amps))) return "—A";
+  return `${Number(amps).toFixed(1)}A`;
+}
+
+const WIRE_MIN_VISIBLE_AMPS = 0.05;
+
+/** Wires that deliver current into the battery. */
+export const BATTERY_CHARGE_WIRES = [
+  "dcdc-battery",
+  "mppt1-battery",
+  "mppt2-battery",
+  "ac-battery",
+];
+
+/** Wires that draw current from the battery. */
+export const BATTERY_DISCHARGE_WIRES = ["loads-battery"];
+
+const DEFAULT_BATTERY_VOLTAGE = 12.6;
+
+/**
+ * @param {number|null|undefined} amps
+ */
+export function hasWireCurrent(amps) {
+  return Number(amps) > WIRE_MIN_VISIBLE_AMPS;
+}
+
+/**
+ * Net battery flow from wire currents (charge in minus discharge out).
+ * @param {Record<string, number>} wireAmps
+ * @param {number} [batteryVoltage]
+ * @returns {{ direction: 'charge' | 'discharge' | 'idle', amps: number, watts: number, netAmps: number }}
+ */
+export function computeBatteryFlow(wireAmps = {}, batteryVoltage = DEFAULT_BATTERY_VOLTAGE) {
+  const chargeIn = BATTERY_CHARGE_WIRES.reduce(
+    (sum, id) => sum + (Number(wireAmps[id]) || 0),
+    0
+  );
+  const dischargeOut = BATTERY_DISCHARGE_WIRES.reduce(
+    (sum, id) => sum + (Number(wireAmps[id]) || 0),
+    0
+  );
+  const netAmps = Math.round((chargeIn - dischargeOut) * 10) / 10;
+  const absAmps = Math.round(Math.abs(netAmps) * 10) / 10;
+  const watts = Math.round(absAmps * batteryVoltage);
+
+  let direction = "idle";
+  if (netAmps > WIRE_MIN_VISIBLE_AMPS) direction = "charge";
+  else if (netAmps < -WIRE_MIN_VISIBLE_AMPS) direction = "discharge";
+
+  return { direction, amps: absAmps, watts, netAmps };
+}

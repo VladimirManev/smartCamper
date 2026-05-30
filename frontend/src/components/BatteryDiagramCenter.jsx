@@ -8,9 +8,10 @@ import { getBatteryFillColor } from "../utils/batteryFillColor";
 /**
  * @param {Object} props
  * @param {number|null} props.charge - 0–100
+ * @param {{ direction?: 'charge' | 'discharge' | 'idle', amps?: number, watts?: number }} [props.flow]
  * @param {boolean} props.disabled
  */
-export function BatteryDiagramCenter({ charge, disabled = false }) {
+export function BatteryDiagramCenter({ charge, flow, disabled = false }) {
   const clipId = useId().replace(/:/g, "");
 
   const hasCharge =
@@ -23,10 +24,26 @@ export function BatteryDiagramCenter({ charge, disabled = false }) {
   const fillColor = hasCharge ? getBatteryFillColor(pct) : null;
   const fillH = (54 * pct) / 100;
 
+  const netAmps = Number(flow?.netAmps) || 0;
+  const showFlow = hasCharge && Math.abs(netAmps) > 0.05;
+
+  const pctY = showFlow ? 32 : 39;
+  const ampsText = showFlow ? `${netAmps.toFixed(1)}A` : "";
+  const wattsText = showFlow ? `${Math.round(flow?.watts ?? 0)}W` : "";
+
+  const flowAria =
+    netAmps > 0.05 ? "charging" : netAmps < -0.05 ? "discharging" : "";
+
   return (
     <div
       className={`battery-diagram-center ${disabled ? "battery-diagram-center--disabled" : ""}`}
-      aria-label={hasCharge ? `Battery ${pct} percent` : "Battery"}
+      aria-label={
+        hasCharge
+          ? showFlow
+            ? `Battery ${pct} percent, ${flowAria} ${ampsText} ${wattsText}`
+            : `Battery ${pct} percent`
+          : "Battery"
+      }
     >
       <svg className="battery-diagram-center__svg" viewBox="0 0 48 72" aria-hidden="true">
         <rect
@@ -39,11 +56,11 @@ export function BatteryDiagramCenter({ charge, disabled = false }) {
         />
         <rect
           className="battery-diagram-center__cap"
-          x="18"
-          y="4"
-          width="12"
-          height="6"
-          rx="2"
+          x="16"
+          y="6.5"
+          width="16"
+          height="3.5"
+          rx="1.25"
         />
         {hasCharge && fillColor && (
           <>
@@ -65,15 +82,39 @@ export function BatteryDiagramCenter({ charge, disabled = false }) {
           </>
         )}
         {hasCharge && (
-          <text
-            className="battery-diagram-center__pct"
-            x="24"
-            y="42"
-            textAnchor="middle"
-            dominantBaseline="middle"
-          >
-            {pct}%
-          </text>
+          <>
+            <text
+              className="battery-diagram-center__pct"
+              x="24"
+              y={pctY}
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              {pct}%
+            </text>
+            {showFlow && (
+              <>
+                <text
+                  className="battery-diagram-center__flow-metric"
+                  x="24"
+                  y="44"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {ampsText}
+                </text>
+                <text
+                  className="battery-diagram-center__flow-metric"
+                  x="24"
+                  y="54"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {wattsText}
+                </text>
+              </>
+            )}
+          </>
         )}
       </svg>
     </div>

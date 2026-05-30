@@ -1,10 +1,11 @@
 /**
- * Battery energy diagram — nodes and wire paths (viewBox 0 0 100 100).
+ * Battery energy diagram — nodes and wire link definitions.
  *
- * Topology (matches reference diagram):
- *   Solar Panel 1 → Solar Controller 1 → Battery
- *   Solar Panel 2 → Solar Controller 2 → Battery
- *   230V Charger / DC-DC / Alternator → Battery
+ * Topology:
+ *   Solar 1 → MPPT 1 → Battery
+ *   Solar 2 → MPPT 2 → Battery
+ *   Alternator → DC-DC → Battery
+ *   AC Charger → Battery (elbow path, 2 bends)
  *   Battery → DC Loads
  */
 
@@ -20,6 +21,7 @@ export const BATTERY_NODE_IDS = [
 ];
 
 /** @typedef {'voltageCurrent' | 'powerVoltage'} BatteryNodeMetricKind */
+/** @typedef {'top' | 'bottom' | 'left' | 'right'} BatteryWireEdge */
 
 /**
  * @type {Array<{
@@ -33,14 +35,14 @@ export const BATTERY_NODE_IDS = [
 export const BATTERY_SYSTEM_NODES = [
   {
     id: "charger230v",
-    label: "230V Charger",
+    label: "AC Charger",
     icon: "fa-plug",
     slot: "r0c0",
     metric: "voltageCurrent",
   },
   {
     id: "dcDcBooster",
-    label: "DC-DC Booster",
+    label: "DC-DC",
     icon: "fa-right-left",
     slot: "r0c1",
     metric: "voltageCurrent",
@@ -54,21 +56,21 @@ export const BATTERY_SYSTEM_NODES = [
   },
   {
     id: "solarController1",
-    label: "Solar Controller 1",
+    label: "MPPT 1",
     icon: "fa-solar-panel",
     slot: "r1c0",
     metric: "powerVoltage",
   },
   {
     id: "solarController2",
-    label: "Solar Controller 2",
+    label: "MPPT 2",
     icon: "fa-solar-panel",
     slot: "r1c2",
     metric: "powerVoltage",
   },
   {
     id: "solarPanelGroup1",
-    label: "Solar Panel Group 1",
+    label: "Solar 1",
     icon: "fa-sun",
     slot: "r2c0",
     metric: "powerVoltage",
@@ -82,43 +84,79 @@ export const BATTERY_SYSTEM_NODES = [
   },
   {
     id: "solarPanelGroup2",
-    label: "Solar Panel Group 2",
+    label: "Solar 2",
     icon: "fa-sun",
     slot: "r2c2",
     metric: "powerVoltage",
   },
 ];
 
-/** Connection points tuned to 3×3 grid (orthogonal paths). */
-const P = {
-  charger: { x: 17, y: 27 },
-  dcdc: { x: 50, y: 27 },
-  alternator: { x: 83, y: 27 },
-  solar1: { x: 22, y: 50 },
-  solar2: { x: 78, y: 50 },
-  panels1: { x: 17, y: 73 },
-  panels2: { x: 83, y: 73 },
-  loads: { x: 50, y: 73 },
-  battTop: { x: 50, y: 44 },
-  battBottom: { x: 50, y: 56 },
-  battLeft: { x: 44, y: 50 },
-  battRight: { x: 56, y: 50 },
-};
-
 /**
- * @type {Array<{ id: string; d: string }>}
+ * Wire links — measured from card/battery shell edges at runtime.
+ * route: "straight" (default) | "horizontal" | "elbow-to-top"
+ *
+ * @type {Array<{
+ *   id: string;
+ *   from: string;
+ *   fromEdge: BatteryWireEdge;
+ *   to: string;
+ *   toEdge: BatteryWireEdge;
+ *   route?: 'straight' | 'horizontal' | 'elbow-to-top';
+ *   topAnchor?: number;
+ *   elbowYRatio?: number;
+ *   filletRadius?: number;
+ *   alignVertical?: boolean;
+ *   flow?: 'charge' | 'discharge';
+ * }>}
  */
-export const BATTERY_WIRE_PATHS = [
-  /* Solar chain 1: panels → controller → battery */
-  { id: "panels1-solar1", d: `M ${P.panels1.x} ${P.panels1.y} L ${P.panels1.x} 61 L ${P.solar1.x} 61 L ${P.solar1.x} ${P.solar1.y}` },
-  { id: "solar1-battery", d: `M ${P.solar1.x} ${P.solar1.y} L ${P.battLeft.x} ${P.battLeft.y}` },
-  /* Solar chain 2 */
-  { id: "panels2-solar2", d: `M ${P.panels2.x} ${P.panels2.y} L ${P.panels2.x} 61 L ${P.solar2.x} 61 L ${P.solar2.x} ${P.solar2.y}` },
-  { id: "solar2-battery", d: `M ${P.solar2.x} ${P.solar2.y} L ${P.battRight.x} ${P.battRight.y}` },
-  /* Top row chargers → battery */
-  { id: "charger-battery", d: `M ${P.charger.x} ${P.charger.y} L ${P.charger.x} 40 L ${P.battLeft.x} 40 L ${P.battLeft.x} ${P.battTop.y}` },
-  { id: "dcdc-battery", d: `M ${P.dcdc.x} ${P.dcdc.y} L ${P.dcdc.x} ${P.battTop.y}` },
-  { id: "alternator-battery", d: `M ${P.alternator.x} ${P.alternator.y} L ${P.alternator.x} 40 L ${P.battRight.x} 40 L ${P.battRight.x} ${P.battTop.y}` },
-  /* Battery → loads */
-  { id: "battery-loads", d: `M ${P.battBottom.x} ${P.battBottom.y} L ${P.loads.x} ${P.loads.y}` },
+export const BATTERY_WIRE_LINKS = [
+  {
+    id: "solar1-mppt1",
+    from: "solarPanelGroup1",
+    fromEdge: "top",
+    to: "solarController1",
+    toEdge: "bottom",
+    flow: "charge",
+  },
+  { id: "solar2-mppt2", from: "solarPanelGroup2", fromEdge: "top", to: "solarController2", toEdge: "bottom", flow: "charge" },
+  { id: "alternator-dcdc", from: "alternator", fromEdge: "left", to: "dcDcBooster", toEdge: "right", flow: "charge" },
+  { id: "dcdc-battery", from: "dcDcBooster", fromEdge: "bottom", to: "battery", toEdge: "top", topAnchor: 0.66, alignVertical: true, flow: "charge" },
+  {
+    id: "mppt1-battery",
+    from: "solarController1",
+    fromEdge: "right",
+    to: "battery",
+    toEdge: "left",
+    route: "horizontal",
+    flow: "charge",
+  },
+  {
+    id: "mppt2-battery",
+    from: "solarController2",
+    fromEdge: "left",
+    to: "battery",
+    toEdge: "right",
+    route: "horizontal",
+    flow: "charge",
+  },
+  {
+    id: "loads-battery",
+    from: "dcLoads",
+    fromEdge: "top",
+    to: "battery",
+    toEdge: "bottom",
+    flow: "discharge",
+  },
+  {
+    id: "ac-battery",
+    from: "charger230v",
+    fromEdge: "bottom",
+    to: "battery",
+    toEdge: "top",
+    route: "elbow-to-top",
+    topAnchor: 0.34,
+    elbowYRatio: 0.5,
+    filletRadius: 12,
+    flow: "charge",
+  },
 ];

@@ -15,13 +15,16 @@ const EMPTY_NODES = {
   dcLoads: null,
 };
 
+const EMPTY_WIRE_AMPS = {};
+
 /**
  * @param {Object} socket
  * @param {Object} moduleStatuses
- * @returns {{ nodes: Object }}
+ * @returns {{ nodes: Object, wireAmps: Object }}
  */
 export function useBatterySystem(socket, moduleStatuses) {
   const [nodes, setNodes] = useState(EMPTY_NODES);
+  const [wireAmps, setWireAmps] = useState(EMPTY_WIRE_AMPS);
   const moduleStatusesRef = useRef(moduleStatuses);
   moduleStatusesRef.current = moduleStatuses;
 
@@ -39,6 +42,9 @@ export function useBatterySystem(socket, moduleStatuses) {
         moduleStatusesRef.current["module-1"]?.status === "online";
       if (!module1Online || !data?.nodes) return;
       setNodes({ ...EMPTY_NODES, ...data.nodes });
+      if (data.wireAmps) {
+        setWireAmps(data.wireAmps);
+      }
     };
 
     socket.on("moduleStatusUpdate", syncModulesFromSocket);
@@ -54,8 +60,9 @@ export function useBatterySystem(socket, moduleStatuses) {
     const module1Online = moduleStatuses["module-1"]?.status === "online";
     if (!module1Online) {
       setNodes(EMPTY_NODES);
+      setWireAmps(EMPTY_WIRE_AMPS);
     }
   }, [moduleStatuses]);
 
-  return { nodes };
+  return { nodes, wireAmps };
 }

@@ -12,7 +12,13 @@ import { formatBatteryNodeMetrics } from "../utils/formatBatteryMetrics";
  * @param {'voltageCurrent' | 'powerVoltage'} props.metricKind
  * @param {boolean} props.disabled
  */
-export function BatteryNodeCard({ label, icon, data, metricKind, disabled = false }) {
+export function BatteryNodeCard({
+  label,
+  icon,
+  data,
+  metricKind,
+  disabled = false,
+}) {
   const metrics = disabled ? "—" : formatBatteryNodeMetrics(data, metricKind);
 
   return (

@@ -8,11 +8,13 @@ import { BatteryEnergyDiagram } from "./BatteryEnergyDiagram";
  * @param {Object} props
  * @param {number|null} props.batteryLevel
  * @param {Object} props.nodes
+ * @param {Object} props.wireAmps
  * @param {boolean} props.disabled
  */
 export function BatteryModalContent({
   batteryLevel,
   nodes,
+  wireAmps,
   disabled = false,
 }) {
   return (
@@ -20,6 +22,7 @@ export function BatteryModalContent({
       <BatteryEnergyDiagram
         batteryLevel={batteryLevel}
         nodes={nodes}
+        wireAmps={wireAmps}
         disabled={disabled}
       />
     </div>

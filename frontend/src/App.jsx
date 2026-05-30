@@ -111,7 +111,8 @@ function App() {
     batteryLevel,
   } = useSensorData(socket, moduleStatuses);
 
-  const { nodes: batterySystemNodes } = useBatterySystem(socket, moduleStatuses);
+  const { nodes: batterySystemNodes, wireAmps: batteryWireAmps } =
+    useBatterySystem(socket, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
   const isModule1Online = isModuleOnline("module-1");
@@ -617,6 +618,7 @@ function App() {
         <BatteryModalContent
           batteryLevel={batteryLevel}
           nodes={batterySystemNodes}
+          wireAmps={batteryWireAmps}
           disabled={!isModule1Online}
         />
       );

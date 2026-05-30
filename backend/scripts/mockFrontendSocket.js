@@ -156,49 +156,146 @@ function randomSensorPayload() {
   };
 }
 
+function buildWireAmps(nodes) {
+  const pv = (power, voltage) =>
+    power && voltage > 0 ? Math.round((power / voltage) * 10) / 10 : 0;
+
+  return {
+    "solar1-mppt1": pv(nodes.solarPanelGroup1?.power, nodes.solarPanelGroup1?.voltage),
+    "solar2-mppt2": pv(nodes.solarPanelGroup2?.power, nodes.solarPanelGroup2?.voltage),
+    "alternator-dcdc": nodes.alternator?.current ?? 0,
+    "dcdc-battery": nodes.dcDcBooster?.current ?? 0,
+    "mppt1-battery": pv(nodes.solarController1?.power, nodes.solarController1?.voltage),
+    "mppt2-battery": pv(nodes.solarController2?.power, nodes.solarController2?.voltage),
+    "loads-battery": pv(nodes.dcLoads?.power, nodes.dcLoads?.voltage),
+    "ac-battery": pv(
+      (nodes.charger230v?.voltage ?? 230) * (nodes.charger230v?.current ?? 0),
+      12.6
+    ),
+  };
+}
+
+function buildBatteryFlow(wireAmps, batteryVoltage = 12.6) {
+  const chargeIn = ["dcdc-battery", "mppt1-battery", "mppt2-battery", "ac-battery"].reduce(
+    (sum, id) => sum + (Number(wireAmps[id]) || 0),
+    0
+  );
+  const dischargeOut = Number(wireAmps["loads-battery"]) || 0;
+  const netAmps = Math.round((chargeIn - dischargeOut) * 10) / 10;
+  const absAmps = Math.round(Math.abs(netAmps) * 10) / 10;
+  const watts = Math.round(absAmps * batteryVoltage);
+
+  let direction = "idle";
+  if (netAmps > 0.05) direction = "charge";
+  else if (netAmps < -0.05) direction = "discharge";
+
+  return { direction, amps: absAmps, watts, netAmps };
+}
+
 function randomBatterySystemPayload() {
   const t = Date.now() / 1000;
   const batteryLevel = Math.min(
     98,
     Math.max(8, Math.round(55 + Math.sin(t / 31) * 40))
   );
+
+  // Rotate scenarios every ~18s to demo zero-current paths and net battery states.
+  const scenario = Math.floor(t / 18) % 5;
   const sun = 0.55 + 0.45 * Math.max(0, Math.sin(t / 25));
-  return {
-    batteryLevel,
-    nodes: {
+
+  let solar1Power = Math.round(320 * sun + Math.sin(t / 5) * 20);
+  let solar2Power = Math.round(290 * sun + Math.cos(t / 6) * 15);
+  let alternatorCurrent = Math.round((18 + Math.sin(t / 6) * 12) * 10) / 10;
+  let dcDcCurrent = Math.round((12 + Math.sin(t / 7) * 8) * 10) / 10;
+  let acCurrent = Math.round((2.2 + Math.sin(t / 11) * 1.4) * 10) / 10;
+  let loadsPower = Math.round(120 + 80 * (1 - batteryLevel / 100) + Math.sin(t / 4) * 30);
+
+  switch (scenario) {
+    case 0:
+      // Night — no solar, no alternator, no AC; loads only.
+      solar1Power = 0;
+      solar2Power = 0;
+      alternatorCurrent = 0;
+      dcDcCurrent = 0;
+      acCurrent = 0;
+      break;
+    case 1:
+      // Solar only — panels + MPPT, no engine or shore power.
+      alternatorCurrent = 0;
+      dcDcCurrent = 0;
+      acCurrent = 0;
+      break;
+    case 2:
+      // Heavy discharge — loads on, all chargers off.
+      solar1Power = 0;
+      solar2Power = 0;
+      alternatorCurrent = 0;
+      dcDcCurrent = 0;
+      acCurrent = 0;
+      loadsPower = Math.round(260 + Math.sin(t / 4) * 35);
+      break;
+    case 3:
+      // Full charge — all sources, no loads.
+      loadsPower = 0;
+      break;
+    case 4:
+    default:
+      // Mixed — individual paths drop to zero over time.
+      if (Math.sin(t / 9) < 0) solar2Power = 0;
+      if (Math.cos(t / 11) < 0) {
+        alternatorCurrent = 0;
+        dcDcCurrent = 0;
+      }
+      if (Math.sin(t / 13) < -0.2) acCurrent = 0;
+      if (Math.cos(t / 7) < 0) loadsPower = 0;
+      break;
+  }
+
+  if (alternatorCurrent <= 0) dcDcCurrent = 0;
+
+  const solar1Voltage = Math.round((19 + Math.sin(t / 12) * 0.6) * 10) / 10;
+  const solar2Voltage = Math.round((18.7 + Math.cos(t / 13) * 0.5) * 10) / 10;
+
+  const nodes = {
       charger230v: {
         voltage: 230,
-        current: Math.round((2.2 + Math.sin(t / 11) * 1.4) * 10) / 10,
+        current: Math.max(0, acCurrent),
       },
       dcDcBooster: {
         voltage: Math.round((14.1 + Math.sin(t / 9) * 0.3) * 10) / 10,
-        current: Math.round((12 + Math.sin(t / 7) * 8) * 10) / 10,
+        current: Math.max(0, dcDcCurrent),
       },
       alternator: {
         voltage: Math.round((13.8 + Math.sin(t / 8) * 0.4) * 10) / 10,
-        current: Math.round((18 + Math.sin(t / 6) * 12) * 10) / 10,
+        current: Math.max(0, alternatorCurrent),
       },
       solarController1: {
-        power: Math.round(280 * sun + Math.sin(t / 5) * 40),
-        voltage: Math.round((18.4 + Math.sin(t / 10) * 0.8) * 10) / 10,
+        power: Math.max(0, solar1Power),
+        voltage: solar1Voltage,
       },
       solarController2: {
-        power: Math.round(240 * sun + Math.cos(t / 6) * 35),
-        voltage: Math.round((18.1 + Math.cos(t / 11) * 0.7) * 10) / 10,
+        power: Math.max(0, solar2Power),
+        voltage: solar2Voltage,
       },
       solarPanelGroup1: {
-        power: Math.round(320 * sun),
-        voltage: Math.round((19 + Math.sin(t / 12) * 0.6) * 10) / 10,
+        power: Math.max(0, solar1Power),
+        voltage: solar1Voltage,
       },
       solarPanelGroup2: {
-        power: Math.round(290 * sun),
-        voltage: Math.round((18.7 + Math.cos(t / 13) * 0.5) * 10) / 10,
+        power: Math.max(0, solar2Power),
+        voltage: solar2Voltage,
       },
       dcLoads: {
-        power: Math.round(120 + 80 * (1 - batteryLevel / 100) + Math.sin(t / 4) * 30),
+        power: Math.max(0, loadsPower),
         voltage: Math.round((12.6 + Math.sin(t / 15) * 0.4) * 10) / 10,
       },
-    },
+    };
+  const wireAmps = buildWireAmps(nodes);
+  return {
+    batteryLevel,
+    nodes,
+    wireAmps,
+    batteryFlow: buildBatteryFlow(wireAmps),
     timestamp: ts(),
   };
 }
