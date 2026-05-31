@@ -158,8 +158,7 @@ export function BatteryEnergyDiagram({
               <BatteryNodeCard
                 label={node.label}
                 icon={node.icon}
-                data={nodes[node.id]}
-                metricKind={node.metric}
+                image={node.image}
                 disabled={disabled}
               />
             </div>

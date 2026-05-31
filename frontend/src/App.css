@@ -1852,8 +1852,29 @@ body {
   opacity: 0.95;
 }
 
+.battery-node-card__icon--image {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+.battery-node-card__icon-img {
+  width: 6rem;
+  height: 6rem;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
 .battery-node-card__label {
-  font-size: 0.52rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.1;
@@ -1861,15 +1882,6 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 0;
-}
-
-.battery-node-card__metrics {
-  font-size: 0.52rem;
-  font-weight: 500;
-  color: var(--color-accent-blue);
-  line-height: 1.15;
-  width: 100%;
   flex-shrink: 0;
 }
 
@@ -4220,12 +4232,13 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     font-size: 0.92rem;
   }
 
-  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__label {
-    font-size: 0.46rem;
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__icon-img {
+    width: 5.3rem;
+    height: 5.3rem;
   }
 
-  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__metrics {
-    font-size: 0.45rem;
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__label {
+    font-size: 0.9rem;
   }
 }
 

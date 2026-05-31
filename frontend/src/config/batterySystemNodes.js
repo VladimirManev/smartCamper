@@ -9,6 +9,8 @@
  *   Battery → DC Loads
  */
 
+import alternatorImg from "../assets/battery/alternator.png?url";
+
 export const BATTERY_NODE_IDS = [
   "charger230v",
   "dcDcBooster",
@@ -28,6 +30,7 @@ export const BATTERY_NODE_IDS = [
  *   id: string;
  *   label: string;
  *   icon: string;
+ *   image?: string;
  *   slot: string;
  *   metric: BatteryNodeMetricKind;
  * }>}
@@ -51,6 +54,7 @@ export const BATTERY_SYSTEM_NODES = [
     id: "alternator",
     label: "Alternator",
     icon: "fa-car",
+    image: alternatorImg,
     slot: "r0c2",
     metric: "voltageCurrent",
   },
