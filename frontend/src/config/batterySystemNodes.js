@@ -9,8 +9,6 @@
  *   Battery → DC Loads
  */
 
-import alternatorImg from "../assets/battery/alternator.png?url";
-
 export const BATTERY_NODE_IDS = [
   "charger230v",
   "dcDcBooster",
@@ -31,6 +29,10 @@ export const BATTERY_NODE_IDS = [
  *   label: string;
  *   icon: string;
  *   image?: string;
+ *   deviceLabel?: string;
+ *   largeIcon?: boolean;
+ *   iconKind?: 'solar' | 'alternator' | 'dc-loads';
+ *   iconStyle?: 'outline';
  *   slot: string;
  *   metric: BatteryNodeMetricKind;
  * }>}
@@ -40,6 +42,8 @@ export const BATTERY_SYSTEM_NODES = [
     id: "charger230v",
     label: "AC Charger",
     icon: "fa-plug",
+    largeIcon: true,
+    iconStyle: "outline",
     slot: "r0c0",
     metric: "voltageCurrent",
   },
@@ -47,6 +51,7 @@ export const BATTERY_SYSTEM_NODES = [
     id: "dcDcBooster",
     label: "DC-DC",
     icon: "fa-right-left",
+    deviceLabel: "DC-DC",
     slot: "r0c1",
     metric: "voltageCurrent",
   },
@@ -54,7 +59,8 @@ export const BATTERY_SYSTEM_NODES = [
     id: "alternator",
     label: "Alternator",
     icon: "fa-car",
-    image: alternatorImg,
+    iconKind: "alternator",
+    largeIcon: true,
     slot: "r0c2",
     metric: "voltageCurrent",
   },
@@ -62,6 +68,7 @@ export const BATTERY_SYSTEM_NODES = [
     id: "solarController1",
     label: "MPPT 1",
     icon: "fa-solar-panel",
+    deviceLabel: "MPPT",
     slot: "r1c0",
     metric: "powerVoltage",
   },
@@ -69,13 +76,16 @@ export const BATTERY_SYSTEM_NODES = [
     id: "solarController2",
     label: "MPPT 2",
     icon: "fa-solar-panel",
+    deviceLabel: "MPPT",
     slot: "r1c2",
     metric: "powerVoltage",
   },
   {
     id: "solarPanelGroup1",
     label: "Solar 1",
-    icon: "fa-sun",
+    icon: "fa-solar-panel",
+    iconKind: "solar",
+    largeIcon: true,
     slot: "r2c0",
     metric: "powerVoltage",
   },
@@ -83,13 +93,17 @@ export const BATTERY_SYSTEM_NODES = [
     id: "dcLoads",
     label: "DC Loads",
     icon: "fa-lightbulb",
+    iconKind: "dc-loads",
+    largeIcon: true,
     slot: "r2c1",
     metric: "powerVoltage",
   },
   {
     id: "solarPanelGroup2",
     label: "Solar 2",
-    icon: "fa-sun",
+    icon: "fa-solar-panel",
+    iconKind: "solar",
+    largeIcon: true,
     slot: "r2c2",
     metric: "powerVoltage",
   },

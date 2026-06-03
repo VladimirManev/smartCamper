@@ -159,6 +159,10 @@ export function BatteryEnergyDiagram({
                 label={node.label}
                 icon={node.icon}
                 image={node.image}
+                deviceLabel={node.deviceLabel}
+                iconKind={node.iconKind}
+                largeIcon={node.largeIcon}
+                iconStyle={node.iconStyle}
                 disabled={disabled}
               />
             </div>

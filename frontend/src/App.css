@@ -1862,6 +1862,129 @@ body {
   opacity: 1;
 }
 
+.battery-node-card__icon--large {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  line-height: 1;
+  opacity: 1;
+}
+
+/* Hollow outline — AC plug */
+.battery-node-card__icon--outline > i {
+  color: transparent;
+  -webkit-text-stroke: 0.15rem var(--color-accent-blue);
+  paint-order: stroke fill;
+}
+
+/* Diagram icons — solar, alternator, DC loads (same size) */
+.battery-node-card__diagram-icon,
+.battery-node-card__solar-icon {
+  width: 4.15rem;
+  height: 4.15rem;
+  color: var(--color-accent-blue);
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.battery-node-card__diagram-text {
+  fill: currentColor;
+  font-size: 5.2px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  letter-spacing: 0.06em;
+}
+
+.battery-node-card__diagram-icon--alternator {
+  width: 4.55rem;
+  height: 4.55rem;
+}
+
+.battery-node-card__diagram-icon--out {
+  width: 4.8rem;
+  height: 4.8rem;
+}
+
+.battery-node-card__diagram-text--out {
+  font-size: 6.2px;
+}
+
+.battery-node-card__device {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  flex-shrink: 0;
+}
+
+.battery-node-card__device-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.14rem;
+}
+
+.battery-node-card__device-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.35rem;
+  min-height: 2.45rem;
+  padding: 0.22rem 0.4rem;
+  border: 2.5px solid var(--color-accent-blue);
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: 0 0 8px var(--color-accent-blue-20);
+  box-sizing: border-box;
+}
+
+.battery-node-card__device-pins {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.battery-node-card__device-pins--side {
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: 0.08rem 0;
+}
+
+.battery-node-card__device-pins--bottom {
+  justify-content: center;
+  padding: 0 0.15rem;
+}
+
+.battery-node-card__device-pin {
+  display: block;
+  background: linear-gradient(180deg, #94a3b8 0%, #64748b 55%, #475569 100%);
+  border-radius: 1px;
+  box-shadow: 0 0 2px rgba(148, 163, 184, 0.5);
+  flex-shrink: 0;
+}
+
+.battery-node-card__device-pins--side .battery-node-card__device-pin {
+  width: 0.14rem;
+  height: 0.42rem;
+}
+
+.battery-node-card__device-pins--bottom .battery-node-card__device-pin {
+  width: 0.36rem;
+  height: 0.14rem;
+}
+
+.battery-node-card__device-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent-blue);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--color-accent-blue-30);
+}
+
 .battery-node-card__icon-img {
   width: 6rem;
   height: 6rem;
@@ -1964,6 +2087,11 @@ body {
 .app--theme-day .battery-diagram-center__flow-metric {
   fill: #000;
   stroke: rgba(255, 255, 255, 0.65);
+}
+
+.app--theme-day .battery-node-card__device-body {
+  background: transparent;
+  box-shadow: 0 0 6px var(--color-accent-blue-20);
 }
 
 /* Gray water detail modal: tank on top, level + temp stacked below */
@@ -4235,6 +4363,49 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__icon-img {
     width: 5.3rem;
     height: 5.3rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__icon--large {
+    font-size: 2.65rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__icon--outline > i {
+    -webkit-text-stroke-width: 0.15rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__diagram-icon,
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__solar-icon {
+    width: 3.72rem;
+    height: 3.72rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__diagram-icon--alternator {
+    width: 4.05rem;
+    height: 4.05rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__diagram-icon--out {
+    width: 4.3rem;
+    height: 4.3rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__device-body {
+    min-width: 3.9rem;
+    min-height: 2.15rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__device-text {
+    font-size: 0.72rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__device-pins--side .battery-node-card__device-pin {
+    width: 0.12rem;
+    height: 0.38rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__device-pins--bottom .battery-node-card__device-pin {
+    width: 0.32rem;
+    height: 0.12rem;
   }
 
   .app.app--tablet-landscape .tablet-embedded-panel__body .battery-node-card__label {
