@@ -1,22 +1,24 @@
 /**
  * StatusIcons Component
- * Displays connection status icons for backend and modules
- * Backend: dot (same slot height as antennas). Modules: WiFi arcs + dot + number.
+ * Optional per-module WiFi/status indicators (antennas 1–6).
+ * Backend connection is not shown — offline backend disables all modules via useModuleStatus.
  */
 
 import { useModuleStatus } from "../hooks/useModuleStatus";
+import { isModuleStatusIconsEnabled } from "../utils/moduleGating";
 import { SignalIndicator } from "./SignalIndicator";
 
 /**
- * StatusIcons component
- * @param {Object} props - Component props
+ * @param {Object} props
  * @param {Object} props.socket - Socket.io instance
- * @param {boolean} props.backendConnected - Backend connection status
  */
-export const StatusIcons = ({ socket, backendConnected }) => {
+export const StatusIcons = ({ socket }) => {
   const { isModuleOnline, getModuleStatus } = useModuleStatus(socket);
 
-  // Module icons configuration
+  if (!isModuleStatusIconsEnabled()) {
+    return null;
+  }
+
   const moduleIcons = [
     {
       id: "module-1",
@@ -43,26 +45,20 @@ export const StatusIcons = ({ socket, backendConnected }) => {
       number: "5",
       label: "Module 5 (Appliance Controller)",
     },
+    {
+      id: "module-6",
+      number: "6",
+      label: "Module 6 (Victron Energy Monitor)",
+    },
   ];
 
   return (
     <div className="status-icons">
-      {/* Backend — dot; box matches antenna height for vertical alignment */}
-      <span
-        className={`status-item status-number ${
-          backendConnected ? "online" : "offline"
-        }`}
-        title="Backend Connection"
-      >
-        <i className="fas fa-circle" aria-hidden />
-      </span>
-
-      {/* Module signal indicators */}
       {moduleIcons.map((module) => {
         const moduleStatus = getModuleStatus(module.id);
         const isOnline = isModuleOnline(module.id);
         const rssi = moduleStatus?.wifiRSSI || null;
-        
+
         return (
           <SignalIndicator
             key={module.id}
@@ -76,4 +72,3 @@ export const StatusIcons = ({ socket, backendConnected }) => {
     </div>
   );
 };
-

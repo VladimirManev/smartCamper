@@ -3,7 +3,11 @@
  */
 
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BATTERY_SYSTEM_NODES, BATTERY_WIRE_LINKS } from "../config/batterySystemNodes";
+import {
+  BATTERY_SYSTEM_NODES,
+  BATTERY_WIRE_LINKS,
+  BATTERY_NODES_WITHOUT_OFF_BADGE,
+} from "../config/batterySystemNodes";
 import { buildWireShape } from "../utils/batteryWireGeometry";
 import { deriveWireAmpsFromNodes, formatWireAmps, hasWireCurrent, computeBatteryFlow } from "../utils/batteryWireAmps";
 import { BatteryNodeCard } from "./BatteryNodeCard";
@@ -23,9 +27,11 @@ function getWireLabelClassName() {
   return "battery-energy-diagram__wire-label";
 }
 
-function getWireElementProps(wire, amps) {
+function getWireElementProps(wire, amps, isOffline) {
   const shouldPulse =
-    hasWireCurrent(amps) && (wire.flow === "charge" || wire.flow === "discharge");
+    !isOffline &&
+    hasWireCurrent(amps) &&
+    (wire.flow === "charge" || wire.flow === "discharge");
 
   if (!shouldPulse) {
     return { className: "battery-energy-diagram__wire" };
@@ -40,6 +46,9 @@ function getWireElementProps(wire, amps) {
  * @param {Object} props.nodes - id -> metrics object
  * @param {Object} props.wireAmps - wire id -> amps
  * @param {Object} [props.batteryFlow] - net flow from SmartShunt (preferred)
+ * @param {Record<string, boolean>} [props.offlineByNode]
+ * @param {Record<string, boolean>} [props.offlineByWire]
+ * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.disabled
  */
 export function BatteryEnergyDiagram({
@@ -47,6 +56,9 @@ export function BatteryEnergyDiagram({
   nodes = {},
   wireAmps = {},
   batteryFlow: batteryFlowProp,
+  offlineByNode = {},
+  offlineByWire = {},
+  smartShuntOffline = false,
   disabled = false,
 }) {
   const containerRef = useRef(null);
@@ -67,10 +79,12 @@ export function BatteryEnergyDiagram({
     return deriveWireAmpsFromNodes(nodes);
   }, [wireAmps, nodes]);
 
-  const batteryFlow = useMemo(
-    () => batteryFlowProp ?? computeBatteryFlow(resolvedWireAmps),
-    [batteryFlowProp, resolvedWireAmps]
-  );
+  const batteryFlow = useMemo(() => {
+    if (smartShuntOffline) {
+      return { direction: "idle", amps: 0, watts: 0, netAmps: 0 };
+    }
+    return batteryFlowProp ?? computeBatteryFlow(resolvedWireAmps);
+  }, [batteryFlowProp, resolvedWireAmps, smartShuntOffline]);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -114,7 +128,8 @@ export function BatteryEnergyDiagram({
         >
           {wires.map((wire) => {
             const amps = resolvedWireAmps[wire.id];
-            const { className } = getWireElementProps(wire, amps);
+            const wireOffline = offlineByWire[wire.id] === true;
+            const { className } = getWireElementProps(wire, amps, wireOffline);
             return wire.type === "path" ? (
               <path key={wire.id} className={className} d={wire.d} />
             ) : (
@@ -130,13 +145,16 @@ export function BatteryEnergyDiagram({
           })}
           {wires.map((wire) => {
             const amps = resolvedWireAmps[wire.id];
+            const wireOffline = offlineByWire[wire.id] === true;
             if (!hasWireCurrent(amps) || wire.labelX == null || wire.labelY == null) {
               return null;
             }
             return (
               <text
                 key={`${wire.id}-amps`}
-                className={getWireLabelClassName()}
+                className={`${getWireLabelClassName()}${
+                  wireOffline ? " battery-energy-diagram__wire-label--offline" : ""
+                }`}
                 x={wire.labelX}
                 y={wire.labelY}
                 textAnchor="middle"
@@ -165,6 +183,10 @@ export function BatteryEnergyDiagram({
                 iconKind={node.iconKind}
                 largeIcon={node.largeIcon}
                 iconStyle={node.iconStyle}
+                dataOffline={
+                  offlineByNode[node.id] === true &&
+                  !BATTERY_NODES_WITHOUT_OFF_BADGE.has(node.id)
+                }
                 disabled={disabled}
               />
             </div>
@@ -177,6 +199,7 @@ export function BatteryEnergyDiagram({
           <BatteryDiagramCenter
             charge={batteryLevel}
             flow={batteryFlow}
+            dataOffline={smartShuntOffline}
             disabled={disabled}
           />
         </div>

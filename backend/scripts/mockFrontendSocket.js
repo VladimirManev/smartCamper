@@ -17,6 +17,18 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const PORT = Number(process.env.MOCK_SOCKET_PORT || 3100);
+const AC_CHARGER_CYCLE_MS = 15000;
+const VICTRON_STALE_MS = 6000;
+let lastLoggedAcPhase = null;
+
+function isMockAcChargerLive() {
+  return Math.floor(Date.now() / AC_CHARGER_CYCLE_MS) % 2 === 0;
+}
+
+function isVictronDeviceStale(publishedAt, updatedAt) {
+  if (publishedAt == null || updatedAt == null) return true;
+  return publishedAt - updatedAt > VICTRON_STALE_MS;
+}
 
 function ts() {
   return new Date().toISOString();
@@ -253,6 +265,11 @@ function randomVictronPayload() {
 
   if (alternatorCurrent <= 0) orionOutputCurrent = 0;
 
+  const acChargerLive = isMockAcChargerLive();
+  const mockAcChargerCurrent = acChargerLive
+    ? round2(8 + Math.sin(t / 4) * 2)
+    : round2(8.5);
+
   const batteryVoltage = round1(12.6 + Math.sin(t / 15) * 0.4);
   const mppt1BatteryCurrent =
     solar1Power > 0 && batteryVoltage > 0
@@ -264,16 +281,19 @@ function randomVictronPayload() {
       : 0;
   const loadsCurrent =
     loadsPower > 0 && batteryVoltage > 0 ? round2(loadsPower / batteryVoltage) : 0;
+  const publishedAt = Date.now() % 10000000;
+  const baseUpdatedAt = publishedAt - Math.floor(Math.random() * 600);
+  const acChargerUpdatedAt = acChargerLive
+    ? baseUpdatedAt + 60
+    : publishedAt - 12000;
+
   const shuntCurrent = round2(
     mppt1BatteryCurrent +
       mppt2BatteryCurrent +
       orionOutputCurrent +
-      acCurrent -
+      (acChargerLive ? mockAcChargerCurrent : 0) -
       loadsCurrent
   );
-
-  const publishedAt = Date.now() % 10000000;
-  const baseUpdatedAt = publishedAt - Math.floor(Math.random() * 600);
   const orionOutputVoltage = round1(14.1 + Math.sin(t / 9) * 0.3);
   const alternatorVoltage = round1(13.8 + Math.sin(t / 8) * 0.4);
 
@@ -316,11 +336,28 @@ function randomVictronPayload() {
       offReason: orionOutputCurrent > 0 ? 0 : 129,
       updatedAt: baseUpdatedAt + 50,
     },
-    acCharger: null,
+    acCharger: {
+      deviceState: 3,
+      errorCode: 0,
+      current: mockAcChargerCurrent,
+      voltage: batteryVoltage,
+      updatedAt: acChargerUpdatedAt,
+    },
   };
 }
 
+function logAcChargerMockPhase(data) {
+  const publishedAt = data?.publishedAt;
+  const updatedAt = data?.acCharger?.updatedAt;
+  const phase = isVictronDeviceStale(publishedAt, updatedAt) ? "OFF (stale)" : "LIVE";
+  if (phase !== lastLoggedAcPhase) {
+    lastLoggedAcPhase = phase;
+    console.log(`[mock] AC charger signal: ${phase}`);
+  }
+}
+
 function emitVictronStatus(socket, data) {
+  logAcChargerMockPhase(data);
   socket.emit("victronStatusUpdate", {
     type: "full",
     data,
@@ -523,4 +560,7 @@ io.on("connection", (socket) => {
 server.listen(PORT, () => {
   console.log(`[mock] Socket.io listening on http://localhost:${PORT}`);
   console.log(`[mock] Optional: MOCK_SENSOR_INTERVAL_MS (default 4000)`);
+  console.log(
+    `[mock] AC charger: ${AC_CHARGER_CYCLE_MS / 1000}s on / ${AC_CHARGER_CYCLE_MS / 1000}s off (no payload)`
+  );
 });

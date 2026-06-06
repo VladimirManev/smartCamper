@@ -2,13 +2,19 @@
  * Map module-6 Victron MQTT/WebSocket payload to battery diagram nodes and wires.
  */
 
-import { BATTERY_NODE_IDS } from "../config/batterySystemNodes";
+import {
+  BATTERY_NODE_IDS,
+  BATTERY_NODE_VICTRON_SOURCE,
+  BATTERY_WIRE_VICTRON_SOURCE,
+} from "../config/batterySystemNodes";
 
 export const VICTRON_STALE_MS = 6000;
 
 const WIRE_MIN_VISIBLE_AMPS = 0.05;
 
 const EMPTY_NODES = Object.fromEntries(BATTERY_NODE_IDS.map((id) => [id, null]));
+
+const VICTRON_KEYS = ["smartshunt", "mppt1", "mppt2", "orion", "acCharger"];
 
 /**
  * @param {number|null|undefined} publishedAt
@@ -22,11 +28,16 @@ export function isVictronDeviceStale(publishedAt, updatedAt) {
 /**
  * @param {Object|null|undefined} device
  * @param {number|null|undefined} publishedAt
+ * @returns {{ device: Object|null, isOffline: boolean }}
  */
-export function getFreshVictronDevice(device, publishedAt) {
-  if (!device || typeof device !== "object") return null;
-  if (isVictronDeviceStale(publishedAt, device.updatedAt)) return null;
-  return device;
+export function resolveVictronDevice(device, publishedAt) {
+  if (!device || typeof device !== "object") {
+    return { device: null, isOffline: true };
+  }
+  return {
+    device,
+    isOffline: isVictronDeviceStale(publishedAt, device.updatedAt),
+  };
 }
 
 function round2(value) {
@@ -60,26 +71,86 @@ export function computeFlowFromSmartShunt(shunt) {
   return { direction, amps: absAmps, watts, netAmps };
 }
 
+function buildOfflineBySource(victronSources) {
+  /** @type {Record<string, boolean>} */
+  const offlineBySource = {};
+  for (const key of VICTRON_KEYS) {
+    offlineBySource[key] = victronSources[key].isOffline;
+  }
+  return offlineBySource;
+}
+
+function buildOfflineByNode(offlineBySource) {
+  /** @type {Record<string, boolean>} */
+  const offlineByNode = {};
+  for (const nodeId of BATTERY_NODE_IDS) {
+    const source = BATTERY_NODE_VICTRON_SOURCE[nodeId];
+    offlineByNode[nodeId] = offlineBySource[source] ?? true;
+  }
+  return offlineByNode;
+}
+
+function buildOfflineByWire(offlineBySource) {
+  /** @type {Record<string, boolean>} */
+  const offlineByWire = {};
+  for (const [wireId, source] of Object.entries(BATTERY_WIRE_VICTRON_SOURCE)) {
+    offlineByWire[wireId] = offlineBySource[source] ?? true;
+  }
+  return offlineByWire;
+}
+
 /**
  * @param {Object|null|undefined} victronData
- * @returns {{ nodes: Object, wireAmps: Object, batteryLevel: number|null, batteryFlow: Object }}
+ * @returns {{
+ *   nodes: Object,
+ *   wireAmps: Object,
+ *   batteryLevel: number|null,
+ *   batteryFlow: Object,
+ *   offlineByNode: Record<string, boolean>,
+ *   offlineByWire: Record<string, boolean>,
+ *   smartShuntOffline: boolean,
+ * }}
  */
 export function mapVictronToBatterySystem(victronData) {
+  const emptyOfflineNodes = Object.fromEntries(
+    BATTERY_NODE_IDS.map((id) => [id, true])
+  );
+  const emptyOfflineWires = Object.fromEntries(
+    Object.keys(BATTERY_WIRE_VICTRON_SOURCE).map((id) => [id, true])
+  );
+
   if (!victronData || typeof victronData !== "object") {
     return {
       nodes: { ...EMPTY_NODES },
       wireAmps: {},
       batteryLevel: null,
       batteryFlow: computeFlowFromSmartShunt(null),
+      offlineByNode: emptyOfflineNodes,
+      offlineByWire: emptyOfflineWires,
+      smartShuntOffline: true,
     };
   }
 
   const publishedAt = victronData.publishedAt;
-  const shunt = getFreshVictronDevice(victronData.smartshunt, publishedAt);
-  const mppt1 = getFreshVictronDevice(victronData.mppt1, publishedAt);
-  const mppt2 = getFreshVictronDevice(victronData.mppt2, publishedAt);
-  const orion = getFreshVictronDevice(victronData.orion, publishedAt);
-  const acCharger = getFreshVictronDevice(victronData.acCharger, publishedAt);
+  const victronSources = {
+    smartshunt: resolveVictronDevice(victronData.smartshunt, publishedAt),
+    mppt1: resolveVictronDevice(victronData.mppt1, publishedAt),
+    mppt2: resolveVictronDevice(victronData.mppt2, publishedAt),
+    orion: resolveVictronDevice(victronData.orion, publishedAt),
+    acCharger: resolveVictronDevice(victronData.acCharger, publishedAt),
+  };
+
+  const live = (source) => (source.isOffline ? null : source.device);
+
+  const shunt = live(victronSources.smartshunt);
+  const mppt1 = live(victronSources.mppt1);
+  const mppt2 = live(victronSources.mppt2);
+  const orion = live(victronSources.orion);
+  const acCharger = live(victronSources.acCharger);
+
+  const offlineBySource = buildOfflineBySource(victronSources);
+  const offlineByNode = buildOfflineByNode(offlineBySource);
+  const offlineByWire = buildOfflineByWire(offlineBySource);
 
   const batteryVoltage =
     shunt?.voltage ?? mppt1?.batteryVoltage ?? mppt2?.batteryVoltage ?? 12.6;
@@ -149,5 +220,8 @@ export function mapVictronToBatterySystem(victronData) {
     wireAmps,
     batteryLevel: shunt?.soc ?? null,
     batteryFlow: computeFlowFromSmartShunt(shunt),
+    offlineByNode,
+    offlineByWire,
+    smartShuntOffline: offlineBySource.smartshunt,
   };
 }

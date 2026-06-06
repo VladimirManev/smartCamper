@@ -10,6 +10,9 @@ import { BatteryEnergyDiagram } from "./BatteryEnergyDiagram";
  * @param {Object} props.nodes
  * @param {Object} props.wireAmps
  * @param {Object} [props.batteryFlow]
+ * @param {Record<string, boolean>} [props.offlineByNode]
+ * @param {Record<string, boolean>} [props.offlineByWire]
+ * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.disabled
  */
 export function BatteryModalContent({
@@ -17,6 +20,9 @@ export function BatteryModalContent({
   nodes,
   wireAmps,
   batteryFlow,
+  offlineByNode,
+  offlineByWire,
+  smartShuntOffline,
   disabled = false,
 }) {
   return (
@@ -26,6 +32,9 @@ export function BatteryModalContent({
         nodes={nodes}
         wireAmps={wireAmps}
         batteryFlow={batteryFlow}
+        offlineByNode={offlineByNode}
+        offlineByWire={offlineByWire}
+        smartShuntOffline={smartShuntOffline}
         disabled={disabled}
       />
     </div>

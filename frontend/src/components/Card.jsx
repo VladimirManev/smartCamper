@@ -19,6 +19,7 @@ import { useRef } from "react";
  * @param {Function} props.onHoldStart - Hold start handler (for continuous actions like TableCard)
  * @param {Function} props.onHoldEnd - Hold end handler (for continuous actions like TableCard)
  * @param {boolean} props.disabled - Whether the card is disabled/offline
+ * @param {boolean} [props.selected] - Highlight as the active selection (tablet detail pickers)
  * @param {string} props.cardClass - Additional CSS classes for card wrapper (e.g., "floor-heating-card")
  * @param {ReactNode} props.children - Additional content inside button (e.g., progress arc, temperature display, text)
  * @param {Object} props.customHandlers - Custom event handlers object (if provided, overrides default handlers)
@@ -34,6 +35,7 @@ export const Card = ({
   onHoldStart,
   onHoldEnd,
   disabled = false,
+  selected = false,
   cardClass = "",
   children = null,
   customHandlers = null,
@@ -134,10 +136,19 @@ export const Card = ({
     }
   };
   
+  const cardClasses = [
+    "led-card",
+    cardClass,
+    disabled ? "disabled" : "",
+    selected ? "led-card--selected" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   // Use custom handlers if provided, otherwise use default handlers
   if (customHandlers) {
     return (
-      <div className={`led-card ${cardClass} ${disabled ? "disabled" : ""}`} {...customHandlers}>
+      <div className={cardClasses} {...customHandlers}>
         <p className="led-name">{name}</p>
         <div className={buttonClass}>
           {children}
@@ -157,7 +168,7 @@ export const Card = ({
   if (isHoldMode) {
     return (
       <div
-        className={`led-card ${cardClass} ${disabled ? "disabled" : ""}`}
+        className={cardClasses}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
@@ -185,7 +196,7 @@ export const Card = ({
   
   return (
     <div
-      className={`led-card ${cardClass} ${disabled ? "disabled" : ""}`}
+      className={cardClasses}
       {...longPressHandlers}
     >
       <p className="led-name">{name}</p>

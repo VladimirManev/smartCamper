@@ -13,6 +13,26 @@ import { useState, useEffect } from "react";
  */
 export const useModuleStatus = (socket) => {
   const [moduleStatuses, setModuleStatuses] = useState({});
+  const [socketConnected, setSocketConnected] = useState(false);
+
+  useEffect(() => {
+    if (!socket) {
+      setSocketConnected(false);
+      return;
+    }
+
+    const handleConnect = () => setSocketConnected(true);
+    const handleDisconnect = () => setSocketConnected(false);
+
+    setSocketConnected(socket.connected);
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (!socket) {
@@ -40,6 +60,9 @@ export const useModuleStatus = (socket) => {
    * @returns {boolean} True if module is online
    */
   const isModuleOnline = (moduleId) => {
+    if (!socketConnected) {
+      return false;
+    }
     const module = moduleStatuses[moduleId];
     return module?.status === "online";
   };

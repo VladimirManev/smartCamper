@@ -20,6 +20,38 @@ export const BATTERY_NODE_IDS = [
   "dcLoads",
 ];
 
+/** Victron payload key that feeds each diagram node (for stale / offline badges). */
+export const BATTERY_NODE_VICTRON_SOURCE = {
+  charger230v: "acCharger",
+  dcDcBooster: "orion",
+  alternator: "orion",
+  solarController1: "mppt1",
+  solarController2: "mppt2",
+  solarPanelGroup1: "mppt1",
+  solarPanelGroup2: "mppt2",
+  dcLoads: "smartshunt",
+};
+
+/** Diagram nodes without OFF badge (display-only; stale state handled on linked device card). */
+export const BATTERY_NODES_WITHOUT_OFF_BADGE = new Set([
+  "alternator",
+  "solarPanelGroup1",
+  "solarPanelGroup2",
+  "dcLoads",
+]);
+
+/** Victron payload key per wire (for suppressing live flow animation when stale). */
+export const BATTERY_WIRE_VICTRON_SOURCE = {
+  "solar1-mppt1": "mppt1",
+  "solar2-mppt2": "mppt2",
+  "alternator-dcdc": "orion",
+  "dcdc-battery": "orion",
+  "mppt1-battery": "mppt1",
+  "mppt2-battery": "mppt2",
+  "loads-battery": "smartshunt",
+  "ac-battery": "acCharger",
+};
+
 /** @typedef {'voltageCurrent' | 'powerVoltage'} BatteryNodeMetricKind */
 /** @typedef {'top' | 'bottom' | 'left' | 'right'} BatteryWireEdge */
 

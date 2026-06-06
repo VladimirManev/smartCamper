@@ -9,9 +9,10 @@ import { getBatteryFillColor } from "../utils/batteryFillColor";
  * @param {Object} props
  * @param {number|null} props.charge - 0–100
  * @param {{ direction?: 'charge' | 'discharge' | 'idle', amps?: number, watts?: number }} [props.flow]
+ * @param {boolean} [props.dataOffline]
  * @param {boolean} props.disabled
  */
-export function BatteryDiagramCenter({ charge, flow, disabled = false }) {
+export function BatteryDiagramCenter({ charge, flow, dataOffline = false, disabled = false }) {
   const clipId = useId().replace(/:/g, "");
 
   const hasCharge =
@@ -36,7 +37,13 @@ export function BatteryDiagramCenter({ charge, flow, disabled = false }) {
 
   return (
     <div
-      className={`battery-diagram-center ${disabled ? "battery-diagram-center--disabled" : ""}`}
+      className={[
+        "battery-diagram-center",
+        disabled && "battery-diagram-center--disabled",
+        dataOffline && "battery-diagram-center--offline",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       aria-label={
         hasCharge
           ? showFlow
@@ -45,6 +52,11 @@ export function BatteryDiagramCenter({ charge, flow, disabled = false }) {
           : "Battery"
       }
     >
+      {dataOffline && !disabled && (
+        <span className="battery-diagram-center__off-badge" aria-hidden="true">
+          OFF
+        </span>
+      )}
       <svg className="battery-diagram-center__svg" viewBox="0 0 48 72" aria-hidden="true">
         <rect
           className="battery-diagram-center__shell"

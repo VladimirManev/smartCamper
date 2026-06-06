@@ -27,6 +27,21 @@ export const useSensorData = (socket, moduleStatuses) => {
       return;
     }
 
+    const clearSensorData = () => {
+      setIndoorTemperature(null);
+      setIndoorHumidity(null);
+      setOutdoorTemperature(null);
+      setGrayWaterLevel(null);
+      setGrayWaterTemperature(null);
+    };
+
+    const handleDisconnect = () => clearSensorData();
+
+    socket.on("disconnect", handleDisconnect);
+    if (!socket.connected) {
+      clearSensorData();
+    }
+
     // Ref is only updated on React render; moduleStatusUpdate + sensorUpdate often arrive
     // in the same tick before re-render — sync ref here so sensor handler sees module-1 online.
     const syncModulesFromSocket = (data) => {
@@ -36,6 +51,10 @@ export const useSensorData = (socket, moduleStatuses) => {
     };
 
     const handleSensorUpdate = (data) => {
+      if (!socket.connected) {
+        return;
+      }
+
       const module1Online =
         moduleStatusesRef.current["module-1"]?.status === "online";
       if (!module1Online) {
@@ -73,6 +92,7 @@ export const useSensorData = (socket, moduleStatuses) => {
     socket.on("sensorUpdate", handleSensorUpdate);
 
     return () => {
+      socket.off("disconnect", handleDisconnect);
       socket.off("moduleStatusUpdate", syncModulesFromSocket);
       socket.off("sensorUpdate", handleSensorUpdate);
     };

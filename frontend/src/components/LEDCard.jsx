@@ -17,9 +17,10 @@ import { Card } from "./Card";
  * @param {Function} props.onLongPress - Long press handler function (opens modal)
  * @param {string} props.type - Type: "strip" or "relay" (default: "strip")
  * @param {boolean} props.disabled - Whether the LED control is disabled/offline
+ * @param {boolean} [props.selected] - Highlight as active selection in tablet detail panels
  * @param {string} props.icon - Icon type: "bulb" (default), "audio", "pump", "fridge", "fan", "boiler"
  */
-const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false, icon = "bulb" }) => {
+const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", disabled = false, selected = false, icon = "bulb" }) => {
   const isOn = strip?.state === "ON";
   const brightness = strip?.brightness || 0;
   const mode = strip?.mode;
@@ -186,6 +187,7 @@ const LEDCardComponent = ({ name, strip, onClick, onLongPress, type = "strip", d
       onClick={onClick}
       onLongPress={onLongPress}
       disabled={disabled}
+      selected={selected}
     >
       {progressArc}
     </Card>

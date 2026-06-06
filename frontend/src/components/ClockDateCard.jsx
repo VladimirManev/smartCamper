@@ -2,8 +2,7 @@
  * ClockDateCard — digital time (Inter 48px / 600); optional calendar lines below.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { getAppearanceModeLabel } from "../constants/appearanceModeLabels";
+import { useState, useEffect } from "react";
 
 function formatCalendarLines(date) {
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" })
@@ -18,15 +17,9 @@ function formatCalendarLines(date) {
 
 /**
  * Day + date lines (Inter 12–15px / 400). Separate from clock so layout can place it outside the temps row.
- * Tablet: chip cycles Mode (Day → Night → Automatic), same state as Settings.
- *
- * @param {Object} props
- * @param {'day'|'night'|'automatic'} props.appearanceMode
- * @param {() => void} props.onCycleAppearanceMode
  */
-export function ClockCalendarLines({ appearanceMode, onCycleAppearanceMode }) {
+export function ClockCalendarLines() {
   const [time, setTime] = useState(new Date());
-  const pointerTriggeredCycleRef = useRef(false);
 
   useEffect(() => {
     const tick = () => setTime(new Date());
@@ -35,12 +28,7 @@ export function ClockCalendarLines({ appearanceMode, onCycleAppearanceMode }) {
     return () => clearInterval(id);
   }, []);
 
-  const runCycle = useCallback(() => {
-    onCycleAppearanceMode();
-  }, [onCycleAppearanceMode]);
-
   const { dayName, dateLine } = formatCalendarLines(time);
-  const chipLabel = getAppearanceModeLabel(appearanceMode);
 
   return (
     <div className="clock-calendar-block">
@@ -48,26 +36,6 @@ export function ClockCalendarLines({ appearanceMode, onCycleAppearanceMode }) {
         <div className="clock-calendar-line">{dayName}</div>
         <div className="clock-calendar-line">{dateLine}</div>
       </div>
-      <button
-        type="button"
-        className="night-mode-chip night-mode-chip--toggle"
-        onPointerUp={(e) => {
-          if (e.pointerType === "touch" || e.pointerType === "pen") {
-            pointerTriggeredCycleRef.current = true;
-            runCycle();
-          }
-        }}
-        onClick={() => {
-          if (pointerTriggeredCycleRef.current) {
-            pointerTriggeredCycleRef.current = false;
-            return;
-          }
-          runCycle();
-        }}
-        aria-label={`Appearance mode: ${chipLabel}. Tap to switch mode.`}
-      >
-        {chipLabel}
-      </button>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { useTableController } from "./hooks/useTableController";
 import { useLeveling } from "./hooks/useLeveling";
 import { useApplianceController } from "./hooks/useApplianceController";
 import { StatusIcons } from "./components/StatusIcons";
+import { isModuleStatusIconsEnabled } from "./utils/moduleGating";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
 import { BatteryCard } from "./components/BatteryCard";
@@ -34,6 +35,11 @@ import { LevelingGauge } from "./components/LevelingGauge";
 import { ECGIndicator } from "./components/ECGIndicator";
 import { ClockDateCard, ClockCalendarLines } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
+import { StatusCard } from "./components/StatusCard";
+import { StatusModalContent } from "./components/StatusModalContent";
+import { ScenesGroupCard } from "./components/ScenesGroupCard";
+import { ScenesModalContent } from "./components/ScenesModalContent";
+import { applyScene, applyNormalScene, applyDriveScene, applyFilmScene, applyCookingScene, applySleepScene, applyAllOffScene, isSceneDisabled as isSceneDisabledForModules } from "./utils/applyScene";
 import { CardModal } from "./components/CardModal";
 import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
 import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
@@ -115,6 +121,9 @@ function App() {
     wireAmps: batteryWireAmps,
     batteryLevel,
     batteryFlow: batterySystemFlow,
+    offlineByNode: batteryOfflineByNode,
+    offlineByWire: batteryOfflineByWire,
+    smartShuntOffline,
   } = useBatterySystem(socket, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
@@ -173,6 +182,7 @@ function App() {
 
   // Modal state - stack of modals (must be defined before useLeveling)
   const [modalStack, setModalStack] = useState([]);
+  const [statusSlideTitle, setStatusSlideTitle] = useState("Battery");
   const [selectedLightingDetail, setSelectedLightingDetail] = useState(
     DEFAULT_LIGHTING_DETAIL
   );
@@ -209,7 +219,7 @@ function App() {
   const expectedPresetAngles = useRef(null);
   const isApplyingPreset = useRef(false);
 
-  // Appearance: day / night / automatic (same state from Settings or tablet chip)
+  // Appearance: day / night / automatic (Settings)
   const [uiAppearanceMode, setUiAppearanceMode] = useState("night");
 
   const resolvedTheme = useMemo(() => {
@@ -222,15 +232,6 @@ function App() {
   useEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
-
-  /** Tablet chip: Night → Day → Automatic → Night (covers default Night first) */
-  const cycleAppearanceMode = useCallback(() => {
-    setUiAppearanceMode((prev) => {
-      if (prev === "night") return "day";
-      if (prev === "day") return "automatic";
-      return "night";
-    });
-  }, []);
 
   const openModal = (cardType, cardName, cardData = null) => {
     setModalStack((prevStack) => [
@@ -264,6 +265,12 @@ function App() {
 
   // Get current (top) modal
   const currentModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
+  const tabletPanelTitle =
+    currentModal?.cardType === "status" ? statusSlideTitle : currentModal?.cardName;
+
+  const handleStatusSlideChange = useCallback((title) => {
+    setStatusSlideTitle(title);
+  }, []);
 
   // Render modal content based on cardType
   const renderModalContent = (modal) => {
@@ -282,7 +289,6 @@ function App() {
 
       const detailType = selectedLightingDetail?.type || "strip";
       const detailIndex = selectedLightingDetail?.index ?? 1;
-      const detailName = selectedLightingDetail?.name || "Main";
       const detailStrip =
         detailType === "strip" ? ledStrips[detailIndex] : relays[detailIndex];
 
@@ -290,11 +296,23 @@ function App() {
       return (
         <>
           <div className="modal-grid">
-            {lightingCards.map((card) => (
-              <div className="card-wrapper" key={`${card.type}-${card.index}`}>
+            {lightingCards.map((card) => {
+              const isLightingCardSelected =
+                isTabletLandscape &&
+                card.type === detailType &&
+                card.index === detailIndex;
+
+              return (
+              <div
+                className={`card-wrapper${
+                  isLightingCardSelected ? " card-wrapper--selected" : ""
+                }`}
+                key={`${card.type}-${card.index}`}
+              >
                 <LEDCard
                   name={card.name}
                   strip={card.strip}
+                  selected={isLightingCardSelected}
                   onClick={
                     isTabletLandscape
                       ? () =>
@@ -320,7 +338,8 @@ function App() {
                 />
                 <p className="card-label">{card.name}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {isTabletLandscape && (
@@ -626,6 +645,9 @@ function App() {
           nodes={batterySystemNodes}
           wireAmps={batteryWireAmps}
           batteryFlow={batterySystemFlow}
+          offlineByNode={batteryOfflineByNode}
+          offlineByWire={batteryOfflineByWire}
+          smartShuntOffline={smartShuntOffline}
           disabled={!isModule6Online}
         />
       );
@@ -647,6 +669,44 @@ function App() {
           </div>
           <div className="settings-divider"></div>
         </>
+      );
+    }
+
+    if (cardType === "status") {
+      return (
+        <StatusModalContent
+          batteryLevel={batteryLevel}
+          nodes={batterySystemNodes}
+          wireAmps={batteryWireAmps}
+          batteryFlow={batterySystemFlow}
+          offlineByNode={batteryOfflineByNode}
+          offlineByWire={batteryOfflineByWire}
+          smartShuntOffline={smartShuntOffline}
+          batteryDisabled={!isModule6Online}
+          grayWaterLevel={grayWaterLevel}
+          grayWaterTemperature={grayWaterTemperature}
+          grayWaterDisabled={!isModule1Online}
+          indoorTemperature={indoorTemperature}
+          indoorHumidity={indoorHumidity}
+          outdoorTemperature={outdoorTemperature}
+          sensorsDisabled={!isModule1Online}
+          onActiveSlideChange={handleStatusSlideChange}
+        />
+      );
+    }
+
+    if (cardType === "scenes-group") {
+      return (
+        <ScenesModalContent
+          onSceneSelect={handleSceneSelect}
+          onApplyNormal={handleApplyNormal}
+          onApplyDrive={handleApplyDrive}
+          onApplyFilm={handleApplyFilm}
+          onApplySleep={handleApplySleep}
+          onApplyCooking={handleApplyCooking}
+          onApplyAllOff={handleApplyAllOff}
+          isSceneDisabled={isSceneDisabled}
+        />
       );
     }
 
@@ -790,6 +850,77 @@ function App() {
       action: "toggle",
     });
   };
+
+  const handleSceneSelect = useCallback(
+    (sceneId) => {
+      applyScene(sceneId, {
+        sendLEDCommand,
+        sendApplianceCommand,
+        appliances,
+      });
+    },
+    [sendLEDCommand, sendApplianceCommand, appliances]
+  );
+
+  const driveSceneContextRef = useRef({
+    sendLEDCommand,
+    sendApplianceCommand,
+    sendFloorHeatingCommand,
+    ledStrips,
+    relays,
+    appliances,
+    circles,
+  });
+  driveSceneContextRef.current = {
+    sendLEDCommand,
+    sendApplianceCommand,
+    sendFloorHeatingCommand,
+    ledStrips,
+    relays,
+    appliances,
+    circles,
+  };
+
+  const handleApplyDrive = useCallback((options) => {
+    applyDriveScene(driveSceneContextRef.current, options);
+  }, []);
+
+  const handleApplyNormal = useCallback((options) => {
+    applyNormalScene(driveSceneContextRef.current, options);
+  }, []);
+
+  const handleApplyFilm = useCallback((options) => {
+    applyFilmScene(driveSceneContextRef.current, options);
+  }, []);
+
+  const sleepSceneCleanupRef = useRef(null);
+
+  const handleApplySleep = useCallback((options) => {
+    if (sleepSceneCleanupRef.current) {
+      sleepSceneCleanupRef.current();
+      sleepSceneCleanupRef.current = null;
+    }
+    sleepSceneCleanupRef.current = applySleepScene(driveSceneContextRef.current, options);
+  }, []);
+
+  const handleApplyCooking = useCallback((options) => {
+    applyCookingScene(driveSceneContextRef.current, options);
+  }, []);
+
+  const handleApplyAllOff = useCallback((options) => {
+    applyAllOffScene(driveSceneContextRef.current, options);
+  }, []);
+
+  useEffect(() => () => {
+    if (sleepSceneCleanupRef.current) {
+      sleepSceneCleanupRef.current();
+    }
+  }, []);
+
+  const isSceneDisabled = useCallback(
+    (sceneId) => isSceneDisabledForModules(sceneId, isModuleOnline),
+    [isModuleOnline]
+  );
 
   // Floor heating command handlers
   const handleCircleToggle = (index) => {
@@ -1108,10 +1239,7 @@ function App() {
               {sensorTextRow}
             </div>
             <div className="tablet-calendar-bus-row">
-              <ClockCalendarLines
-                appearanceMode={uiAppearanceMode}
-                onCycleAppearanceMode={cycleAppearanceMode}
-              />
+              <ClockCalendarLines />
               {busImageBlock}
             </div>
           </>
@@ -1127,7 +1255,16 @@ function App() {
       </div>
 
         <div className="main-content">
-        {/* LED Group Card */}
+        <div className="main-menu-grid main-menu-grid--primary">
+        <div className="card-wrapper">
+          <SettingsCard
+            name="Settings"
+            onClick={() => activateFromMainMenu("settings", "Settings")}
+            onLongPress={() => console.log("Settings card long pressed")}
+          />
+          <p className="card-label">Settings</p>
+        </div>
+
         <div className="card-wrapper">
           <LEDGroupCard
             name="Light"
@@ -1142,7 +1279,6 @@ function App() {
           <p className="card-label">Light</p>
         </div>
 
-        {/* Floor Heating Group Card */}
         <div className="card-wrapper">
           <FloorHeatingGroupCard
             name="Radiant"
@@ -1154,7 +1290,6 @@ function App() {
           <p className="card-label">Radiant</p>
         </div>
 
-        {/* Dampers Group Card */}
         <div className="card-wrapper">
           <DamperGroupCard
             name="Airflow"
@@ -1164,7 +1299,6 @@ function App() {
           <p className="card-label">Airflow</p>
         </div>
 
-        {/* Table Group Card */}
         <div className="card-wrapper">
           <TableGroupCard
             name="Table"
@@ -1174,7 +1308,24 @@ function App() {
           <p className="card-label">Table</p>
         </div>
 
-        {/* Level Group Card */}
+        <div className="card-wrapper">
+          <ScenesGroupCard
+            name="Scenes"
+            onClick={() => activateFromMainMenu("scenes-group", "Scenes")}
+          />
+          <p className="card-label">Scenes</p>
+        </div>
+
+        {isTabletLandscape && (
+          <div className="card-wrapper">
+            <StatusCard
+              name="Status"
+              onClick={() => activateFromMainMenu("status", "Status")}
+            />
+            <p className="card-label">Status</p>
+          </div>
+        )}
+
         <div className="card-wrapper">
           <LevelingGroupCard
             name="Level"
@@ -1184,17 +1335,6 @@ function App() {
           <p className="card-label">Level</p>
         </div>
 
-        {/* Settings Card */}
-        <div className="card-wrapper">
-          <SettingsCard
-            name="Settings"
-            onClick={() => activateFromMainMenu("settings", "Settings")}
-            onLongPress={() => console.log("Settings card long pressed")}
-          />
-          <p className="card-label">Settings</p>
-        </div>
-
-        {/* Gray Water Tank */}
         <div className="card-wrapper">
           <GrayWaterTank
             level={grayWaterLevel}
@@ -1206,7 +1346,6 @@ function App() {
           <p className="card-label">Gray Water</p>
         </div>
 
-        {/* Battery */}
         <div className="card-wrapper">
           <BatteryCard
             charge={batteryLevel}
@@ -1216,88 +1355,28 @@ function App() {
           />
           <p className="card-label">Battery</p>
         </div>
+        </div>
 
-        {/* Audio System */}
+        <div className="main-menu-grid main-menu-grid--appliances">
         <div className="card-wrapper">
           <LEDCard
-            name="Audio"
-            strip={appliances[0]}
-            onClick={() => handleApplianceToggle(0)}
+            name="Inverter"
+            strip={appliances[5]}
+            onClick={() => handleApplianceToggle(5)}
             onLongPress={() =>
-              activateFromMainMenu("led", "Audio", {
-                strip: appliances[0],
+              activateFromMainMenu("led", "Inverter", {
+                strip: appliances[5],
                 type: "relay",
-                index: 0,
+                index: 5,
               })
             }
             type="relay"
-            icon="audio"
+            icon="inverter"
             disabled={!isModule5Online}
           />
-          <p className="card-label">Audio</p>
+          <p className="card-label">Inverter</p>
         </div>
 
-        {/* Water Pump */}
-        <div className="card-wrapper">
-          <LEDCard
-            name="Pump"
-            strip={appliances[1]}
-            onClick={() => handleApplianceToggle(1)}
-            onLongPress={() =>
-              activateFromMainMenu("led", "Pump", {
-                strip: appliances[1],
-                type: "relay",
-                index: 1,
-              })
-            }
-            type="relay"
-            icon="pump"
-            disabled={!isModule5Online}
-          />
-          <p className="card-label">Pump</p>
-        </div>
-
-        {/* Refrigerator */}
-        <div className="card-wrapper">
-          <LEDCard
-            name="Fridge"
-            strip={appliances[2]}
-            onClick={() => handleApplianceToggle(2)}
-            onLongPress={() =>
-              activateFromMainMenu("led", "Fridge", {
-                strip: appliances[2],
-                type: "relay",
-                index: 2,
-              })
-            }
-            type="relay"
-            icon="fridge"
-            disabled={!isModule5Online}
-          />
-          <p className="card-label">Fridge</p>
-        </div>
-
-        {/* WC Fan */}
-        <div className="card-wrapper">
-          <LEDCard
-            name="WC Fan"
-            strip={appliances[3]}
-            onClick={() => handleApplianceToggle(3)}
-            onLongPress={() =>
-              activateFromMainMenu("led", "WC Fan", {
-                strip: appliances[3],
-                type: "relay",
-                index: 3,
-              })
-            }
-            type="relay"
-            icon="fan"
-            disabled={!isModule5Online}
-          />
-          <p className="card-label">WC Fan</p>
-        </div>
-
-        {/* Boiler */}
         <div className="card-wrapper">
           <LEDCard
             name="Boiler"
@@ -1317,24 +1396,81 @@ function App() {
           <p className="card-label">Boiler</p>
         </div>
 
-        {/* Inverter */}
         <div className="card-wrapper">
           <LEDCard
-            name="Inverter"
-            strip={appliances[5]}
-            onClick={() => handleApplianceToggle(5)}
+            name="Pump"
+            strip={appliances[1]}
+            onClick={() => handleApplianceToggle(1)}
             onLongPress={() =>
-              activateFromMainMenu("led", "Inverter", {
-                strip: appliances[5],
+              activateFromMainMenu("led", "Pump", {
+                strip: appliances[1],
                 type: "relay",
-                index: 5,
+                index: 1,
               })
             }
             type="relay"
-            icon="inverter"
+            icon="pump"
             disabled={!isModule5Online}
           />
-          <p className="card-label">Inverter</p>
+          <p className="card-label">Pump</p>
+        </div>
+
+        <div className="card-wrapper">
+          <LEDCard
+            name="Fridge"
+            strip={appliances[2]}
+            onClick={() => handleApplianceToggle(2)}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Fridge", {
+                strip: appliances[2],
+                type: "relay",
+                index: 2,
+              })
+            }
+            type="relay"
+            icon="fridge"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Fridge</p>
+        </div>
+
+        <div className="card-wrapper">
+          <LEDCard
+            name="WC Fan"
+            strip={appliances[3]}
+            onClick={() => handleApplianceToggle(3)}
+            onLongPress={() =>
+              activateFromMainMenu("led", "WC Fan", {
+                strip: appliances[3],
+                type: "relay",
+                index: 3,
+              })
+            }
+            type="relay"
+            icon="fan"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">WC Fan</p>
+        </div>
+
+        <div className="card-wrapper">
+          <LEDCard
+            name="Audio"
+            strip={appliances[0]}
+            onClick={() => handleApplianceToggle(0)}
+            onLongPress={() =>
+              activateFromMainMenu("led", "Audio", {
+                strip: appliances[0],
+                type: "relay",
+                index: 0,
+              })
+            }
+            type="relay"
+            icon="audio"
+            disabled={!isModule5Online}
+          />
+          <p className="card-label">Audio</p>
+        </div>
         </div>
       </div>
     </>
@@ -1355,12 +1491,15 @@ function App() {
           </div>
           <div className="tablet-split__right panel-surface">
             <div className="tablet-split__right-header">
-              <StatusIcons socket={socket} backendConnected={connected} />
+              {currentModal && tabletPanelTitle ? (
+                <h2 className="tablet-panel-context-title">{tabletPanelTitle}</h2>
+              ) : null}
+              {isModuleStatusIconsEnabled() && <StatusIcons socket={socket} />}
             </div>
             <div className="tablet-split__panel-wrap">
               {currentModal && (
                 <EmbeddedModalPanel
-                  title={currentModal.cardName}
+                  title={tabletPanelTitle}
                   isNested={modalStack.length > 1}
                   onBack={closeModal}
                 >
@@ -1372,7 +1511,7 @@ function App() {
         </div>
       ) : (
         <>
-          <StatusIcons socket={socket} backendConnected={connected} />
+          {isModuleStatusIconsEnabled() && <StatusIcons socket={socket} />}
           <div className="content-with-image">{mainColumn}</div>
         </>
       )}
