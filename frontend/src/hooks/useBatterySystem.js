@@ -1,30 +1,31 @@
 /**
- * Battery system diagram data (modal detail).
+ * Battery system diagram data from module-6 Victron BLE snapshot.
  */
 
 import { useState, useEffect, useRef } from "react";
+import { BATTERY_NODE_IDS } from "../config/batterySystemNodes";
+import { mapVictronToBatterySystem } from "../utils/victronToBatterySystem";
 
-const EMPTY_NODES = {
-  charger230v: null,
-  dcDcBooster: null,
-  alternator: null,
-  solarController1: null,
-  solarController2: null,
-  solarPanelGroup1: null,
-  solarPanelGroup2: null,
-  dcLoads: null,
+const EMPTY_NODES = Object.fromEntries(BATTERY_NODE_IDS.map((id) => [id, null]));
+
+const IDLE_BATTERY_FLOW = {
+  direction: "idle",
+  amps: 0,
+  watts: 0,
+  netAmps: 0,
 };
-
-const EMPTY_WIRE_AMPS = {};
 
 /**
  * @param {Object} socket
  * @param {Object} moduleStatuses
- * @returns {{ nodes: Object, wireAmps: Object }}
+ * @returns {{ nodes: Object, wireAmps: Object, batteryLevel: number|null, batteryFlow: Object }}
  */
 export function useBatterySystem(socket, moduleStatuses) {
   const [nodes, setNodes] = useState(EMPTY_NODES);
-  const [wireAmps, setWireAmps] = useState(EMPTY_WIRE_AMPS);
+  const [wireAmps, setWireAmps] = useState({});
+  const [batteryLevel, setBatteryLevel] = useState(null);
+  const [batteryFlow, setBatteryFlow] = useState(IDLE_BATTERY_FLOW);
+
   const moduleStatusesRef = useRef(moduleStatuses);
   moduleStatusesRef.current = moduleStatuses;
 
@@ -37,32 +38,36 @@ export function useBatterySystem(socket, moduleStatuses) {
       }
     };
 
-    const handleUpdate = (data) => {
-      const module1Online =
-        moduleStatusesRef.current["module-1"]?.status === "online";
-      if (!module1Online || !data?.nodes) return;
-      setNodes({ ...EMPTY_NODES, ...data.nodes });
-      if (data.wireAmps) {
-        setWireAmps(data.wireAmps);
-      }
+    const handleUpdate = (payload) => {
+      const module6Online =
+        moduleStatusesRef.current["module-6"]?.status === "online";
+      if (!module6Online || payload?.type !== "full" || !payload?.data) return;
+
+      const mapped = mapVictronToBatterySystem(payload.data);
+      setNodes(mapped.nodes);
+      setWireAmps(mapped.wireAmps);
+      setBatteryLevel(mapped.batteryLevel);
+      setBatteryFlow(mapped.batteryFlow);
     };
 
     socket.on("moduleStatusUpdate", syncModulesFromSocket);
-    socket.on("batterySystemUpdate", handleUpdate);
+    socket.on("victronStatusUpdate", handleUpdate);
 
     return () => {
       socket.off("moduleStatusUpdate", syncModulesFromSocket);
-      socket.off("batterySystemUpdate", handleUpdate);
+      socket.off("victronStatusUpdate", handleUpdate);
     };
   }, [socket]);
 
   useEffect(() => {
-    const module1Online = moduleStatuses["module-1"]?.status === "online";
-    if (!module1Online) {
+    const module6Online = moduleStatuses["module-6"]?.status === "online";
+    if (!module6Online) {
       setNodes(EMPTY_NODES);
-      setWireAmps(EMPTY_WIRE_AMPS);
+      setWireAmps({});
+      setBatteryLevel(null);
+      setBatteryFlow(IDLE_BATTERY_FLOW);
     }
   }, [moduleStatuses]);
 
-  return { nodes, wireAmps };
+  return { nodes, wireAmps, batteryLevel, batteryFlow };
 }

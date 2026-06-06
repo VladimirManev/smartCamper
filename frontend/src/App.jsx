@@ -108,11 +108,14 @@ function App() {
     outdoorTemperature,
     grayWaterLevel,
     grayWaterTemperature,
-    batteryLevel,
   } = useSensorData(socket, moduleStatuses);
 
-  const { nodes: batterySystemNodes, wireAmps: batteryWireAmps } =
-    useBatterySystem(socket, moduleStatuses);
+  const {
+    nodes: batterySystemNodes,
+    wireAmps: batteryWireAmps,
+    batteryLevel,
+    batteryFlow: batterySystemFlow,
+  } = useBatterySystem(socket, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
   const isModule1Online = isModuleOnline("module-1");
@@ -128,6 +131,9 @@ function App() {
 
   // Check if module-5 is online (appliance controller)
   const isModule5Online = isModuleOnline("module-5");
+
+  // Check if module-6 is online (Victron BLE energy monitor)
+  const isModule6Online = isModuleOnline("module-6");
 
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
@@ -619,7 +625,8 @@ function App() {
           batteryLevel={batteryLevel}
           nodes={batterySystemNodes}
           wireAmps={batteryWireAmps}
-          disabled={!isModule1Online}
+          batteryFlow={batterySystemFlow}
+          disabled={!isModule6Online}
         />
       );
     }
@@ -1203,7 +1210,7 @@ function App() {
         <div className="card-wrapper">
           <BatteryCard
             charge={batteryLevel}
-            disabled={!isModule1Online}
+            disabled={!isModule6Online}
             onClick={() => activateFromMainMenu("battery", "Battery")}
             onLongPress={() => activateFromMainMenu("battery", "Battery")}
           />

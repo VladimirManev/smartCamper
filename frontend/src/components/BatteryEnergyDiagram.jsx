@@ -39,12 +39,14 @@ function getWireElementProps(wire, amps) {
  * @param {number|null} props.batteryLevel
  * @param {Object} props.nodes - id -> metrics object
  * @param {Object} props.wireAmps - wire id -> amps
+ * @param {Object} [props.batteryFlow] - net flow from SmartShunt (preferred)
  * @param {boolean} props.disabled
  */
 export function BatteryEnergyDiagram({
   batteryLevel,
   nodes = {},
   wireAmps = {},
+  batteryFlow: batteryFlowProp,
   disabled = false,
 }) {
   const containerRef = useRef(null);
@@ -66,8 +68,8 @@ export function BatteryEnergyDiagram({
   }, [wireAmps, nodes]);
 
   const batteryFlow = useMemo(
-    () => computeBatteryFlow(resolvedWireAmps),
-    [resolvedWireAmps]
+    () => batteryFlowProp ?? computeBatteryFlow(resolvedWireAmps),
+    [batteryFlowProp, resolvedWireAmps]
   );
 
   useLayoutEffect(() => {

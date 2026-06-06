@@ -52,7 +52,6 @@ const STATIC = {
     outdoorTemperature: 7.5,
     grayWaterLevel: 42,
     grayWaterTemperature: 17.2,
-    batteryLevel: 68,
     timestamp: ts(),
   },
   ledStatusUpdate: {
@@ -196,178 +195,94 @@ function randomSensorPayload() {
     outdoorTemperature: Math.round((7 + Math.cos(t / 19) * 4) * 10) / 10,
     grayWaterLevel: Math.min(95, Math.max(5, Math.round(40 + Math.sin(t / 23) * 15))),
     grayWaterTemperature: Math.round((17 + Math.sin(t / 21) * 2) * 10) / 10,
-    batteryLevel: Math.min(98, Math.max(8, Math.round(55 + Math.sin(t / 31) * 40))),
     timestamp: ts(),
   };
 }
 
-function buildWireAmps(nodes) {
-  const pv = (power, voltage) =>
-    power && voltage > 0 ? Math.round((power / voltage) * 10) / 10 : 0;
-
-  return {
-    "solar1-mppt1": pv(nodes.solarPanelGroup1?.power, nodes.solarPanelGroup1?.voltage),
-    "solar2-mppt2": pv(nodes.solarPanelGroup2?.power, nodes.solarPanelGroup2?.voltage),
-    "alternator-dcdc": nodes.alternator?.current ?? 0,
-    "dcdc-battery": nodes.dcDcBooster?.current ?? 0,
-    "mppt1-battery": pv(nodes.solarController1?.power, nodes.solarController1?.voltage),
-    "mppt2-battery": pv(nodes.solarController2?.power, nodes.solarController2?.voltage),
-    "loads-battery": pv(nodes.dcLoads?.power, nodes.dcLoads?.voltage),
-    "ac-battery": pv(
-      (nodes.charger230v?.voltage ?? 230) * (nodes.charger230v?.current ?? 0),
-      12.6
-    ),
-  };
-}
-
-function buildBatteryFlow(wireAmps, batteryVoltage = 12.6) {
-  const chargeIn = ["dcdc-battery", "mppt1-battery", "mppt2-battery", "ac-battery"].reduce(
-    (sum, id) => sum + (Number(wireAmps[id]) || 0),
-    0
-  );
-  const dischargeOut = Number(wireAmps["loads-battery"]) || 0;
-  const netAmps = Math.round((chargeIn - dischargeOut) * 10) / 10;
-  const absAmps = Math.round(Math.abs(netAmps) * 10) / 10;
-  const watts = Math.round(absAmps * batteryVoltage);
-
-  let direction = "idle";
-  if (netAmps > 0.05) direction = "charge";
-  else if (netAmps < -0.05) direction = "discharge";
-
-  return { direction, amps: absAmps, watts, netAmps };
-}
-
-function randomBatterySystemPayload() {
+function randomVictronPayload() {
   const t = Date.now() / 1000;
-  const batteryLevel = Math.min(
-    98,
-    Math.max(8, Math.round(55 + Math.sin(t / 31) * 40))
-  );
+  const round1 = (v) => Math.round(v * 10) / 10;
+  const round2 = (v) => Math.round(v * 100) / 100;
 
-  // Rotate scenarios every ~18s to demo zero-current paths and net battery states.
+  const soc = Math.min(98, Math.max(8, Math.round(55 + Math.sin(t / 31) * 40)));
   const scenario = Math.floor(t / 18) % 5;
   const sun = 0.55 + 0.45 * Math.max(0, Math.sin(t / 25));
 
   let solar1Power = Math.round(320 * sun + Math.sin(t / 5) * 20);
   let solar2Power = Math.round(290 * sun + Math.cos(t / 6) * 15);
   let alternatorCurrent = Math.round((18 + Math.sin(t / 6) * 12) * 10) / 10;
-  let dcDcCurrent = Math.round((12 + Math.sin(t / 7) * 8) * 10) / 10;
+  let orionOutputCurrent = Math.round((12 + Math.sin(t / 7) * 8) * 10) / 10;
   let acCurrent = Math.round((2.2 + Math.sin(t / 11) * 1.4) * 10) / 10;
-  let loadsPower = Math.round(120 + 80 * (1 - batteryLevel / 100) + Math.sin(t / 4) * 30);
+  let loadsPower = Math.round(120 + 80 * (1 - soc / 100) + Math.sin(t / 4) * 30);
 
   switch (scenario) {
     case 0:
-      // Night — no solar, no alternator, no AC; loads only.
       solar1Power = 0;
       solar2Power = 0;
       alternatorCurrent = 0;
-      dcDcCurrent = 0;
+      orionOutputCurrent = 0;
       acCurrent = 0;
       break;
     case 1:
-      // Solar only — panels + MPPT, no engine or shore power.
       alternatorCurrent = 0;
-      dcDcCurrent = 0;
+      orionOutputCurrent = 0;
       acCurrent = 0;
       break;
     case 2:
-      // Heavy discharge — loads on, all chargers off.
       solar1Power = 0;
       solar2Power = 0;
       alternatorCurrent = 0;
-      dcDcCurrent = 0;
+      orionOutputCurrent = 0;
       acCurrent = 0;
       loadsPower = Math.round(260 + Math.sin(t / 4) * 35);
       break;
     case 3:
-      // Full charge — all sources, no loads.
       loadsPower = 0;
       break;
     case 4:
     default:
-      // Mixed — individual paths drop to zero over time.
       if (Math.sin(t / 9) < 0) solar2Power = 0;
       if (Math.cos(t / 11) < 0) {
         alternatorCurrent = 0;
-        dcDcCurrent = 0;
+        orionOutputCurrent = 0;
       }
       if (Math.sin(t / 13) < -0.2) acCurrent = 0;
       if (Math.cos(t / 7) < 0) loadsPower = 0;
       break;
   }
 
-  if (alternatorCurrent <= 0) dcDcCurrent = 0;
+  if (alternatorCurrent <= 0) orionOutputCurrent = 0;
 
-  const solar1Voltage = Math.round((19 + Math.sin(t / 12) * 0.6) * 10) / 10;
-  const solar2Voltage = Math.round((18.7 + Math.cos(t / 13) * 0.5) * 10) / 10;
+  const batteryVoltage = round1(12.6 + Math.sin(t / 15) * 0.4);
+  const mppt1BatteryCurrent =
+    solar1Power > 0 && batteryVoltage > 0
+      ? round2((solar1Power / batteryVoltage) * 0.95)
+      : 0;
+  const mppt2BatteryCurrent =
+    solar2Power > 0 && batteryVoltage > 0
+      ? round2((solar2Power / batteryVoltage) * 0.95)
+      : 0;
+  const loadsCurrent =
+    loadsPower > 0 && batteryVoltage > 0 ? round2(loadsPower / batteryVoltage) : 0;
+  const shuntCurrent = round2(
+    mppt1BatteryCurrent +
+      mppt2BatteryCurrent +
+      orionOutputCurrent +
+      acCurrent -
+      loadsCurrent
+  );
 
-  const nodes = {
-      charger230v: {
-        voltage: 230,
-        current: Math.max(0, acCurrent),
-      },
-      dcDcBooster: {
-        voltage: Math.round((14.1 + Math.sin(t / 9) * 0.3) * 10) / 10,
-        current: Math.max(0, dcDcCurrent),
-      },
-      alternator: {
-        voltage: Math.round((13.8 + Math.sin(t / 8) * 0.4) * 10) / 10,
-        current: Math.max(0, alternatorCurrent),
-      },
-      solarController1: {
-        power: Math.max(0, solar1Power),
-        voltage: solar1Voltage,
-      },
-      solarController2: {
-        power: Math.max(0, solar2Power),
-        voltage: solar2Voltage,
-      },
-      solarPanelGroup1: {
-        power: Math.max(0, solar1Power),
-        voltage: solar1Voltage,
-      },
-      solarPanelGroup2: {
-        power: Math.max(0, solar2Power),
-        voltage: solar2Voltage,
-      },
-      dcLoads: {
-        power: Math.max(0, loadsPower),
-        voltage: Math.round((12.6 + Math.sin(t / 15) * 0.4) * 10) / 10,
-      },
-    };
-  const wireAmps = buildWireAmps(nodes);
-  return {
-    batteryLevel,
-    nodes,
-    wireAmps,
-    batteryFlow: buildBatteryFlow(wireAmps),
-    timestamp: ts(),
-  };
-}
-
-function randomVictronPayload() {
-  const battery = randomBatterySystemPayload();
-  const { nodes, wireAmps, batteryLevel, batteryFlow } = battery;
   const publishedAt = Date.now() % 10000000;
   const baseUpdatedAt = publishedAt - Math.floor(Math.random() * 600);
-
-  const round1 = (v) => Math.round(v * 10) / 10;
-  const round2 = (v) => Math.round(v * 100) / 100;
-
-  const batteryVoltage = nodes.dcLoads?.voltage ?? 13.9;
-  const mppt1Current = Number(wireAmps["mppt1-battery"]) || 0;
-  const mppt2Current = Number(wireAmps["mppt2-battery"]) || 0;
-  const orionOut = Number(wireAmps["dcdc-battery"]) || 0;
-  const orionIn = Number(wireAmps["alternator-dcdc"]) || 0;
-  const solar1Power = nodes.solarPanelGroup1?.power ?? 0;
-  const solar2Power = nodes.solarPanelGroup2?.power ?? 0;
+  const orionOutputVoltage = round1(14.1 + Math.sin(t / 9) * 0.3);
+  const alternatorVoltage = round1(13.8 + Math.sin(t / 8) * 0.4);
 
   return {
     publishedAt,
     smartshunt: {
-      voltage: round1(batteryVoltage),
-      current: round2(batteryFlow.netAmps),
-      soc: batteryLevel,
+      voltage: batteryVoltage,
+      current: shuntCurrent,
+      soc,
       consumedAh: round1(-2.4 + Math.sin(Date.now() / 50000)),
       timeToGoMin: null,
       alarmReason: 0,
@@ -376,29 +291,29 @@ function randomVictronPayload() {
     mppt1: {
       deviceState: solar1Power > 0 ? 3 : 0,
       errorCode: 0,
-      batteryVoltage: round1(batteryVoltage),
-      batteryCurrent: round2(mppt1Current),
-      pvPower: solar1Power,
+      batteryVoltage,
+      batteryCurrent: mppt1BatteryCurrent,
+      pvPower: Math.max(0, solar1Power),
       yieldTodayKwh: round2(0.15 + solar1Power / 2000),
       updatedAt: baseUpdatedAt + 20,
     },
     mppt2: {
       deviceState: solar2Power > 0 ? 3 : 0,
       errorCode: 0,
-      batteryVoltage: round1(batteryVoltage),
-      batteryCurrent: round2(mppt2Current),
-      pvPower: solar2Power,
+      batteryVoltage,
+      batteryCurrent: mppt2BatteryCurrent,
+      pvPower: Math.max(0, solar2Power),
       yieldTodayKwh: round2(0.12 + solar2Power / 2000),
       updatedAt: baseUpdatedAt + 35,
     },
     orion: {
-      deviceState: orionOut > 0 || orionIn > 0 ? 3 : 0,
+      deviceState: orionOutputCurrent > 0 || alternatorCurrent > 0 ? 3 : 0,
       errorCode: 0,
-      outputVoltage: round1(nodes.dcDcBooster?.voltage ?? 13.8),
-      outputCurrent: round2(orionOut),
-      inputVoltage: round1(nodes.alternator?.voltage ?? 12.5),
-      inputCurrent: round2(orionIn),
-      offReason: orionOut > 0 ? 0 : 129,
+      outputVoltage: orionOutputVoltage,
+      outputCurrent: orionOutputCurrent,
+      inputVoltage: alternatorVoltage,
+      inputCurrent: alternatorCurrent,
+      offReason: orionOutputCurrent > 0 ? 0 : 129,
       updatedAt: baseUpdatedAt + 50,
     },
     acCharger: null,
@@ -515,7 +430,6 @@ function sendAll(io, socket) {
   });
 
   socket.emit("sensorUpdate", { ...STATIC.sensorUpdate, timestamp: stamp });
-  socket.emit("batterySystemUpdate", randomBatterySystemPayload());
   socket.emit("ledStatusUpdate", {
     ...STATIC.ledStatusUpdate,
     data: STATIC.ledStatusUpdate.data,
@@ -540,7 +454,6 @@ function sendAll(io, socket) {
   [150, 600].forEach((ms) => {
     setTimeout(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
-      socket.emit("batterySystemUpdate", randomBatterySystemPayload());
       emitVictronStatus(socket, randomVictronPayload());
     }, ms);
   });
@@ -564,7 +477,6 @@ io.on("connection", (socket) => {
     const sensorIntervalMs = Number(process.env.MOCK_SENSOR_INTERVAL_MS || 4000);
     sensorTimer = setInterval(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
-      socket.emit("batterySystemUpdate", randomBatterySystemPayload());
       emitVictronStatus(socket, randomVictronPayload());
     }, sensorIntervalMs);
   }, connectDelayMs);
