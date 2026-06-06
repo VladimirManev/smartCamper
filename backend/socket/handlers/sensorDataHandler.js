@@ -56,6 +56,10 @@ const sensorDataHandler = (io, topic, message) => {
       // Module-5 is the appliance controller module (Audio System, Water Pump, Refrigerator)
       return handleAppliance(io, topicParts, message);
     
+    case "module-6":
+      // Module-6 is the Victron BLE energy monitor
+      return handleVictron(io, topicParts, message);
+    
     case "errors":
       // Error topics: smartcamper/errors/{module-id}/{component-type}/{component-id}
       return handleErrorTopic(io, topicParts, message);
@@ -379,6 +383,36 @@ function handleAppliance(io, topicParts, message) {
     }
   }
   
+  return false;
+}
+
+/**
+ * Handle Victron energy status data
+ * Format: smartcamper/sensors/module-6/status (JSON)
+ */
+function handleVictron(io, topicParts, message) {
+  if (topicParts.length >= 4 && topicParts[3] === "status") {
+    try {
+      const statusData = JSON.parse(message);
+
+      if (!statusData || typeof statusData !== "object" || Array.isArray(statusData)) {
+        console.log("❌ Invalid Victron status JSON: expected object");
+        return true;
+      }
+
+      io.emit("victronStatusUpdate", {
+        type: "full",
+        data: statusData,
+        timestamp: new Date().toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse Victron status JSON: ${error.message}`);
+      return true;
+    }
+  }
+
   return false;
 }
 

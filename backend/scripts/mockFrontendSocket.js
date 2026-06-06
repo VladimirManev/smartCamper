@@ -24,7 +24,7 @@ function ts() {
 
 function buildModuleStatuses() {
   const modules = {};
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 6; i++) {
     const moduleId = `module-${i}`;
     const now = Date.now();
     modules[moduleId] = {
@@ -128,6 +128,51 @@ const STATIC = {
         4: { state: "OFF" },
         5: { state: "ON" },
       },
+    },
+    timestamp: ts(),
+  },
+  victronStatusUpdate: {
+    type: "full",
+    data: {
+      publishedAt: 45230,
+      smartshunt: {
+        voltage: 13.9,
+        current: 7.31,
+        soc: 99,
+        consumedAh: -2.4,
+        timeToGoMin: null,
+        alarmReason: 0,
+        updatedAt: 45100,
+      },
+      mppt1: {
+        deviceState: 3,
+        errorCode: 0,
+        batteryVoltage: 13.9,
+        batteryCurrent: 4.3,
+        pvPower: 62,
+        yieldTodayKwh: 0.22,
+        updatedAt: 45080,
+      },
+      mppt2: {
+        deviceState: 3,
+        errorCode: 0,
+        batteryVoltage: 13.9,
+        batteryCurrent: 3.85,
+        pvPower: 48,
+        yieldTodayKwh: 0.18,
+        updatedAt: 45110,
+      },
+      orion: {
+        deviceState: 0,
+        errorCode: 0,
+        outputVoltage: 13.8,
+        outputCurrent: 0,
+        inputVoltage: 12.5,
+        inputCurrent: 0,
+        offReason: 129,
+        updatedAt: 45120,
+      },
+      acCharger: null,
     },
     timestamp: ts(),
   },
@@ -300,6 +345,74 @@ function randomBatterySystemPayload() {
   };
 }
 
+function randomVictronPayload() {
+  const battery = randomBatterySystemPayload();
+  const { nodes, wireAmps, batteryLevel, batteryFlow } = battery;
+  const publishedAt = Date.now() % 10000000;
+  const baseUpdatedAt = publishedAt - Math.floor(Math.random() * 600);
+
+  const round1 = (v) => Math.round(v * 10) / 10;
+  const round2 = (v) => Math.round(v * 100) / 100;
+
+  const batteryVoltage = nodes.dcLoads?.voltage ?? 13.9;
+  const mppt1Current = Number(wireAmps["mppt1-battery"]) || 0;
+  const mppt2Current = Number(wireAmps["mppt2-battery"]) || 0;
+  const orionOut = Number(wireAmps["dcdc-battery"]) || 0;
+  const orionIn = Number(wireAmps["alternator-dcdc"]) || 0;
+  const solar1Power = nodes.solarPanelGroup1?.power ?? 0;
+  const solar2Power = nodes.solarPanelGroup2?.power ?? 0;
+
+  return {
+    publishedAt,
+    smartshunt: {
+      voltage: round1(batteryVoltage),
+      current: round2(batteryFlow.netAmps),
+      soc: batteryLevel,
+      consumedAh: round1(-2.4 + Math.sin(Date.now() / 50000)),
+      timeToGoMin: null,
+      alarmReason: 0,
+      updatedAt: baseUpdatedAt,
+    },
+    mppt1: {
+      deviceState: solar1Power > 0 ? 3 : 0,
+      errorCode: 0,
+      batteryVoltage: round1(batteryVoltage),
+      batteryCurrent: round2(mppt1Current),
+      pvPower: solar1Power,
+      yieldTodayKwh: round2(0.15 + solar1Power / 2000),
+      updatedAt: baseUpdatedAt + 20,
+    },
+    mppt2: {
+      deviceState: solar2Power > 0 ? 3 : 0,
+      errorCode: 0,
+      batteryVoltage: round1(batteryVoltage),
+      batteryCurrent: round2(mppt2Current),
+      pvPower: solar2Power,
+      yieldTodayKwh: round2(0.12 + solar2Power / 2000),
+      updatedAt: baseUpdatedAt + 35,
+    },
+    orion: {
+      deviceState: orionOut > 0 || orionIn > 0 ? 3 : 0,
+      errorCode: 0,
+      outputVoltage: round1(nodes.dcDcBooster?.voltage ?? 13.8),
+      outputCurrent: round2(orionOut),
+      inputVoltage: round1(nodes.alternator?.voltage ?? 12.5),
+      inputCurrent: round2(orionIn),
+      offReason: orionOut > 0 ? 0 : 129,
+      updatedAt: baseUpdatedAt + 50,
+    },
+    acCharger: null,
+  };
+}
+
+function emitVictronStatus(socket, data) {
+  socket.emit("victronStatusUpdate", {
+    type: "full",
+    data,
+    timestamp: ts(),
+  });
+}
+
 function createInitialLedState() {
   return JSON.parse(JSON.stringify(STATIC.ledStatusUpdate.data));
 }
@@ -421,12 +534,14 @@ function sendAll(io, socket) {
     ...STATIC.applianceStatusUpdate,
     timestamp: stamp,
   });
+  emitVictronStatus(socket, randomVictronPayload());
 
   // Client hooks may attach after the first burst; resend sensors shortly after connect.
   [150, 600].forEach((ms) => {
     setTimeout(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
       socket.emit("batterySystemUpdate", randomBatterySystemPayload());
+      emitVictronStatus(socket, randomVictronPayload());
     }, ms);
   });
 }
@@ -450,6 +565,7 @@ io.on("connection", (socket) => {
     sensorTimer = setInterval(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
       socket.emit("batterySystemUpdate", randomBatterySystemPayload());
+      emitVictronStatus(socket, randomVictronPayload());
     }, sensorIntervalMs);
   }, connectDelayMs);
 
@@ -476,6 +592,9 @@ io.on("connection", (socket) => {
   ];
   for (const ev of noop) {
     socket.on(ev, (payload) => {
+      if (ev === "forceModuleUpdate" && payload?.moduleId === "module-6") {
+        emitVictronStatus(socket, randomVictronPayload());
+      }
       if (process.env.DEBUG_MOCK_SOCKET) {
         console.log(`[mock] ${ev}`, payload);
       }

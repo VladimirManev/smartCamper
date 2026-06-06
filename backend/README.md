@@ -53,6 +53,7 @@ Emitted to all clients or to one client as noted in handlers:
 | `damperStatusUpdate` | Damper angles (module-4) |
 | `tableStatusUpdate` | Table state (module-4) |
 | `applianceStatusUpdate` | Appliance relays (module-5) |
+| `victronStatusUpdate` | Victron energy snapshot (module-6) |
 
 ## MQTT ↔ WebSocket
 

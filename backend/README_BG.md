@@ -36,7 +36,7 @@
 
 ## WebSocket: от сървъра към клиента
 
-Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate` (подробности в английския `README.md`).
+Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate`, `victronStatusUpdate` (подробности в английския `README.md`).
 
 ## Стартиране
 
