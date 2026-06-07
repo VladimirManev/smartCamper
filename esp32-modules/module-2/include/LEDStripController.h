@@ -21,6 +21,7 @@ typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt1Ws2812xMethod> LedStrip1;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt2Ws2812xMethod> LedStrip2;
 typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt3Ws2812xMethod> LedStrip3;
 typedef NeoPixelBus<NeoGrbwFeature, NeoEsp32Rmt4Ws2812xMethod> LedStrip4;
+typedef NeoPixelBus<NeoRgbwFeature, NeoEsp32Rmt5Ws2812xMethod> LedStrip5;
 
 // Strip configuration structure
 struct StripConfig {
@@ -46,7 +47,7 @@ private:
   void showStrip(uint8_t stripIndex);
   
   // Helper functions for colors
-  RgbwColor fixColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) const;
+  RgbwColor fixColorForStrip(uint8_t stripIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t w) const;
   RgbwColor whiteColor(uint8_t brightness);
   RgbwColor warmWhiteColor(uint8_t brightness);
   static void hueToRgb(uint16_t hue, uint8_t& r, uint8_t& g, uint8_t& b);
@@ -71,8 +72,12 @@ private:
   // Blinking functions
   void updateBlink(uint8_t stripIndex);
   
-  // Kitchen synchronization (Strip 0 and Strip 2)
-  void syncKitchenExtension(uint8_t mainStripIndex);
+  void stepTransition(uint8_t stripIndex);
+  void syncExtensionStrip(uint8_t mainStripIndex);
+  void prepareExtensionForTurnOn(uint8_t mainStripIndex);
+  void prepareExtensionForTurnOff(uint8_t mainStripIndex);
+  void copyTransitionToExtension(uint8_t mainStripIndex);
+  void syncExtensionBlink(uint8_t mainStripIndex, float brightnessFactor);
   
   // Update strip with current brightness
   void updateStrip(uint8_t stripIndex);

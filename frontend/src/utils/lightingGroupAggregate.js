@@ -44,6 +44,7 @@ export function getLightingGroupAggregate(ledStrips, relays) {
 /**
  * Master OFF (long-press Light group): same "lit" rules as the group aggregate.
  * Kitchen uses strip 0 only — firmware syncs strip 2 with 0.
+ * Bedroom uses strip 4 only — firmware syncs strip 5 with 4.
  * @param {Record<string, { state?: string, brightness?: number, mode?: string }>} ledStrips
  * @param {Record<string, { state?: string }>} relays
  * @returns {{ stripIndices: number[], toggleAmbient: boolean }}

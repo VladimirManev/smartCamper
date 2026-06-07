@@ -31,7 +31,7 @@
 // Victron BLE settings
 #define VICTRON_STATUS_PUBLISH_INTERVAL_MS 2000 // Full status every 2 seconds
 #define BLE_SCAN_INTERVAL_MS 100
-#define BLE_SCAN_WINDOW_MS 99
+#define BLE_SCAN_WINDOW_MS 100 // Full window = best capture; BLE starts after WiFi connect
 
 // Victron device credentials from VictronConnect:
 // Settings -> Product Info -> Instant Readout via Bluetooth -> Show

@@ -12,7 +12,8 @@ const StripConfig LEDStripController::stripConfigs[NUM_STRIPS] = {
   {STRIP_1_PIN, STRIP_1_LED_COUNT},   // Strip 1: Main lighting
   {STRIP_2_PIN, STRIP_2_LED_COUNT},   // Strip 2: Kitchen (extension for spice rack, mirrors strip 0)
   {STRIP_3_PIN, STRIP_3_LED_COUNT},   // Strip 3: Bathroom (motion AUTO, no button; MQTT dimming OK)
-  {STRIP_4_PIN, STRIP_4_LED_COUNT}    // Strip 4: Bedroom (GRBW protocol)
+  {STRIP_4_PIN, STRIP_4_LED_COUNT},   // Strip 4: Bedroom (GRBW protocol)
+  {STRIP_5_PIN, STRIP_5_LED_COUNT}    // Strip 5: Bedroom extension (RGBW, mirrors strip 4)
 };
 
 
@@ -22,6 +23,15 @@ static LedStrip1 strip1(STRIP_1_LED_COUNT, STRIP_1_PIN);
 static LedStrip2 strip2(STRIP_2_LED_COUNT, STRIP_2_PIN);
 static LedStrip3 strip3(STRIP_3_LED_COUNT, STRIP_3_PIN);
 static LedStrip4 strip4(STRIP_4_LED_COUNT, STRIP_4_PIN);
+static LedStrip5 strip5(STRIP_5_LED_COUNT, STRIP_5_PIN);
+
+namespace {
+int8_t extensionStripForMain(uint8_t mainStripIndex) {
+  if (mainStripIndex == KITCHEN_MAIN_STRIP_INDEX) return KITCHEN_EXTENSION_STRIP_INDEX;
+  if (mainStripIndex == BEDROOM_MAIN_STRIP_INDEX) return BEDROOM_EXTENSION_STRIP_INDEX;
+  return -1;
+}
+}  // namespace
 
 LEDStripController::LEDStripController(ModuleManager* moduleMgr) 
   : moduleManager(moduleMgr), powerRelayOn(false), 
@@ -141,6 +151,21 @@ void LEDStripController::begin() {
   if (DEBUG_SERIAL) {
     Serial.println("Strip 4 - Pin: " + String(stripConfigs[4].pin) + ", LEDs: " + String(stripConfigs[4].ledCount) + " - OK (RMT4, RGBW GRBW type) Bedroom");
   }
+
+  // Initialize strip 5
+  if (DEBUG_SERIAL) {
+    Serial.println("Initializing strip 5 on pin " + String(stripConfigs[5].pin) + " with RMT5 (Bedroom extension - synced with Strip 4)...");
+    Serial.flush();
+  }
+  strip5.Begin();
+  delay(100);
+  strip5.ClearTo(RgbwColor(0, 0, 0, 0));
+  strip5.Show();
+  stripStates[5].strip = (void*)&strip5;
+  stripStates[5].stripType = 5;
+  if (DEBUG_SERIAL) {
+    Serial.println("Strip 5 - Pin: " + String(stripConfigs[5].pin) + ", LEDs: " + String(stripConfigs[5].ledCount) + " - OK (RMT5) Bedroom extension");
+  }
   
   // Initialize power relay
   pinMode(POWER_RELAY_PIN, OUTPUT);
@@ -159,8 +184,12 @@ void LEDStripController::begin() {
 }
 
 // Helper functions for colors
-RgbwColor LEDStripController::fixColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) const {
-  return RgbwColor(g, r, b, w);  // R and G are swapped in hardware
+RgbwColor LEDStripController::fixColorForStrip(uint8_t stripIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t w) const {
+  // Bedroom GRBW: no R/G swap (global swap was wrong for this strip)
+  if (stripIndex == BEDROOM_MAIN_STRIP_INDEX) {
+    return RgbwColor(r, g, b, w);
+  }
+  return RgbwColor(g, r, b, w);  // RGBW strips — R and G swapped in hardware
 }
 
 RgbwColor LEDStripController::whiteColor(uint8_t brightness) {
@@ -195,7 +224,7 @@ void LEDStripController::hueToRgb(uint16_t hue, uint8_t& r, uint8_t& g, uint8_t&
 RgbwColor LEDStripController::getPixelColor(uint8_t stripIndex, int pixelIndex, uint8_t brightnessScale) const {
   const StripState& state = stripStates[stripIndex];
   if (brightnessScale == 0) {
-    return fixColor(0, 0, 0, 0);
+    return fixColorForStrip(stripIndex, 0, 0, 0, 0);
   }
   uint16_t n = stripConfigs[stripIndex].ledCount;
   if (state.effect == STRIP_EFFECT_RAINBOW_STATIC) {
@@ -213,13 +242,13 @@ RgbwColor LEDStripController::getPixelColor(uint8_t stripIndex, int pixelIndex, 
     uint16_t rs = (uint16_t)rr * brightnessScale / 255;
     uint16_t gs = (uint16_t)gg * brightnessScale / 255;
     uint16_t bs = (uint16_t)bb * brightnessScale / 255;
-    return fixColor((uint8_t)rs, (uint8_t)gs, (uint8_t)bs, 0);
+    return fixColorForStrip(stripIndex, (uint8_t)rs, (uint8_t)gs, (uint8_t)bs, 0);
   }
   uint16_t rs = (uint16_t)state.chR * brightnessScale / 255;
   uint16_t gs = (uint16_t)state.chG * brightnessScale / 255;
   uint16_t bs = (uint16_t)state.chB * brightnessScale / 255;
   uint16_t ws = (uint16_t)state.chW * brightnessScale / 255;
-  return fixColor((uint8_t)rs, (uint8_t)gs, (uint8_t)bs, (uint8_t)ws);
+  return fixColorForStrip(stripIndex, (uint8_t)rs, (uint8_t)gs, (uint8_t)bs, (uint8_t)ws);
 }
 
 // Helper functions for working with different strip types
@@ -232,6 +261,7 @@ void LEDStripController::setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwC
     case 2: ((LedStrip2*)state.strip)->SetPixelColor(pixelIndex, color); break;
     case 3: ((LedStrip3*)state.strip)->SetPixelColor(pixelIndex, color); break;
     case 4: ((LedStrip4*)state.strip)->SetPixelColor(pixelIndex, color); break;
+    case 5: ((LedStrip5*)state.strip)->SetPixelColor(pixelIndex, color); break;
   }
 }
 
@@ -244,6 +274,7 @@ void LEDStripController::clearStrip(uint8_t stripIndex, RgbwColor color) {
     case 2: ((LedStrip2*)state.strip)->ClearTo(color); break;
     case 3: ((LedStrip3*)state.strip)->ClearTo(color); break;
     case 4: ((LedStrip4*)state.strip)->ClearTo(color); break;
+    case 5: ((LedStrip5*)state.strip)->ClearTo(color); break;
   }
 }
 
@@ -256,51 +287,127 @@ void LEDStripController::showStrip(uint8_t stripIndex) {
     case 2: ((LedStrip2*)state.strip)->Show(); break;
     case 3: ((LedStrip3*)state.strip)->Show(); break;
     case 4: ((LedStrip4*)state.strip)->Show(); break;
+    case 5: ((LedStrip5*)state.strip)->Show(); break;
   }
 }
 
-// Kitchen synchronization (Strip 0 and Strip 2)
-void LEDStripController::syncKitchenExtension(uint8_t mainStripIndex) {
-  if (mainStripIndex == 0) {
-    StripState& mainState = stripStates[0];
-    StripState& extState = stripStates[2];
-    
-    // Copy state from main to extension
-    extState.on = mainState.on;
-    extState.brightness = mainState.brightness;
-    extState.dimmingActive = mainState.dimmingActive;
-    extState.dimmingDirection = mainState.dimmingDirection;
-    extState.dimmingStartTime = mainState.dimmingStartTime;
-    extState.dimmingStartBrightness = mainState.dimmingStartBrightness;
-    extState.dimmingTargetBrightness = mainState.dimmingTargetBrightness;
-    extState.isSmoothTransition = mainState.isSmoothTransition;
-    extState.dimmingDuration = mainState.dimmingDuration;
-    extState.blinkActive = mainState.blinkActive;
-    extState.blinkStartTime = mainState.blinkStartTime;
-    extState.savedBrightnessForBlink = mainState.savedBrightnessForBlink;
-    extState.transition.active = mainState.transition.active;
-    extState.transition.type = mainState.transition.type;
-    extState.transition.startTime = mainState.transition.startTime;
-    extState.transition.targetBrightness = mainState.transition.targetBrightness;
-    extState.chR = mainState.chR;
-    extState.chG = mainState.chG;
-    extState.chB = mainState.chB;
-    extState.chW = mainState.chW;
-    extState.effect = mainState.effect;
-    extState.mode = mainState.mode;
-    
-    uint16_t mainCount = stripConfigs[0].ledCount;
-    uint16_t extCount = stripConfigs[2].ledCount;
-    if (extState.on) {
-      for (int i = 0; i < extCount; i++) {
+// Extension strip sync (kitchen 0→2, bedroom 4→5)
+void LEDStripController::syncExtensionStrip(uint8_t mainStripIndex) {
+  int8_t extIndex = extensionStripForMain(mainStripIndex);
+  if (extIndex < 0) return;
+
+  StripState& mainState = stripStates[mainStripIndex];
+  StripState& extState = stripStates[extIndex];
+
+  extState.on = mainState.on;
+  extState.brightness = mainState.brightness;
+  extState.dimmingActive = mainState.dimmingActive;
+  extState.dimmingDirection = mainState.dimmingDirection;
+  extState.dimmingStartTime = mainState.dimmingStartTime;
+  extState.dimmingStartBrightness = mainState.dimmingStartBrightness;
+  extState.dimmingTargetBrightness = mainState.dimmingTargetBrightness;
+  extState.isSmoothTransition = mainState.isSmoothTransition;
+  extState.dimmingDuration = mainState.dimmingDuration;
+  extState.blinkActive = mainState.blinkActive;
+  extState.blinkStartTime = mainState.blinkStartTime;
+  extState.savedBrightnessForBlink = mainState.savedBrightnessForBlink;
+  extState.transition.active = mainState.transition.active;
+  extState.transition.type = mainState.transition.type;
+  extState.transition.startTime = mainState.transition.startTime;
+  extState.transition.targetBrightness = mainState.transition.targetBrightness;
+  extState.chR = mainState.chR;
+  extState.chG = mainState.chG;
+  extState.chB = mainState.chB;
+  extState.chW = mainState.chW;
+  extState.effect = mainState.effect;
+  extState.mode = mainState.mode;
+
+  uint16_t mainCount = stripConfigs[mainStripIndex].ledCount;
+  uint16_t extCount = stripConfigs[extIndex].ledCount;
+  if (extState.on) {
+    for (int i = 0; i < extCount; i++) {
+      RgbwColor color;
+      if (extState.effect == STRIP_EFFECT_RAINBOW_STATIC && mainStripIndex == KITCHEN_MAIN_STRIP_INDEX) {
         int mainPix = (extCount <= 1) ? 0 : (i * (int)(mainCount - 1)) / (int)(extCount - 1);
-        setPixelColor(2, i, getPixelColor(0, mainPix, extState.brightness));
+        color = getPixelColor(mainStripIndex, mainPix, extState.brightness);
+      } else {
+        color = getPixelColor((uint8_t)extIndex, i, extState.brightness);
       }
-    } else {
-      clearStrip(2, RgbwColor(0, 0, 0, 0));
+      setPixelColor((uint8_t)extIndex, i, color);
     }
-    showStrip(2);
+  } else {
+    clearStrip((uint8_t)extIndex, RgbwColor(0, 0, 0, 0));
   }
+  showStrip((uint8_t)extIndex);
+}
+
+void LEDStripController::prepareExtensionForTurnOn(uint8_t mainStripIndex) {
+  int8_t extIndex = extensionStripForMain(mainStripIndex);
+  if (extIndex < 0) return;
+
+  StripState& state = stripStates[mainStripIndex];
+  StripState& extState = stripStates[extIndex];
+  extState.on = true;
+  extState.brightness = state.brightness;
+  extState.chR = state.chR;
+  extState.chG = state.chG;
+  extState.chB = state.chB;
+  extState.chW = state.chW;
+  extState.effect = state.effect;
+  extState.mode = state.mode;
+
+  if (DEBUG_VERBOSE) {
+    Serial.println("   Syncing extension (Strip " + String(extIndex) + ", pin " + String(stripConfigs[extIndex].pin) + ")");
+  }
+}
+
+void LEDStripController::prepareExtensionForTurnOff(uint8_t mainStripIndex) {
+  int8_t extIndex = extensionStripForMain(mainStripIndex);
+  if (extIndex < 0) return;
+
+  StripState& extState = stripStates[extIndex];
+  extState.on = false;
+  extState.mode = STRIP_MODE_OFF;
+}
+
+void LEDStripController::copyTransitionToExtension(uint8_t mainStripIndex) {
+  int8_t extIndex = extensionStripForMain(mainStripIndex);
+  if (extIndex < 0) return;
+
+  StripState& state = stripStates[mainStripIndex];
+  StripState& extState = stripStates[extIndex];
+  TransitionState& mainTrans = state.transition;
+  TransitionState& extTrans = extState.transition;
+
+  extTrans.active = mainTrans.active;
+  extTrans.type = mainTrans.type;
+  extTrans.startTime = mainTrans.startTime;
+  extTrans.targetBrightness = mainTrans.targetBrightness;
+  extTrans.randomOrder = nullptr;
+  extTrans.randomIndex = 0;
+}
+
+void LEDStripController::syncExtensionBlink(uint8_t mainStripIndex, float brightnessFactor) {
+  int8_t extIndex = extensionStripForMain(mainStripIndex);
+  if (extIndex < 0) return;
+
+  StripState& extState = stripStates[extIndex];
+  if (!extState.blinkActive || !extState.on) return;
+
+  uint8_t extBrightness = (uint8_t)(extState.savedBrightnessForBlink * brightnessFactor);
+  uint16_t mainCount = stripConfigs[mainStripIndex].ledCount;
+  uint16_t extCount = stripConfigs[extIndex].ledCount;
+  for (int i = 0; i < extCount; i++) {
+    RgbwColor color;
+    if (extState.effect == STRIP_EFFECT_RAINBOW_STATIC && mainStripIndex == KITCHEN_MAIN_STRIP_INDEX) {
+      int mainPix = (extCount <= 1) ? 0 : (i * (int)(mainCount - 1)) / (int)(extCount - 1);
+      color = getPixelColor(mainStripIndex, mainPix, extBrightness);
+    } else {
+      color = getPixelColor((uint8_t)extIndex, i, extBrightness);
+    }
+    setPixelColor((uint8_t)extIndex, i, color);
+  }
+  showStrip((uint8_t)extIndex);
 }
 
 // Update strip with current brightness
@@ -319,7 +426,7 @@ void LEDStripController::updateStrip(uint8_t stripIndex) {
   showStrip(stripIndex);
   
   // Kitchen: synchronize extension strip
-  syncKitchenExtension(stripIndex);
+  syncExtensionStrip(stripIndex);
 }
 
 // ============================================================================
@@ -618,15 +725,14 @@ void LEDStripController::startTransition(uint8_t stripIndex, bool turningOn) {
   }
 }
 
-void LEDStripController::updateTransition(uint8_t stripIndex) {
+void LEDStripController::stepTransition(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
-  
+
   StripState& state = stripStates[stripIndex];
   TransitionState& trans = state.transition;
-  
+
   if (!trans.active) return;
-  
-  // Execute transition function using switch
+
   if (trans.type < NUM_ON_TRANSITIONS) {
     switch (trans.type) {
       case TRANSITION_ON_CENTER_TO_EDGES:
@@ -647,62 +753,37 @@ void LEDStripController::updateTransition(uint8_t stripIndex) {
   } else {
     int offIndex = trans.type - NUM_ON_TRANSITIONS;
     switch (offIndex) {
-      case 0:  // TRANSITION_OFF_EDGES_TO_CENTER
+      case 0:
         transitionOffEdgesToCenter(stripIndex);
         break;
-      case 1:  // TRANSITION_OFF_RANDOM_LEDS
+      case 1:
         transitionOffRandomLeds(stripIndex);
         break;
-      case 2:  // TRANSITION_OFF_LEFT_TO_RIGHT
+      case 2:
         transitionOffLeftToRight(stripIndex);
         break;
-      case 3:  // TRANSITION_OFF_CENTER_TO_EDGES
+      case 3:
         transitionOffCenterToEdges(stripIndex);
         break;
       default:
         break;
     }
   }
+}
+
+void LEDStripController::updateTransition(uint8_t stripIndex) {
+  if (stripIndex >= NUM_STRIPS) return;
   
-  // Kitchen: synchronize extension strip - execute the same transition
-  if (stripIndex == 0 && stripStates[2].transition.active) {
-    TransitionState& extTrans = stripStates[2].transition;
-    if (extTrans.type < NUM_ON_TRANSITIONS) {
-      switch (extTrans.type) {
-        case TRANSITION_ON_CENTER_TO_EDGES:
-          transitionOnCenterToEdges(2);
-          break;
-        case TRANSITION_ON_RANDOM_LEDS:
-          transitionOnRandomLeds(2);
-          break;
-        case TRANSITION_ON_LEFT_TO_RIGHT:
-          transitionOnLeftToRight(2);
-          break;
-        case TRANSITION_ON_EDGES_TO_CENTER:
-          transitionOnEdgesToCenter(2);
-          break;
-        default:
-          break;
-      }
-    } else {
-      int offIndex = extTrans.type - NUM_ON_TRANSITIONS;
-      switch (offIndex) {
-        case 0:
-          transitionOffEdgesToCenter(2);
-          break;
-        case 1:
-          transitionOffRandomLeds(2);
-          break;
-        case 2:
-          transitionOffLeftToRight(2);
-          break;
-        case 3:
-          transitionOffCenterToEdges(2);
-          break;
-        default:
-          break;
-      }
-    }
+  StripState& state = stripStates[stripIndex];
+  TransitionState& trans = state.transition;
+  
+  if (!trans.active) return;
+  
+  stepTransition(stripIndex);
+
+  int8_t extIndex = extensionStripForMain(stripIndex);
+  if (extIndex >= 0 && stripStates[extIndex].transition.active) {
+    stepTransition((uint8_t)extIndex);
   }
   
   if (!trans.active) {
@@ -741,17 +822,7 @@ void LEDStripController::updateBlink(uint8_t stripIndex) {
     }
     showStrip(stripIndex);
     
-    if (stripIndex == 0 && stripStates[2].blinkActive && stripStates[2].on) {
-      StripState& extState = stripStates[2];
-      uint8_t extBrightness = (uint8_t)(extState.savedBrightnessForBlink * brightnessFactor);
-      uint16_t mainCount = stripConfigs[0].ledCount;
-      uint16_t extCount = stripConfigs[2].ledCount;
-      for (int i = 0; i < extCount; i++) {
-        int mainPix = (extCount <= 1) ? 0 : (i * (int)(mainCount - 1)) / (int)(extCount - 1);
-        setPixelColor(2, i, getPixelColor(0, mainPix, extBrightness));
-      }
-      showStrip(2);
-    }
+    syncExtensionBlink(stripIndex, brightnessFactor);
   } else {
     state.blinkActive = false;
     state.brightness = state.savedBrightnessForBlink;
@@ -825,7 +896,7 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
     }
     
     state.brightness = newBrightness;
-    syncKitchenExtension(stripIndex);
+    syncExtensionStrip(stripIndex);
   } else if (reachedTarget && state.isSmoothTransition) {
     // Smooth transition completed (e.g. MQTT brightness) — publish final state to MQTT/UI
     state.dimmingActive = false;
@@ -835,7 +906,7 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
       state.lastAutoBrightness = targetBrightness;
     }
     updateStrip(stripIndex);
-    syncKitchenExtension(stripIndex);
+    syncExtensionStrip(stripIndex);
     if (stripStateChangeCallback) {
       stripStateChangeCallback(stripIndex);
     }
@@ -844,7 +915,7 @@ void LEDStripController::updateDimming(uint8_t stripIndex) {
     state.brightness = newBrightness;
     updateStrip(stripIndex);
     // Kitchen: synchronize extension strip during dimming
-    syncKitchenExtension(stripIndex);
+    syncExtensionStrip(stripIndex);
   }
 }
 
@@ -911,42 +982,13 @@ void LEDStripController::turnOnStrip(uint8_t stripIndex) {
       state.mode = STRIP_MODE_ON;
     }
     
-    // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
-    if (stripIndex == 0) {
-      StripState& extState = stripStates[2];
-      extState.on = true;
-      extState.brightness = state.brightness;
-      extState.chR = state.chR;
-      extState.chG = state.chG;
-      extState.chB = state.chB;
-      extState.chW = state.chW;
-      extState.effect = state.effect;
-      extState.mode = state.mode;
-      if (DEBUG_VERBOSE) {
-        Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
-      }
-    }
+    prepareExtensionForTurnOn(stripIndex);
     
-    // Choose transition once and use it for both strips (if Kitchen)
     startTransition(stripIndex, true);
+    copyTransitionToExtension(stripIndex);
     
-    // Kitchen: copy the same transition to extension strip
-    if (stripIndex == 0) {
-      StripState& extState = stripStates[2];
-      TransitionState& mainTrans = state.transition;
-      TransitionState& extTrans = extState.transition;
-      
-      // Copy transition from main to extension
-      extTrans.active = mainTrans.active;
-      extTrans.type = mainTrans.type;
-      extTrans.startTime = mainTrans.startTime;
-      extTrans.targetBrightness = mainTrans.targetBrightness;
-      extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
-      extTrans.randomIndex = 0;
-      
-      if (DEBUG_VERBOSE) {
-        Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
-      }
+    if (DEBUG_VERBOSE && extensionStripForMain(stripIndex) >= 0) {
+      Serial.println("💡 Extension (Strip " + String(extensionStripForMain(stripIndex)) + "): Turning ON with same transition");
     }
     
     Serial.println("💡 Strip " + String(stripIndex) + " ON (brightness: " + String(state.brightness) + ")");
@@ -980,12 +1022,7 @@ void LEDStripController::turnOffStrip(uint8_t stripIndex) {
     state.mode = STRIP_MODE_OFF;
   }
   
-  // Kitchen: if controlling Strip 0, synchronize Strip 2 BEFORE choosing transition
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
-    extState.on = false;
-    extState.mode = STRIP_MODE_OFF;
-  }
+  prepareExtensionForTurnOff(stripIndex);
   
   // If transition is already active, stop it first (force complete)
   if (state.transition.active) {
@@ -1000,26 +1037,11 @@ void LEDStripController::turnOffStrip(uint8_t stripIndex) {
     }
   }
   
-  // Choose transition once and use it for both strips (if Kitchen)
   startTransition(stripIndex, false);
-  
-  // Kitchen: copy the same transition to extension strip
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
-    TransitionState& mainTrans = state.transition;
-    TransitionState& extTrans = extState.transition;
-    
-    // Copy transition from main to extension
-    extTrans.active = mainTrans.active;
-    extTrans.type = mainTrans.type;
-    extTrans.startTime = mainTrans.startTime;
-    extTrans.targetBrightness = mainTrans.targetBrightness;
-    extTrans.randomOrder = nullptr;  // Extension will use the same randomOrder if needed
-    extTrans.randomIndex = 0;
-    
-    if (DEBUG_VERBOSE) {
-      Serial.println("💡 Kitchen extension (Strip 2): Turning OFF with same transition");
-    }
+  copyTransitionToExtension(stripIndex);
+
+  if (DEBUG_VERBOSE && extensionStripForMain(stripIndex) >= 0) {
+    Serial.println("💡 Extension (Strip " + String(extensionStripForMain(stripIndex)) + "): Turning OFF with same transition");
   }
   
   Serial.println("💡 Strip " + String(stripIndex) + " OFF (brightness: " + String(state.brightness) + ")");
@@ -1119,7 +1141,7 @@ void LEDStripController::startDimming(uint8_t stripIndex) {
                  " (distance: " + String(distance) + ", time: " + String(state.dimmingDuration) + "ms)");
   
   // Kitchen: synchronize extension strip
-  syncKitchenExtension(stripIndex);
+  syncExtensionStrip(stripIndex);
 }
 
 void LEDStripController::stopDimming(uint8_t stripIndex) {
@@ -1130,7 +1152,7 @@ void LEDStripController::stopDimming(uint8_t stripIndex) {
   Serial.println("🔆 Strip " + String(stripIndex) + " dimming stopped (Brightness: " + String(state.brightness) + ")");
   
   // Kitchen: synchronize extension strip
-  syncKitchenExtension(stripIndex);
+  syncExtensionStrip(stripIndex);
 }
 
 // Set brightness smoothly (for MQTT commands)
@@ -1154,16 +1176,10 @@ void LEDStripController::setBrightnessSmooth(uint8_t stripIndex, uint8_t targetB
     }
     startBrightness = 0;
     
-    if (stripIndex == 0) {
-      StripState& extState = stripStates[2];
-      extState.on = true;
-      extState.brightness = 0;
-      extState.chR = state.chR;
-      extState.chG = state.chG;
-      extState.chB = state.chB;
-      extState.chW = state.chW;
-      extState.effect = state.effect;
-      extState.mode = state.mode;
+    prepareExtensionForTurnOn(stripIndex);
+    int8_t extIndexOn = extensionStripForMain(stripIndex);
+    if (extIndexOn >= 0) {
+      stripStates[extIndexOn].brightness = 0;
     }
   }
   
@@ -1188,9 +1204,9 @@ void LEDStripController::setBrightnessSmooth(uint8_t stripIndex, uint8_t targetB
                  String(startBrightness) + " → " + String(targetBrightness) + 
                  " (duration: " + String(state.dimmingDuration) + "ms)");
   
-  // Kitchen: synchronize extension strip
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
+  int8_t extIndex = extensionStripForMain(stripIndex);
+  if (extIndex >= 0) {
+    StripState& extState = stripStates[extIndex];
     extState.dimmingActive = true;
     extState.isSmoothTransition = true;
     extState.dimmingStartTime = state.dimmingStartTime;
@@ -1261,36 +1277,13 @@ void LEDStripController::turnOnStripAfterDelay(uint8_t stripIndex) {
     state.mode = STRIP_MODE_ON;
   }
   
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
-    extState.on = true;
-    extState.brightness = state.brightness;
-    extState.chR = state.chR;
-    extState.chG = state.chG;
-    extState.chB = state.chB;
-    extState.chW = state.chW;
-    extState.effect = state.effect;
-    extState.mode = state.mode;
-    if (DEBUG_VERBOSE) {
-      Serial.println("   Syncing Kitchen extension (Strip 2, pin " + String(stripConfigs[2].pin) + ")");
-    }
-  }
+  prepareExtensionForTurnOn(stripIndex);
   
   startTransition(stripIndex, true);
-  
-  if (stripIndex == 0) {
-    StripState& extState = stripStates[2];
-    TransitionState& mainTrans = state.transition;
-    TransitionState& extTrans = extState.transition;
-    extTrans.active = mainTrans.active;
-    extTrans.type = mainTrans.type;
-    extTrans.startTime = mainTrans.startTime;
-    extTrans.targetBrightness = mainTrans.targetBrightness;
-    extTrans.randomOrder = nullptr;
-    extTrans.randomIndex = 0;
-    if (DEBUG_VERBOSE) {
-      Serial.println("💡 Kitchen extension (Strip 2): Turning ON with same transition");
-    }
+  copyTransitionToExtension(stripIndex);
+
+  if (DEBUG_VERBOSE && extensionStripForMain(stripIndex) >= 0) {
+    Serial.println("💡 Extension (Strip " + String(extensionStripForMain(stripIndex)) + "): Turning ON with same transition");
   }
   
   Serial.println("💡 Strip " + String(stripIndex) + " ON (brightness: " + String(state.brightness) + ")");

@@ -10,8 +10,9 @@ import { useEffect, useRef, useState } from "react";
  * @param {ReactNode} props.children - Modal content
  * @param {boolean} props.isNested - Whether this is a nested modal (not the top one)
  * @param {number} props.zIndex - Z-index for the modal
+ * @param {boolean} [props.compact] - Shorter dialog (confirmations)
  */
-export const CardModal = ({ isOpen, onClose, title, children, isNested = false, zIndex = 1000 }) => {
+export const CardModal = ({ isOpen, onClose, title, children, isNested = false, zIndex = 1000, compact = false }) => {
   const modalRef = useRef(null);
   const overlayRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -122,7 +123,7 @@ export const CardModal = ({ isOpen, onClose, title, children, isNested = false, 
       style={{ zIndex }}
     >
       <div 
-        className={`modal-container ${isClosing ? "closing" : ""} ${isNested ? "nested" : ""}`}
+        className={`modal-container ${compact ? "modal-container--compact" : ""} ${isClosing ? "closing" : ""} ${isNested ? "nested" : ""}`}
         ref={modalRef} 
         onClick={(e) => e.stopPropagation()}
       >

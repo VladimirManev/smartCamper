@@ -338,7 +338,7 @@ void LEDManager::publishFullStatus() {
     return;  // Cannot publish if not connected
   }
   
-  StaticJsonDocument<1536> doc;
+  StaticJsonDocument<1792> doc;
   
   JsonObject strips = doc.createNestedObject("strips");
   for (uint8_t i = 0; i < NUM_STRIPS; i++) {

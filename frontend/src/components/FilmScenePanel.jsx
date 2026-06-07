@@ -44,7 +44,7 @@ export function buildFilmScenePayload(options) {
 export function FilmScenePanel({ onApply, onBack }) {
   return (
     <SceneActionPanel
-      title="Movie"
+      title="Cinema"
       defaultOptions={DEFAULT_FILM_OPTIONS}
       buildPayload={buildFilmScenePayload}
       onApply={onApply}

@@ -13,6 +13,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 | **Strip 2** (Kitchen extension) | 19 | Output | 23 LEDs, RGBW (synced with Strip 0) |
 | **Strip 3** (Bathroom) | 25 | Output | 53 LEDs, RGBW (motion activated) |
 | **Strip 4** (Bedroom) | 5 | Output | 30 LEDs, RGBW (GRBW protocol) |
+| **Strip 5** (Bedroom extension) | 23 | Output | 6 LEDs, RGBW (synced with Strip 4) |
 | **Button 1** | 4 | Input (Pull-up) | Kitchen control (Strips 0+2) |
 | **Button 2** | 12 | Input (Pull-up) | Main lighting (Strip 1) |
 | **Button 3** | 27 | Input (Pull-up) | Floor relay toggle |
@@ -30,6 +31,7 @@ ESP32 module for controlling multiple LED strips with buttons, motion sensor, di
 | **2** | 23 | WS2815 RGBW | RGBW | Auto (synced with Strip 0) |
 | **3** | 53 | WS2815 RGBW | RGBW | PIR sensor + MQTT |
 | **4** | 30 | WS2812 RGBW | GRBW | Button 4 |
+| **5** | 6 | WS2815 RGBW | RGBW | Auto (synced with Strip 4) |
 
 ### Button Functions
 
@@ -133,7 +135,7 @@ The module includes a power relay (GPIO 32 — see `Config.h`) that physically c
 
 ### No LED Response
 - Check power supply (12V for WS2815 strips)
-- Verify data pin connections (33, 18, 19, 25, 5)
+- Verify data pin connections (33, 18, 19, 25, 5, 23)
 - Check serial output for errors
 - Ensure proper ground connection between ESP32 and LED strips
 

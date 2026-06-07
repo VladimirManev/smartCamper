@@ -13,6 +13,7 @@ ApplianceManager::ApplianceManager(ModuleManager* moduleMgr)
   : moduleManager(moduleMgr),
     relayController(),
     buttonHandler(&relayController),
+    urineLevelSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
     commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID),
     pendingStatusUpdate(false) {
   
@@ -38,8 +39,10 @@ void ApplianceManager::begin() {
   // Initialize button handler
   buttonHandler.setApplianceManager(this);  // Set ApplianceManager reference for status publishing
   buttonHandler.begin();
+
+  urineLevelSensor.begin();
   
-  // Set MQTT callback to ApplianceManager::handleMQTTMessage (handles both force_update and appliance commands)
+  // Set MQTT callback to ApplianceManager::handleMQTTMessage
   if (moduleManager) {
     moduleManager->getMQTTManager().setCallback(ApplianceManager::handleMQTTMessageStatic);
   }
@@ -53,10 +56,10 @@ void ApplianceManager::begin() {
 }
 
 void ApplianceManager::loop() {
-  // Update button handler
   buttonHandler.loop();
+  urineLevelSensor.loop();
   
-  // Process pending status update (deferred from MQTT callback)
+  // Process pending status update
   // This prevents blocking PubSubClient which can cause publish failures
   if (pendingStatusUpdate) {
     pendingStatusUpdate = false;
@@ -65,8 +68,7 @@ void ApplianceManager::loop() {
 }
 
 void ApplianceManager::handleForceUpdate() {
-  // Set flag to publish status in main loop (don't publish during MQTT callback)
-  // This prevents blocking PubSubClient which can cause publish failures
+  urineLevelSensor.forceUpdate();
   pendingStatusUpdate = true;
 }
 
@@ -159,6 +161,7 @@ void ApplianceManager::printStatus() const {
     Serial.println("  Module Manager: " + String(moduleManager != nullptr ? "OK" : "NULL"));
     relayController.printStatus();
     buttonHandler.printStatus();
+    urineLevelSensor.printStatus();
   }
 }
 

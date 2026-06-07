@@ -421,7 +421,7 @@ rm -f "$RSYNC_EXCLUDE_FILE"
 # Run update script on Raspberry Pi
 echo -e "${GREEN}🔄 Running update script on Raspberry Pi...${NC}"
 REMOTE_ENV=""
-if [ "$OFFLINE_PI" = true ]; then
+if [ "$OFFLINE_PI" = true ] || [ "$SKIP_FRONTEND" = true ]; then
     REMOTE_ENV="SKIP_FRONTEND_BUILD=true "
 fi
 

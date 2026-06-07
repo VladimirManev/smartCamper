@@ -10,12 +10,14 @@
 #include "RelayController.h"
 #include "ButtonHandler.h"
 #include "CommandHandler.h"
+#include "UrineLevelSensor.h"
 
 class ApplianceManager {
 private:
   ModuleManager* moduleManager;  // Reference to module manager (not owned)
   RelayController relayController;
   ButtonHandler buttonHandler;
+  UrineLevelSensor urineLevelSensor;
   CommandHandler commandHandler;
   
   // Static pointer for MQTT callback

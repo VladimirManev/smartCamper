@@ -1,16 +1,13 @@
 /**
  * useSensorData Hook
- * Manages sensor data (indoor temperature, indoor humidity, outdoor temperature, gray water level)
- * Clears data when source module goes offline
+ * Manages sensor data from module-1 (climate, gray water), module-5 (toilet urine), module-7 (fresh water).
  */
 
 import { useState, useEffect, useRef } from "react";
 
 /**
- * Custom hook for sensor data
  * @param {Object} socket - Socket.io instance
- * @param {Object} moduleStatuses - moduleId -> status (used to know if module-1 is online)
- * @returns {Object} { indoorTemperature, indoorHumidity, outdoorTemperature, grayWaterLevel, grayWaterTemperature }
+ * @param {Object} moduleStatuses - moduleId -> status
  */
 export const useSensorData = (socket, moduleStatuses) => {
   const [indoorTemperature, setIndoorTemperature] = useState(null);
@@ -18,6 +15,8 @@ export const useSensorData = (socket, moduleStatuses) => {
   const [outdoorTemperature, setOutdoorTemperature] = useState(null);
   const [grayWaterLevel, setGrayWaterLevel] = useState(null);
   const [grayWaterTemperature, setGrayWaterTemperature] = useState(null);
+  const [toiletUrineLevel, setToiletUrineLevel] = useState(null);
+  const [cleanWaterLevel, setCleanWaterLevel] = useState(null);
 
   const moduleStatusesRef = useRef(moduleStatuses);
   moduleStatusesRef.current = moduleStatuses;
@@ -33,6 +32,8 @@ export const useSensorData = (socket, moduleStatuses) => {
       setOutdoorTemperature(null);
       setGrayWaterLevel(null);
       setGrayWaterTemperature(null);
+      setToiletUrineLevel(null);
+      setCleanWaterLevel(null);
     };
 
     const handleDisconnect = () => clearSensorData();
@@ -42,8 +43,6 @@ export const useSensorData = (socket, moduleStatuses) => {
       clearSensorData();
     }
 
-    // Ref is only updated on React render; moduleStatusUpdate + sensorUpdate often arrive
-    // in the same tick before re-render — sync ref here so sensor handler sees module-1 online.
     const syncModulesFromSocket = (data) => {
       if (data?.modules) {
         moduleStatusesRef.current = data.modules;
@@ -57,35 +56,58 @@ export const useSensorData = (socket, moduleStatuses) => {
 
       const module1Online =
         moduleStatusesRef.current["module-1"]?.status === "online";
-      if (!module1Online) {
-        return;
+      const module5Online =
+        moduleStatusesRef.current["module-5"]?.status === "online";
+      const module7Online =
+        moduleStatusesRef.current["module-7"]?.status === "online";
+
+      if (module1Online) {
+        if (
+          data.indoorTemperature !== undefined &&
+          data.indoorTemperature !== null
+        ) {
+          setIndoorTemperature(data.indoorTemperature);
+        }
+        if (
+          data.indoorHumidity !== undefined &&
+          data.indoorHumidity !== null
+        ) {
+          setIndoorHumidity(data.indoorHumidity);
+        }
+        if (
+          data.outdoorTemperature !== undefined &&
+          data.outdoorTemperature !== null
+        ) {
+          setOutdoorTemperature(data.outdoorTemperature);
+        }
+        if (data.grayWaterLevel !== undefined && data.grayWaterLevel !== null) {
+          setGrayWaterLevel(data.grayWaterLevel);
+        }
+        if (
+          data.grayWaterTemperature !== undefined &&
+          data.grayWaterTemperature !== null
+        ) {
+          setGrayWaterTemperature(data.grayWaterTemperature);
+        }
       }
 
-      // Update indoor temperature if present
-      if (data.indoorTemperature !== undefined && data.indoorTemperature !== null) {
-        setIndoorTemperature(data.indoorTemperature);
+      if (module5Online) {
+        if (
+          data.toiletUrineLevel !== undefined &&
+          data.toiletUrineLevel !== null
+        ) {
+          setToiletUrineLevel(data.toiletUrineLevel);
+        }
       }
 
-      // Update indoor humidity if present
-      if (data.indoorHumidity !== undefined && data.indoorHumidity !== null) {
-        setIndoorHumidity(data.indoorHumidity);
+      if (module7Online) {
+        if (
+          data.cleanWaterLevel !== undefined &&
+          data.cleanWaterLevel !== null
+        ) {
+          setCleanWaterLevel(data.cleanWaterLevel);
+        }
       }
-
-      // Update outdoor temperature if present
-      if (data.outdoorTemperature !== undefined && data.outdoorTemperature !== null) {
-        setOutdoorTemperature(data.outdoorTemperature);
-      }
-
-      // Update gray water level if present
-      if (data.grayWaterLevel !== undefined && data.grayWaterLevel !== null) {
-        setGrayWaterLevel(data.grayWaterLevel);
-      }
-
-      // Update gray water temperature if present
-      if (data.grayWaterTemperature !== undefined && data.grayWaterTemperature !== null) {
-        setGrayWaterTemperature(data.grayWaterTemperature);
-      }
-
     };
 
     socket.on("moduleStatusUpdate", syncModulesFromSocket);
@@ -98,7 +120,6 @@ export const useSensorData = (socket, moduleStatuses) => {
     };
   }, [socket]);
 
-  // Clear sensor data when module-1 goes offline (ref in listener avoids stale "offline" on each render)
   useEffect(() => {
     const module1Online = moduleStatuses["module-1"]?.status === "online";
     if (!module1Online) {
@@ -110,12 +131,27 @@ export const useSensorData = (socket, moduleStatuses) => {
     }
   }, [moduleStatuses]);
 
+  useEffect(() => {
+    const module5Online = moduleStatuses["module-5"]?.status === "online";
+    if (!module5Online) {
+      setToiletUrineLevel(null);
+    }
+  }, [moduleStatuses]);
+
+  useEffect(() => {
+    const module7Online = moduleStatuses["module-7"]?.status === "online";
+    if (!module7Online) {
+      setCleanWaterLevel(null);
+    }
+  }, [moduleStatuses]);
+
   return {
     indoorTemperature,
     indoorHumidity,
     outdoorTemperature,
     grayWaterLevel,
     grayWaterTemperature,
+    toiletUrineLevel,
+    cleanWaterLevel,
   };
 };
-

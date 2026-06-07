@@ -342,6 +342,8 @@ static void appendOrionJson(JsonDocument &doc) {
 VictronManager::VictronManager(ModuleManager *moduleMgr)
     : commandHandler(&moduleMgr->getMQTTManager(), this, MODULE_ID),
       lastPublishMs(0),
+      devicesConfigured(false),
+      bleInitialized(false),
       bleScanActive(false) {
   moduleManager = moduleMgr;
 }
@@ -354,6 +356,23 @@ void VictronManager::begin() {
     return;
   }
 
+  devicesConfigured = true;
+
+  if (DEBUG_SERIAL) {
+    Serial.println("Victron devices configured (BLE starts after network connect)");
+    Serial.println("Instant Readout via Bluetooth must be enabled on each device");
+  }
+}
+
+void VictronManager::startBle() {
+  if (bleInitialized || !devicesConfigured) {
+    return;
+  }
+
+  if (DEBUG_SERIAL) {
+    Serial.println("Starting Victron BLE (WiFi/MQTT ready)...");
+  }
+
   BLEDevice::init("");
   bleScan = BLEDevice::getScan();
   bleScan->setAdvertisedDeviceCallbacks(new VictronScanCallbacks());
@@ -363,18 +382,24 @@ void VictronManager::begin() {
   bleScan->start(0, false);
   bleScanActive = true;
 
+  bleInitialized = true;
+
   if (DEBUG_SERIAL) {
     Serial.println("Victron BLE continuous scan started");
-    Serial.println("Instant Readout via Bluetooth must be enabled on each device");
   }
 }
 
 void VictronManager::loop() {
-  if (moduleManager == nullptr) {
+  if (moduleManager == nullptr || !devicesConfigured) {
     return;
   }
 
   unsigned long nowMs = millis();
+
+  if (!bleInitialized && moduleManager->isConnected()) {
+    startBle();
+  }
+
   if (nowMs - lastPublishMs >= VICTRON_STATUS_PUBLISH_INTERVAL_MS) {
     publishFullStatus();
     lastPublishMs = nowMs;
@@ -422,6 +447,7 @@ void VictronManager::printStatus() const {
   }
 
   Serial.println("Victron Manager Status:");
+  Serial.println("  BLE initialized: " + String(bleInitialized ? "Yes" : "No"));
   Serial.println("  BLE scan active: " + String(bleScanActive ? "Yes" : "No"));
   Serial.println("  SmartShunt data: " + String(smartShuntCache.hasData ? "Yes" : "No"));
   Serial.println("  MPPT1 data: " + String(mppt1Cache.hasData ? "Yes" : "No"));

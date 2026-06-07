@@ -20,6 +20,14 @@ export const themes = {
       accentBlueDark: "#334155",
       accentRed: "#ef4444",
       accentGray: "#6b7280",
+
+      // Tank liquid colors (day theme)
+      liquidFreshLight: "#38bdf8",
+      liquidFreshDark: "#0284c7",
+      liquidGrayLight: "#9ca3af",
+      liquidGrayDark: "#6b7280",
+      liquidUrineLight: "#fbbf24",
+      liquidUrineDark: "#d97706",
       
       // Icon color - same as accent blue for consistency
       iconBlue: "#475569",
@@ -86,6 +94,14 @@ export const themes = {
       accentBlueDark: "#5B9FFF", // Slightly darker variant
       accentRed: "#ef4444",
       accentGray: "#94a3b8",
+
+      // Tank liquid colors (night theme)
+      liquidFreshLight: "#6BA3FF",
+      liquidFreshDark: "#2563eb",
+      liquidGrayLight: "#94a3b8",
+      liquidGrayDark: "#64748b",
+      liquidUrineLight: "#fcd34d",
+      liquidUrineDark: "#f59e0b",
       
       // Icon color - same as water color for consistency
       iconBlue: "#6BA3FF",
@@ -170,6 +186,12 @@ export const applyTheme = (themeName) => {
   root.style.setProperty("--color-accent-blue-dark", colors.accentBlueDark);
   root.style.setProperty("--color-accent-red", colors.accentRed);
   root.style.setProperty("--color-accent-gray", colors.accentGray);
+  root.style.setProperty("--color-liquid-fresh-light", colors.liquidFreshLight);
+  root.style.setProperty("--color-liquid-fresh-dark", colors.liquidFreshDark);
+  root.style.setProperty("--color-liquid-gray-light", colors.liquidGrayLight);
+  root.style.setProperty("--color-liquid-gray-dark", colors.liquidGrayDark);
+  root.style.setProperty("--color-liquid-urine-light", colors.liquidUrineLight);
+  root.style.setProperty("--color-liquid-urine-dark", colors.liquidUrineDark);
   root.style.setProperty("--color-text-primary", colors.textPrimary);
   root.style.setProperty("--color-text-secondary", colors.textSecondary);
   

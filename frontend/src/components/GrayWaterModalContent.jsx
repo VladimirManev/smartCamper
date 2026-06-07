@@ -2,8 +2,7 @@
  * Gray water detail inside CardModal: vertical tank fill + large % and temperature.
  */
 
-import { useEffect, useState } from "react";
-import { getThemeColor } from "../utils/getThemeColor";
+import { WaterTankModalIcon } from "./WaterTankModalIcon";
 
 /**
  * @param {Object} props
@@ -12,19 +11,6 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {boolean} props.disabled - module offline
  */
 export function GrayWaterModalContent({ level, temperature, disabled = false }) {
-  const [fillTop, setFillTop] = useState("#3b82f6");
-  const [fillBottom, setFillBottom] = useState("#2563eb");
-
-  useEffect(() => {
-    const sync = () => {
-      setFillTop(getThemeColor("--color-accent-blue"));
-      setFillBottom(getThemeColor("--color-accent-blue-dark"));
-    };
-    sync();
-    const id = setInterval(sync, 2000);
-    return () => clearInterval(id);
-  }, []);
-
   const pct =
     disabled || level === null || level === undefined
       ? 0
@@ -32,15 +18,12 @@ export function GrayWaterModalContent({ level, temperature, disabled = false }) 
 
   return (
     <div className="gray-water-modal">
-      <div className="gray-water-modal-tank-wrap" aria-hidden="true">
-        <div className="gray-water-modal-tank">
-          <div
-            className="gray-water-modal-fill"
-            style={{
-              height: `${pct}%`,
-              background: `linear-gradient(to top, ${fillBottom} 0%, ${fillTop} 100%)`,
-            }}
-          />
+      <div className="gray-water-modal-tank-wrap">
+        <div className="gray-water-modal-tank" aria-hidden="true">
+          <div className="gray-water-modal-overlay">
+            <WaterTankModalIcon variant="gray" />
+          </div>
+          <div className="gray-water-modal-fill" style={{ height: `${pct}%` }} />
         </div>
       </div>
       <div className="gray-water-modal-stats">

@@ -36,7 +36,7 @@ function ts() {
 
 function buildModuleStatuses() {
   const modules = {};
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     const moduleId = `module-${i}`;
     const now = Date.now();
     modules[moduleId] = {
@@ -64,6 +64,8 @@ const STATIC = {
     outdoorTemperature: 7.5,
     grayWaterLevel: 42,
     grayWaterTemperature: 17.2,
+    cleanWaterLevel: 72,
+    toiletUrineLevel: 50,
     timestamp: ts(),
   },
   ledStatusUpdate: {
@@ -207,6 +209,8 @@ function randomSensorPayload() {
     outdoorTemperature: Math.round((7 + Math.cos(t / 19) * 4) * 10) / 10,
     grayWaterLevel: Math.min(95, Math.max(5, Math.round(40 + Math.sin(t / 23) * 15))),
     grayWaterTemperature: Math.round((17 + Math.sin(t / 21) * 2) * 10) / 10,
+    cleanWaterLevel: Math.min(95, Math.max(10, Math.round(68 + Math.sin(t / 27) * 22))),
+    toiletUrineLevel: [0, 50, 100][Math.floor(t / 12) % 3],
     timestamp: ts(),
   };
 }
@@ -541,8 +545,17 @@ io.on("connection", (socket) => {
   ];
   for (const ev of noop) {
     socket.on(ev, (payload) => {
-      if (ev === "forceModuleUpdate" && payload?.moduleId === "module-6") {
-        emitVictronStatus(socket, randomVictronPayload());
+      if (ev === "forceModuleUpdate") {
+        const moduleId = payload?.moduleId;
+        if (moduleId === "module-6") {
+          emitVictronStatus(socket, randomVictronPayload());
+        } else if (
+          moduleId === "module-1" ||
+          moduleId === "module-5" ||
+          moduleId === "module-7"
+        ) {
+          socket.emit("sensorUpdate", randomSensorPayload());
+        }
       }
       if (process.env.DEBUG_MOCK_SOCKET) {
         console.log(`[mock] ${ev}`, payload);

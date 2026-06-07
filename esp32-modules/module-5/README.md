@@ -6,31 +6,33 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 
 ### Pin Assignment
 
-| Component                    | Pin | Type            | Description                    |
-| ---------------------------- | --- | --------------- | ------------------------------ |
-| **Relay 0** (Audio System)   | 14  | Output          | Relay control for audio        |
-| **Relay 1** (Water Pump)     | 15  | Output          | Relay control for pump         |
-| **Relay 2** (Refrigerator)   | 16  | Output          | Relay control for refrigerator |
-| **Relay 3** (WC Fan)         | 23  | Output          | Relay control for WC fan       |
-| **Relay 4** (Boiler)         | 27  | Output          | Relay control for boiler       |
-| **Relay 5** (Inverter)       | 32  | Output          | Relay control for inverter      |
-| **Button 0** (Audio System)  | 17  | Input (Pull-up) | Manual toggle for relay 0       |
-| **Button 1** (Water Pump)   | 21  | Input (Pull-up) | Manual toggle for relay 1       |
-| **Button 2** (Refrigerator)  | 22  | Input (Pull-up) | Manual toggle for relay 2       |
-| **Button 3** (WC Fan)         | 25  | Input (Pull-up) | Manual toggle for relay 3       |
-| **Button 4** (Boiler)        | 26  | Input (Pull-up) | Manual toggle for relay 4       |
-| **Button 5** (Inverter)      | 33  | Input (Pull-up) | Manual toggle for relay 5       |
+| Component                   | Pin | Type            | Description                    |
+| --------------------------- | --- | --------------- | ------------------------------ |
+| **Relay 0** (Audio System)  | 14  | Output          | Relay control for audio        |
+| **Relay 1** (Water Pump)    | 15  | Output          | Relay control for pump         |
+| **Relay 2** (Refrigerator)  | 16  | Output          | Relay control for refrigerator |
+| **Relay 3** (WC Fan)        | 23  | Output          | Relay control for WC fan       |
+| **Relay 4** (Boiler)        | 27  | Output          | Relay control for boiler       |
+| **Relay 5** (Inverter)      | 32  | Output          | Relay control for inverter     |
+| **Button 0** (Audio System) | 17  | Input (Pull-up) | Manual toggle for relay 0      |
+| **Button 1** (Water Pump)   | 21  | Input (Pull-up) | Manual toggle for relay 1      |
+| **Button 2** (Refrigerator) | 22  | Input (Pull-up) | Manual toggle for relay 2      |
+| **Button 3** (WC Fan)       | 25  | Input (Pull-up) | Manual toggle for relay 3      |
+| **Button 4** (Boiler)       | 26  | Input (Pull-up) | Manual toggle for relay 4      |
+| **Button 5** (Inverter)     | 33  | Input (Pull-up) | Manual toggle for relay 5      |
+| **Urine Level 50%**         | 4   | Input           | Toilet tank lower electrode    |
+| **Urine Level 100%**        | 5   | Input           | Toilet tank upper electrode    |
 
 ### Appliance Details
 
-| Relay | Name          | Relay Pin | Button Pin | Description                |
-| ----- | ------------- | --------- | ----------- | -------------------------- |
-| **0** | Audio System  | 14        | 17          | Audio system control       |
-| **1** | Water Pump    | 15        | 21          | Water pump control         |
-| **2** | Refrigerator  | 16        | 22          | Refrigerator control       |
-| **3** | WC Fan        | 23        | 25          | WC fan control             |
-| **4** | Boiler        | 27        | 26          | Boiler control             |
-| **5** | Inverter      | 32        | 33          | Inverter control           |
+| Relay | Name         | Relay Pin | Button Pin | Description          |
+| ----- | ------------ | --------- | ---------- | -------------------- |
+| **0** | Audio System | 14        | 17         | Audio system control |
+| **1** | Water Pump   | 15        | 21         | Water pump control   |
+| **2** | Refrigerator | 16        | 22         | Refrigerator control |
+| **3** | WC Fan       | 23        | 25         | WC fan control       |
+| **4** | Boiler       | 27        | 26         | Boiler control       |
+| **5** | Inverter     | 32        | 33         | Inverter control     |
 
 ### Button Functions
 
@@ -50,17 +52,18 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 
 ### Published (Status)
 
-| Topic                                 | Message Format                        | Update Frequency                                             |
-| ------------------------------------- | ------------------------------------- | ------------------------------------------------------------ |
-| `smartcamper/sensors/module-5/status` | `{"relays": {"0": {"state": "ON"}, ...}}` | On change only (button press, MQTT command, force_update) |
-| `smartcamper/heartbeat/module-5`      | `{"timestamp": ..., "moduleId": "module-5", "uptime": ..., "wifiRSSI": ...}` | Every 10 seconds                                               |
+| Topic                                 | Message Format                                                               | Update Frequency                                          |
+| ------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `smartcamper/sensors/module-5/status` | `{"relays": {"0": {"state": "ON"}, ...}}`                                    | On change only (button press, MQTT command, force_update) |
+| `smartcamper/sensors/toilet/urine/level` | `50` (0 / 50 / 100)                                                       | On change (≥1%) or `force_update`                         |
+| `smartcamper/heartbeat/module-5`      | `{"timestamp": ..., "moduleId": "module-5", "uptime": ..., "wifiRSSI": ...}` | Every 10 seconds                                          |
 
 ### Subscribed (Commands)
 
-| Topic                                           | Payload | Action                          |
-| ----------------------------------------------- | ------- | ------------------------------- |
-| `smartcamper/commands/module-5/relay/{index}/toggle` | `{}`    | Toggle relay                 |
-| `smartcamper/commands/module-5/force_update`    | `{}`    | Force status update |
+| Topic                                                | Payload | Action              |
+| ---------------------------------------------------- | ------- | ------------------- |
+| `smartcamper/commands/module-5/relay/{index}/toggle` | `{}`    | Toggle relay        |
+| `smartcamper/commands/module-5/force_update`         | `{}`    | Force status update |
 
 ### Command Format
 
@@ -84,6 +87,34 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 - Same behavior as Ambient relay in module-2
 - Simple toggle - no dimming or complex modes
 - Button toggles relay immediately on press
+
+### Toilet Urine Level Sensor
+
+Two conductivity electrodes in the urine tank (same approach as module-1 gray water, fewer levels):
+
+| GPIO | Level |
+| ---- | ----- |
+| 4 | 50% |
+| 5 | 100% |
+
+- Read interval: 30 s (electrode-friendly)
+- Published level: **mode** over last 10 samples (~5 min), or latest reading on `force_update` / MQTT reconnect
+- Possible values: **0%, 50%, 100%**
+- Only one pin uses `INPUT_PULLUP` at a time during measurement
+
+Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
+
+## Backend Integration
+
+- **Relay status**: `smartcamper/sensors/module-5/status` → `applianceStatusUpdate`
+- **Urine level**: `smartcamper/sensors/toilet/urine/level` → `sensorUpdate` with `{ toiletUrineLevel }`
+- **Force refresh**: `forceModuleUpdate` with `{ moduleId: "module-5" }` (relays + urine level)
+
+## Frontend Integration
+
+- **Toilet card** in main menu — `ToiletUrineTank`, yellow liquid, **WC** label
+- **Detail modal** — polls module-5 every 5 s while open
+- **Status panel** (tablet) — included in rotating slides
 
 ## Installation and Setup
 
@@ -132,6 +163,12 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 - Ensure MQTT broker is running on Raspberry Pi
 - Check serial output for MQTT errors
 
+### Urine level wrong or stuck
+
+- Check electrodes GPIO 4 and 5, shared GND in tank
+- Level is discrete (0 / 50 / 100) — not a continuous sensor
+- Wait for mode window (~5 min) or send `force_update` for immediate reading
+
 ## Offline Operation
 
 Module works independently:
@@ -151,9 +188,10 @@ Module works independently:
 ## Architecture
 
 - **ModuleManager**: WiFi, MQTT, Heartbeat, Commands
-- **ApplianceManager**: Coordinates all appliance functionality
+- **ApplianceManager**: Coordinates relays, buttons, urine sensor, commands
 - **RelayController**: Manages relays (control, status)
 - **ButtonHandler**: Processes button inputs (debouncing, state machine)
+- **UrineLevelSensor**: Toilet tank level via conductivity electrodes
 
 ## Serial Debug Output
 

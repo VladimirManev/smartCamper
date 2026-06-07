@@ -4,26 +4,26 @@ Node.js server: **Express** (HTTP/static), **Socket.io** (WebSocket), **Aedes** 
 
 ## Layout
 
-| Path | Role |
-|------|------|
-| `server.js` | Express app, HTTP server, attaches Socket.io and Aedes |
-| `socket/socketHandler.js` | WebSocket lifecycle, MQTT subscribe bridge, client command routing |
-| `socket/handlers/` | Topic-specific logic (sensors, LEDs, commands, `moduleCommandHandler`) |
-| `mqtt/` | Aedes broker setup |
-| `src/ModuleRegistry.js` | Tracks module online/offline from heartbeats |
+| Path                      | Role                                                                   |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `server.js`               | Express app, HTTP server, attaches Socket.io and Aedes                 |
+| `socket/socketHandler.js` | WebSocket lifecycle, MQTT subscribe bridge, client command routing     |
+| `socket/handlers/`        | Topic-specific logic (sensors, LEDs, commands, `moduleCommandHandler`) |
+| `mqtt/`                   | Aedes broker setup                                                     |
+| `src/ModuleRegistry.js`   | Tracks module online/offline from heartbeats                           |
 
 ## WebSocket: client → server
 
 The frontend emits these events; payloads are validated in each handler.
 
-| Event | Purpose |
-|-------|---------|
-| `ledCommand` | LED strips / relays (module-2) |
-| `floorHeatingCommand` | Floor heating (module-3) |
-| `levelingCommand` | Leveling (module-3) |
-| `damperCommand` | Dampers (module-4) |
-| `tableCommand` | Table motor (module-4) |
-| `applianceCommand` | Appliances (module-5) |
+| Event                   | Purpose                                                    |
+| ----------------------- | ---------------------------------------------------------- |
+| `ledCommand`            | LED strips / relays (module-2)                             |
+| `floorHeatingCommand`   | Floor heating (module-3)                                   |
+| `levelingCommand`       | Leveling (module-3)                                        |
+| `damperCommand`         | Dampers (module-4)                                         |
+| `tableCommand`          | Table motor (module-4)                                     |
+| `applianceCommand`      | Appliances (module-5)                                      |
 | **`forceModuleUpdate`** | Request one ESP32 module to publish fresh data (see below) |
 
 ### `forceModuleUpdate`
@@ -43,17 +43,17 @@ On **new Socket.io connection**, the server still calls **`sendForceUpdateToAllO
 
 Emitted to all clients or to one client as noted in handlers:
 
-| Event | Typical payload (summary) |
-|-------|---------------------------|
-| `moduleStatusUpdate` | `{ modules, timestamp }` — registry snapshot |
-| `sensorUpdate` | Indoor/outdoor temp, humidity, gray water, etc. |
-| `ledStatusUpdate` | LED / relay state (module-2) |
-| `floorHeatingStatusUpdate` | Circles / full status (module-3) |
-| `levelingData` | Pitch / roll (module-3) |
-| `damperStatusUpdate` | Damper angles (module-4) |
-| `tableStatusUpdate` | Table state (module-4) |
-| `applianceStatusUpdate` | Appliance relays (module-5) |
-| `victronStatusUpdate` | Victron energy snapshot (module-6) |
+| Event                      | Typical payload (summary)                       |
+| -------------------------- | ----------------------------------------------- |
+| `moduleStatusUpdate`       | `{ modules, timestamp }` — registry snapshot    |
+| `sensorUpdate`             | Indoor/outdoor temp, humidity, gray water, clean water, toilet urine level, etc. |
+| `ledStatusUpdate`          | LED / relay state (module-2)                    |
+| `floorHeatingStatusUpdate` | Circles / full status (module-3)                |
+| `levelingData`             | Pitch / roll (module-3)                         |
+| `damperStatusUpdate`       | Damper angles (module-4)                        |
+| `tableStatusUpdate`        | Table state (module-4)                          |
+| `applianceStatusUpdate`    | Appliance relays (module-5)                     |
+| `victronStatusUpdate`      | Victron energy snapshot (module-6)              |
 
 ## MQTT ↔ WebSocket
 

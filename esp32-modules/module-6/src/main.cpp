@@ -26,7 +26,7 @@ void setup() {
   victronManager.begin();
 
   if (DEBUG_SERIAL) {
-    Serial.println("Module 6 fully initialized and ready!");
+    Serial.println("Module 6 ready (BLE deferred until network connect)");
   }
 }
 

@@ -29,7 +29,7 @@
 #define WIFI_PING_TIMEOUT 1000    // 1 second timeout for ping
 
 // LED Strip Configuration (Module 2 specific)
-#define NUM_STRIPS 5 // Number of LED strips
+#define NUM_STRIPS 6 // Number of LED strips
 
 // Strip settings - pins and LED counts
 #define STRIP_0_PIN 33
@@ -42,13 +42,21 @@
 #define STRIP_3_LED_COUNT 53 // Bathroom (motion activated, no button, no dimming)
 #define STRIP_4_PIN 5
 #define STRIP_4_LED_COUNT 30 // Bedroom (GRBW protocol)
+#define STRIP_5_PIN 23
+#define STRIP_5_LED_COUNT 6 // Bedroom extension (mirrors strip 4), RGBW like main lighting
+
+// Main/extension pairs (extension strips have no button; synced in firmware)
+#define KITCHEN_MAIN_STRIP_INDEX 0
+#define KITCHEN_EXTENSION_STRIP_INDEX 2
+#define BEDROOM_MAIN_STRIP_INDEX 4
+#define BEDROOM_EXTENSION_STRIP_INDEX 5
 
 // Button settings
 #define NUM_BUTTONS 4   // Number of buttons (Strip 2 is automatically controlled by Strip 0)
 #define BUTTON_PIN_1 4  // Button for strip 0 (Kitchen - controls Strip 0 and Strip 2)
 #define BUTTON_PIN_2 12 // Button for strip 1
 #define BUTTON_PIN_3 27 // Button for relay circuit (toggle button)
-#define BUTTON_PIN_4 13 // Button for strip 4 (Bedroom)
+#define BUTTON_PIN_4 13 // Button for strip 4 (Bedroom; extension strip 5 follows automatically)
 
 // Relay settings (for LED diodes circuit)
 #define NUM_RELAYS 1   // Number of relays (easily expandable)

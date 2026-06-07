@@ -21,6 +21,8 @@ import { StatusIcons } from "./components/StatusIcons";
 import { isModuleStatusIconsEnabled } from "./utils/moduleGating";
 import { SensorCard } from "./components/SensorCard";
 import { GrayWaterTank } from "./components/GrayWaterTank";
+import { FreshWaterTank } from "./components/FreshWaterTank";
+import { ToiletUrineTank } from "./components/ToiletUrineTank";
 import { BatteryCard } from "./components/BatteryCard";
 import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
@@ -39,10 +41,17 @@ import { StatusCard } from "./components/StatusCard";
 import { StatusModalContent } from "./components/StatusModalContent";
 import { ScenesGroupCard } from "./components/ScenesGroupCard";
 import { ScenesModalContent } from "./components/ScenesModalContent";
+import { AllOffConfirmModal } from "./components/AllOffConfirmModal";
+import {
+  DEFAULT_ALL_OFF_OPTIONS,
+  buildAllOffScenePayload,
+} from "./components/AllOffScenePanel";
 import { applyScene, applyNormalScene, applyDriveScene, applyFilmScene, applyCookingScene, applySleepScene, applyAllOffScene, isSceneDisabled as isSceneDisabledForModules } from "./utils/applyScene";
 import { CardModal } from "./components/CardModal";
 import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
 import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
+import { FreshWaterModalContent } from "./components/FreshWaterModalContent";
+import { ToiletUrineModalContent } from "./components/ToiletUrineModalContent";
 import { BatteryModalContent } from "./components/BatteryModalContent";
 import {
   LEDStripModalContent,
@@ -114,6 +123,8 @@ function App() {
     outdoorTemperature,
     grayWaterLevel,
     grayWaterTemperature,
+    toiletUrineLevel,
+    cleanWaterLevel,
   } = useSensorData(socket, moduleStatuses);
 
   const {
@@ -143,6 +154,9 @@ function App() {
 
   // Check if module-6 is online (Victron BLE energy monitor)
   const isModule6Online = isModuleOnline("module-6");
+
+  // Check if module-7 is online (fresh water level)
+  const isModule7Online = isModuleOnline("module-7");
 
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
@@ -182,6 +196,7 @@ function App() {
 
   // Modal state - stack of modals (must be defined before useLeveling)
   const [modalStack, setModalStack] = useState([]);
+  const [allOffConfirmOpen, setAllOffConfirmOpen] = useState(false);
   const [statusSlideTitle, setStatusSlideTitle] = useState("Battery");
   const [selectedLightingDetail, setSelectedLightingDetail] = useState(
     DEFAULT_LIGHTING_DETAIL
@@ -192,6 +207,8 @@ function App() {
   const { pitch, roll, lastDataTimestamp } = useLeveling(socket, isLevelingModalOpen);
 
   const GRAY_WATER_MODULE_ID = "module-1";
+  const TOILET_URINE_MODULE_ID = "module-5";
+  const FRESH_WATER_MODULE_ID = "module-7";
 
   /**
    * While Gray Water is the visible modal (top of stack), poll module-1 for fresh MQTT data.
@@ -206,6 +223,38 @@ function App() {
     const emit = () => {
       if (!socket.connected) return;
       socket.emit("forceModuleUpdate", { moduleId: GRAY_WATER_MODULE_ID });
+    };
+    emit();
+    const id = setInterval(emit, 5000);
+    return () => clearInterval(id);
+  }, [socket, connected, modalStack]);
+
+  /** Poll module-5 while toilet urine modal is open. */
+  useEffect(() => {
+    const toiletUrineIsVisible =
+      modalStack.length > 0 &&
+      modalStack[modalStack.length - 1].cardType === "toilet-urine";
+    if (!socket || !connected || !toiletUrineIsVisible) return;
+
+    const emit = () => {
+      if (!socket.connected) return;
+      socket.emit("forceModuleUpdate", { moduleId: TOILET_URINE_MODULE_ID });
+    };
+    emit();
+    const id = setInterval(emit, 5000);
+    return () => clearInterval(id);
+  }, [socket, connected, modalStack]);
+
+  /** Poll module-7 while fresh water modal is open. */
+  useEffect(() => {
+    const freshWaterIsVisible =
+      modalStack.length > 0 &&
+      modalStack[modalStack.length - 1].cardType === "fresh-water";
+    if (!socket || !connected || !freshWaterIsVisible) return;
+
+    const emit = () => {
+      if (!socket.connected) return;
+      socket.emit("forceModuleUpdate", { moduleId: FRESH_WATER_MODULE_ID });
     };
     emit();
     const id = setInterval(emit, 5000);
@@ -638,6 +687,24 @@ function App() {
       );
     }
 
+    if (cardType === "fresh-water") {
+      return (
+        <FreshWaterModalContent
+          level={cleanWaterLevel}
+          disabled={!isModule7Online}
+        />
+      );
+    }
+
+    if (cardType === "toilet-urine") {
+      return (
+        <ToiletUrineModalContent
+          level={toiletUrineLevel}
+          disabled={!isModule5Online}
+        />
+      );
+    }
+
     if (cardType === "battery") {
       return (
         <BatteryModalContent
@@ -686,6 +753,10 @@ function App() {
           grayWaterLevel={grayWaterLevel}
           grayWaterTemperature={grayWaterTemperature}
           grayWaterDisabled={!isModule1Online}
+          cleanWaterLevel={cleanWaterLevel}
+          cleanWaterDisabled={!isModule7Online}
+          toiletUrineLevel={toiletUrineLevel}
+          toiletUrineDisabled={!isModule5Online}
           indoorTemperature={indoorTemperature}
           indoorHumidity={indoorHumidity}
           outdoorTemperature={outdoorTemperature}
@@ -921,6 +992,16 @@ function App() {
     (sceneId) => isSceneDisabledForModules(sceneId, isModuleOnline),
     [isModuleOnline]
   );
+
+  const handleScenesLongPress = useCallback(() => {
+    if (!isSceneDisabled("all-off")) {
+      setAllOffConfirmOpen(true);
+    }
+  }, [isSceneDisabled]);
+
+  const handleConfirmQuickAllOff = useCallback(() => {
+    handleApplyAllOff(buildAllOffScenePayload(DEFAULT_ALL_OFF_OPTIONS));
+  }, [handleApplyAllOff]);
 
   // Floor heating command handlers
   const handleCircleToggle = (index) => {
@@ -1312,6 +1393,7 @@ function App() {
           <ScenesGroupCard
             name="Scenes"
             onClick={() => activateFromMainMenu("scenes-group", "Scenes")}
+            onLongPress={handleScenesLongPress}
           />
           <p className="card-label">Scenes</p>
         </div>
@@ -1344,6 +1426,26 @@ function App() {
             onLongPress={() => activateFromMainMenu("gray-water", "Gray Water")}
           />
           <p className="card-label">Gray Water</p>
+        </div>
+
+        <div className="card-wrapper">
+          <FreshWaterTank
+            level={cleanWaterLevel}
+            disabled={!isModule7Online}
+            onClick={() => activateFromMainMenu("fresh-water", "Fresh Water")}
+            onLongPress={() => activateFromMainMenu("fresh-water", "Fresh Water")}
+          />
+          <p className="card-label">Fresh Water</p>
+        </div>
+
+        <div className="card-wrapper">
+          <ToiletUrineTank
+            level={toiletUrineLevel}
+            disabled={!isModule5Online}
+            onClick={() => activateFromMainMenu("toilet-urine", "Toilet")}
+            onLongPress={() => activateFromMainMenu("toilet-urine", "Toilet")}
+          />
+          <p className="card-label">Toilet</p>
         </div>
 
         <div className="card-wrapper">
@@ -1515,6 +1617,12 @@ function App() {
           <div className="content-with-image">{mainColumn}</div>
         </>
       )}
+
+      <AllOffConfirmModal
+        isOpen={allOffConfirmOpen}
+        onClose={() => setAllOffConfirmOpen(false)}
+        onConfirm={handleConfirmQuickAllOff}
+      />
 
       {!isTabletLandscape &&
         modalStack.map((modal, index) => {

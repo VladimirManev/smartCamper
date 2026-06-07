@@ -23,7 +23,11 @@ class VictronManager {
   CommandHandler commandHandler;
 
   unsigned long lastPublishMs;
+  bool devicesConfigured;
+  bool bleInitialized;
   bool bleScanActive;
+
+  void startBle();
 
  public:
   VictronManager(ModuleManager *moduleMgr);

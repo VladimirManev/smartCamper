@@ -49,6 +49,18 @@
 
 #define NUM_BUTTONS 6 // Number of buttons
 
+// Urine level sensor (toilet) — conductivity electrodes, same logic as module-1 gray water
+#define URINE_LEVEL_PIN_1 4   // GPIO 4 — 50% level (lower electrode)
+#define URINE_LEVEL_PIN_2 5   // GPIO 5 — 100% level (upper electrode)
+#define NUM_URINE_LEVEL_PINS 2
+
+#define URINE_LEVEL_PERCENT_1 50
+#define URINE_LEVEL_PERCENT_2 100
+
+#define URINE_LEVEL_READ_INTERVAL 30000   // 30 seconds
+#define URINE_LEVEL_MODE_SAMPLE_COUNT 10  // mode over ~5 minutes
+#define URINE_LEVEL_THRESHOLD 1.0         // publish on ≥1% change (0 / 50 / 100)
+
 // Appliance names (for identification)
 // Relay 0: Audio System
 // Relay 1: Water Pump

@@ -6,7 +6,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { getThemeColor } from "../utils/getThemeColor";
+import { isGrayWaterCritical } from "../utils/waterLevelCritical";
 import { Card } from "./Card";
+import { WaterTankCriticalBadge } from "./WaterTankCriticalBadge";
 
 /**
  * GrayWaterTank component
@@ -25,37 +27,30 @@ export const GrayWaterTank = ({ level, temperature, disabled = false, onClick, o
   const [showLevelReadout, setShowLevelReadout] = useState(false);
 
   // Get theme colors
-  const [accentBlue, setAccentBlue] = useState("#3b82f6");
-  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
   const [textPrimary, setTextPrimary] = useState("#f5f5f5");
-  
+
   useEffect(() => {
     const updateColors = () => {
-      setAccentBlue(getThemeColor("--color-accent-blue"));
-      setAccentBlueDark(getThemeColor("--color-accent-blue-dark"));
       setTextPrimary(getThemeColor("--color-text-primary"));
     };
-    
-    // Update on mount
     updateColors();
-    
-    // Update periodically to catch theme changes (reduced frequency for better performance)
-    const interval = setInterval(updateColors, 2000); // 2 seconds instead of 100ms
-    
+    const interval = setInterval(updateColors, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  // Update CSS custom properties on the button element
   useEffect(() => {
     if (cardRef.current) {
-      const button = cardRef.current.querySelector('.neumorphic-button');
+      const button = cardRef.current.querySelector(".neumorphic-button");
       if (button) {
-        button.style.setProperty('--water-level', displayLevel !== null && displayLevel !== undefined ? `${displayLevel}%` : '0%');
-        button.style.setProperty('--water-color-top', accentBlue);
-        button.style.setProperty('--water-color-bottom', accentBlueDark);
+        button.style.setProperty(
+          "--water-level",
+          displayLevel !== null && displayLevel !== undefined
+            ? `${displayLevel}%`
+            : "0%"
+        );
       }
     }
-  }, [displayLevel, accentBlue, accentBlueDark]);
+  }, [displayLevel]);
 
   const hasLevel =
     !disabled &&
@@ -85,9 +80,12 @@ export const GrayWaterTank = ({ level, temperature, disabled = false, onClick, o
     readoutText = `${temperature.toFixed(1)}°`;
   }
 
+  const isCritical = isGrayWaterCritical(displayLevel);
+
   // Text content to display in the center of the button
   const waterTankContent = (
     <div className="water-tank-content">
+      <i className="fas fa-droplet water-tank-card-icon" aria-hidden="true" />
       {readoutText !== null && (
         <div
           className="water-tank-readout"
@@ -102,7 +100,8 @@ export const GrayWaterTank = ({ level, temperature, disabled = false, onClick, o
   );
 
   return (
-    <div ref={cardRef} className="gray-water-card-root">
+    <div ref={cardRef} className="gray-water-card-root water-tank-card-root">
+      <WaterTankCriticalBadge show={isCritical} />
       <Card
         name="Gray Water"
         icon={null}

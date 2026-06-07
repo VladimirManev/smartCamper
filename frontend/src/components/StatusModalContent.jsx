@@ -1,14 +1,22 @@
 /**
- * Tablet Status panel — rotates battery, gray water, and overview every 4s.
+ * Tablet Status panel — rotates battery, water tanks, and overview every 4s.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { BatteryModalContent } from "./BatteryModalContent";
 import { GrayWaterModalContent } from "./GrayWaterModalContent";
+import { FreshWaterModalContent } from "./FreshWaterModalContent";
+import { ToiletUrineModalContent } from "./ToiletUrineModalContent";
 import { ClockDateCard } from "./ClockDateCard";
 
-const SLIDES = ["battery", "gray-water", "overview"];
-const SLIDE_TITLES = ["Battery", "Gray Water", ""];
+const SLIDES = [
+  "battery",
+  "gray-water",
+  "fresh-water",
+  "toilet-urine",
+  "overview",
+];
+const SLIDE_TITLES = ["Battery", "Gray Water", "Fresh Water", "Toilet", ""];
 const ROTATE_MS = 4000;
 
 function formatSensorValue(value, suffix, decimals = 1) {
@@ -29,6 +37,10 @@ function formatSensorValue(value, suffix, decimals = 1) {
  * @param {number|null} props.grayWaterLevel
  * @param {number|null} props.grayWaterTemperature
  * @param {boolean} props.grayWaterDisabled
+ * @param {number|null} props.cleanWaterLevel
+ * @param {boolean} props.cleanWaterDisabled
+ * @param {number|null} props.toiletUrineLevel
+ * @param {boolean} props.toiletUrineDisabled
  * @param {number|null} props.indoorTemperature
  * @param {number|null} props.indoorHumidity
  * @param {number|null} props.outdoorTemperature
@@ -47,6 +59,10 @@ export function StatusModalContent({
   grayWaterLevel,
   grayWaterTemperature,
   grayWaterDisabled = false,
+  cleanWaterLevel,
+  cleanWaterDisabled = false,
+  toiletUrineLevel,
+  toiletUrineDisabled = false,
   indoorTemperature,
   indoorHumidity,
   outdoorTemperature,
@@ -103,9 +119,21 @@ export function StatusModalContent({
             disabled={grayWaterDisabled}
           />
         </div>
+        <div className={paneClass(2)} aria-hidden={activeIndex !== 2}>
+          <FreshWaterModalContent
+            level={cleanWaterLevel}
+            disabled={cleanWaterDisabled}
+          />
+        </div>
+        <div className={paneClass(3)} aria-hidden={activeIndex !== 3}>
+          <ToiletUrineModalContent
+            level={toiletUrineLevel}
+            disabled={toiletUrineDisabled}
+          />
+        </div>
         <div
-          className={paneClass(2)}
-          aria-hidden={activeIndex !== 2}
+          className={paneClass(4)}
+          aria-hidden={activeIndex !== 4}
           aria-label="Time, date, and climate"
         >
           <div className="status-modal__overview">

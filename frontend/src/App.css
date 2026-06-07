@@ -9,6 +9,14 @@
   --color-accent-blue-dark: #2563eb;
   --color-accent-red: #ef4444;
   --color-accent-gray: #94a3b8;
+
+  /* Tank liquid fill colors (overridden by applyTheme) */
+  --color-liquid-fresh-light: #6ba3ff;
+  --color-liquid-fresh-dark: #2563eb;
+  --color-liquid-gray-light: #94a3b8;
+  --color-liquid-gray-dark: #64748b;
+  --color-liquid-urine-light: #fcd34d;
+  --color-liquid-urine-dark: #f59e0b;
   
   /* Text colors */
   --color-text-primary: #f5f5f5;
@@ -1490,6 +1498,33 @@ body {
   overflow: visible;
 }
 
+.water-tank-card-root {
+  position: relative;
+  overflow: visible;
+}
+
+.water-tank-critical-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-accent-red);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  border: 2px solid var(--color-bg-primary);
+  box-shadow: 0 1px 5px var(--color-black-30);
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Water tank button - the button itself acts as the tank */
 /* Grid stacks children (readout + empty .button-text) in one cell so text stays centered */
 .water-tank-card .neumorphic-button {
@@ -1513,9 +1548,9 @@ body {
   height: var(--water-level, 0%);
   background: linear-gradient(
     to top,
-    var(--water-color-bottom, #2563eb) 0%,
-    var(--water-color-bottom, #2563eb) 50%,
-    var(--water-color-top, #3b82f6) 100%
+    var(--water-color-bottom) 0%,
+    var(--water-color-bottom) 50%,
+    var(--water-color-top) 100%
   );
   opacity: 0.7;
   transition: height 0.5s ease;
@@ -1546,6 +1581,38 @@ body {
 
 .water-tank-label {
   display: none; /* Hide label inside card, will be shown below via card-label */
+}
+
+.water-tank-card-icon {
+  font-size: 1.15rem;
+  color: var(--color-text-primary);
+  opacity: 0.9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.water-tank-card-icon--svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.water-tank-card-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin-bottom: 3px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
+.water-tank-card .disabled .water-tank-card-icon,
+.water-tank-card-root .led-card.disabled .water-tank-card-icon,
+.water-tank-card-root .led-card.disabled .water-tank-card-label {
+  opacity: 0.35;
 }
 
 .water-tank-readout {
@@ -2128,16 +2195,48 @@ body {
   box-shadow: 0 0 6px var(--color-accent-blue-20);
 }
 
-/* Gray water detail modal: tank on top, level + temp stacked below */
+.modal-content:has(.gray-water-modal) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Water tank detail modals: icon, tank, stats — vertically centered in panel */
 .gray-water-modal {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 1.75rem;
-  padding: 0.35rem 0 0.35rem;
-  min-height: 200px;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+  min-height: min(320px, 52vh);
   width: 100%;
+  flex: 1;
+  margin: auto 0;
+}
+
+.gray-water-modal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.gray-water-modal-icon {
+  font-size: 2.58rem;
+  color: var(--color-text-primary);
+  opacity: 0.92;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.gray-water-modal-icon--label {
+  font-size: 1.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .gray-water-modal-tank-wrap {
@@ -2149,6 +2248,7 @@ body {
 }
 
 .gray-water-modal-tank {
+  position: relative;
   width: 104px;
   height: 210px;
   max-height: 40vh;
@@ -2162,7 +2262,48 @@ body {
   box-shadow: inset 0 2px 10px var(--color-black-30);
 }
 
+.gray-water-card-root {
+  --water-color-top: var(--color-liquid-gray-light);
+  --water-color-bottom: var(--color-liquid-gray-dark);
+}
+
+.fresh-water-card-root {
+  --water-color-top: var(--color-liquid-fresh-light);
+  --water-color-bottom: var(--color-liquid-fresh-dark);
+}
+
+.toilet-urine-card-root {
+  --water-color-top: var(--color-liquid-urine-light);
+  --water-color-bottom: var(--color-liquid-urine-dark);
+}
+
+.gray-water-modal:not(.fresh-water-modal):not(.toilet-urine-modal) .gray-water-modal-fill {
+  background: linear-gradient(
+    to top,
+    var(--color-liquid-gray-dark) 0%,
+    var(--color-liquid-gray-light) 100%
+  );
+}
+
+.fresh-water-modal .gray-water-modal-fill {
+  background: linear-gradient(
+    to top,
+    var(--color-liquid-fresh-dark) 0%,
+    var(--color-liquid-fresh-light) 100%
+  );
+}
+
+.toilet-urine-modal .gray-water-modal-fill {
+  background: linear-gradient(
+    to top,
+    var(--color-liquid-urine-dark) 0%,
+    var(--color-liquid-urine-light) 100%
+  );
+}
+
 .gray-water-modal-fill {
+  position: relative;
+  z-index: 1;
   width: 100%;
   min-height: 0;
   transition: height 0.45s ease;
@@ -2176,9 +2317,14 @@ body {
   justify-content: center;
   gap: 1.25rem;
   width: 100%;
-  padding: 0.5rem 0 0;
-  margin-top: 0.25rem;
+  padding: 0;
   flex: 0 0 auto;
+}
+
+/* Single-stat modals: reserve space like gray water (level + temp) */
+.fresh-water-modal .gray-water-modal-stats,
+.toilet-urine-modal .gray-water-modal-stats {
+  min-height: 5.75rem;
 }
 
 .gray-water-modal-stat {
@@ -2207,8 +2353,16 @@ body {
 
 @media (max-width: 400px) {
   .gray-water-modal {
-    gap: 1.35rem;
-    min-height: 185px;
+    gap: 1rem;
+    min-height: min(280px, 48vh);
+  }
+
+  .gray-water-modal-icon {
+    font-size: 2.18rem;
+  }
+
+  .gray-water-modal-icon--label {
+    font-size: 1.32rem;
   }
 
   .gray-water-modal-tank {
@@ -2917,6 +3071,41 @@ body {
   to {
     opacity: 0;
   }
+}
+
+.modal-container--compact {
+  height: auto;
+  max-height: none;
+  max-width: 320px;
+}
+
+.modal-container--compact .modal-content {
+  flex: 0 0 auto;
+}
+
+.all-off-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.all-off-confirm__message {
+  margin: 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.all-off-confirm__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.all-off-confirm__confirm {
+  width: 100%;
 }
 
 .modal-container {
@@ -4378,6 +4567,8 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
   /* GrayWaterTank / BatteryCard wrap Card in an extra div — must fill grid cell like other cards */
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .fresh-water-card-root,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .toilet-urine-card-root,
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .battery-card-root {
     width: auto;
     max-width: 100%;
@@ -4393,6 +4584,8 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .led-card,
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .sensor-card,
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .gray-water-card-root .led-card,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .fresh-water-card-root .led-card,
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .toilet-urine-card-root .led-card,
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .battery-card-root .led-card {
     width: var(--tablet-split-card-size);
     height: var(--tablet-split-card-size);
@@ -4962,6 +5155,18 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   }
 
   .app.app--tablet-landscape .tablet-embedded-panel__body .status-modal .gray-water-modal {
+    min-height: 0;
+    gap: 1.35rem;
+  }
+
+  .app.app--tablet-landscape
+    .tablet-embedded-panel__body
+    .status-modal
+    .fresh-water-modal,
+  .app.app--tablet-landscape
+    .tablet-embedded-panel__body
+    .status-modal
+    .toilet-urine-modal {
     min-height: 0;
     gap: 1.35rem;
   }

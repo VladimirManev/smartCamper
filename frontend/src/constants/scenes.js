@@ -5,7 +5,7 @@
 export const SCENES = [
   { id: "normal", label: "Normal", icon: "house" },
   { id: "drive", label: "Drive", icon: "car" },
-  { id: "film", label: "Movie", icon: "film" },
+  { id: "film", label: "Cinema", icon: "film" },
   { id: "sleep", label: "Sleep", icon: "bed" },
   { id: "cooking", label: "Cooking", icon: "utensils" },
   { id: "all-off", label: "All Off", icon: "power-off" },
