@@ -44,31 +44,35 @@ function round2(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
-function estimatePanelAmps(mppt) {
-  if (!mppt || !mppt.pvPower || mppt.pvPower <= 0) return 0;
-  const voltage = mppt.batteryVoltage ?? 12.6;
-  if (voltage <= 0) return 0;
-  return Math.round((mppt.pvPower / voltage) * 10) / 10;
-}
-
 /**
  * @param {Object|null|undefined} shunt
+ * @param {number|null|undefined} [fallbackVoltage]
  */
-export function computeFlowFromSmartShunt(shunt) {
+export function computeFlowFromSmartShunt(shunt, fallbackVoltage = null) {
+  const resolvedFallback =
+    fallbackVoltage != null && !Number.isNaN(Number(fallbackVoltage))
+      ? round2(fallbackVoltage)
+      : null;
+
+  const voltage =
+    shunt?.voltage != null && !Number.isNaN(Number(shunt.voltage))
+      ? round2(shunt.voltage)
+      : resolvedFallback;
+
   if (!shunt || shunt.current == null) {
-    return { direction: "idle", amps: 0, watts: 0, netAmps: 0 };
+    return { direction: "idle", amps: 0, watts: 0, netAmps: 0, voltage };
   }
 
   const netAmps = round2(shunt.current);
-  const voltage = Number(shunt.voltage) || 12.6;
+  const flowVoltage = voltage ?? 12.6;
   const absAmps = Math.round(Math.abs(netAmps) * 10) / 10;
-  const watts = Math.round(absAmps * voltage);
+  const watts = Math.round(absAmps * flowVoltage);
 
   let direction = "idle";
   if (netAmps > WIRE_MIN_VISIBLE_AMPS) direction = "charge";
   else if (netAmps < -WIRE_MIN_VISIBLE_AMPS) direction = "discharge";
 
-  return { direction, amps: absAmps, watts, netAmps };
+  return { direction, amps: absAmps, watts, netAmps, voltage: flowVoltage };
 }
 
 function buildOfflineBySource(victronSources) {
@@ -106,6 +110,7 @@ function buildOfflineByWire(offlineBySource) {
  *   wireAmps: Object,
  *   batteryLevel: number|null,
  *   batteryFlow: Object,
+ *   batteryVoltage: number|null,
  *   offlineByNode: Record<string, boolean>,
  *   offlineByWire: Record<string, boolean>,
  *   smartShuntOffline: boolean,
@@ -125,6 +130,7 @@ export function mapVictronToBatterySystem(victronData) {
       wireAmps: {},
       batteryLevel: null,
       batteryFlow: computeFlowFromSmartShunt(null),
+      batteryVoltage: null,
       offlineByNode: emptyOfflineNodes,
       offlineByWire: emptyOfflineWires,
       smartShuntOffline: true,
@@ -153,7 +159,13 @@ export function mapVictronToBatterySystem(victronData) {
   const offlineByWire = buildOfflineByWire(offlineBySource);
 
   const batteryVoltage =
-    shunt?.voltage ?? mppt1?.batteryVoltage ?? mppt2?.batteryVoltage ?? 12.6;
+    shunt?.voltage != null
+      ? round2(shunt.voltage)
+      : mppt1?.batteryVoltage != null
+        ? round2(mppt1.batteryVoltage)
+        : mppt2?.batteryVoltage != null
+          ? round2(mppt2.batteryVoltage)
+          : null;
 
   const mppt1BatteryCurrent = Number(mppt1?.batteryCurrent) || 0;
   const mppt2BatteryCurrent = Number(mppt2?.batteryCurrent) || 0;
@@ -172,9 +184,15 @@ export function mapVictronToBatterySystem(victronData) {
     );
   }
 
+  const wireVoltage = batteryVoltage ?? 12.6;
+
   const nodes = {
     charger230v: acCharger
-      ? { voltage: 230, current: acCharger.current ?? 0 }
+      ? {
+          voltage: 230,
+          current: acCharger.acCurrent ?? 0,
+          batteryCurrent: acCharger.current ?? 0,
+        }
       : null,
     dcDcBooster: orion
       ? { voltage: orion.outputVoltage, current: orion.outputCurrent ?? 0 }
@@ -197,16 +215,16 @@ export function mapVictronToBatterySystem(victronData) {
     dcLoads:
       dcLoadsCurrent != null
         ? {
-            power: Math.round(Math.max(0, dcLoadsCurrent) * batteryVoltage),
-            voltage: batteryVoltage,
+            power: Math.round(Math.max(0, dcLoadsCurrent) * wireVoltage),
+            voltage: wireVoltage,
             current: Math.max(0, dcLoadsCurrent),
           }
         : null,
   };
 
   const wireAmps = {
-    "solar1-mppt1": estimatePanelAmps(mppt1),
-    "solar2-mppt2": estimatePanelAmps(mppt2),
+    "solar1-mppt1": Number(mppt1?.pvPower) || 0,
+    "solar2-mppt2": Number(mppt2?.pvPower) || 0,
     "alternator-dcdc": Number(orion?.inputCurrent) || 0,
     "dcdc-battery": orionOutputCurrent,
     "mppt1-battery": mppt1BatteryCurrent,
@@ -219,7 +237,8 @@ export function mapVictronToBatterySystem(victronData) {
     nodes,
     wireAmps,
     batteryLevel: shunt?.soc ?? null,
-    batteryFlow: computeFlowFromSmartShunt(shunt),
+    batteryFlow: computeFlowFromSmartShunt(shunt, batteryVoltage),
+    batteryVoltage,
     offlineByNode,
     offlineByWire,
     smartShuntOffline: offlineBySource.smartshunt,

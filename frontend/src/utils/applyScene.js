@@ -11,23 +11,16 @@ import {
   isStripActiveForLightingGroup,
 } from "./lightingGroupAggregate";
 import { getRadiantMasterOffPlan } from "./radiantGroupAggregate";
+import { APPLIANCE_INDEX } from "../constants/appliances";
 
 const STRIP_INDEX = {
   kitchen: 0,
   main: 1,
+  bathroom: 3,
   bedroom: 4,
 };
 
 export const SLEEP_BEDROOM_OFF_DEFAULT_SECONDS = 120;
-
-const APPLIANCE_INDEX = {
-  audio: 0,
-  pump: 1,
-  fridge: 2,
-  wcFan: 3,
-  boiler: 4,
-  inverter: 5,
-};
 
 function brightnessPercent(percent) {
   return Math.max(1, Math.round((255 * percent) / 100));
@@ -51,6 +44,12 @@ function ensureApplianceOff(appliances, index, sendApplianceCommand) {
       action: "toggle",
     });
   }
+}
+
+/** Inverter OFF always turns boiler OFF first. */
+function ensureInverterOff(appliances, sendApplianceCommand) {
+  ensureApplianceOff(appliances, APPLIANCE_INDEX.boiler, sendApplianceCommand);
+  ensureApplianceOff(appliances, APPLIANCE_INDEX.inverter, sendApplianceCommand);
 }
 
 /**
@@ -212,7 +211,7 @@ export function applyDriveScene(
   }
 
   if (options.inverterOff) {
-    ensureApplianceOff(appliances, APPLIANCE_INDEX.inverter, sendApplianceCommand);
+    ensureInverterOff(appliances, sendApplianceCommand);
   }
 }
 
@@ -296,7 +295,7 @@ export function applyAllOffScene(
   }
 
   if (options.inverterOff) {
-    ensureApplianceOff(appliances, APPLIANCE_INDEX.inverter, sendApplianceCommand);
+    ensureInverterOff(appliances, sendApplianceCommand);
   }
 }
 
@@ -314,7 +313,7 @@ export function applyAllOffScene(
 function getSleepLightsOffExceptBedroomPlan(ledStrips, relays) {
   const stripIndices = [];
   for (const index of LIGHTING_GROUP_STRIP_INDICES) {
-    if (index === STRIP_INDEX.bedroom) continue;
+    if (index === STRIP_INDEX.bedroom || index === STRIP_INDEX.bathroom) continue;
     if (isStripActiveForLightingGroup(index, ledStrips[index])) {
       stripIndices.push(index);
     }
@@ -324,7 +323,7 @@ function getSleepLightsOffExceptBedroomPlan(ledStrips, relays) {
 }
 
 /**
- * Sleep: off appliances/lights (except bedroom), bedroom @ 60%, then bedroom off after chosen delay.
+ * Sleep: off appliances/lights (except bedroom + bathroom), bathroom AUTO @ 10%, bedroom @ 60%, then bedroom off after chosen delay.
  * Returns cleanup to cancel the bedroom off timer (e.g. when re-applying Sleep).
  *
  * @param {Object} ctx
@@ -354,7 +353,7 @@ export function applySleepScene(
   }
 
   if (options.inverterOff) {
-    ensureApplianceOff(appliances, APPLIANCE_INDEX.inverter, sendApplianceCommand);
+    ensureInverterOff(appliances, sendApplianceCommand);
   }
 
   if (options.lightsOffExceptBedroom) {
@@ -366,6 +365,16 @@ export function applySleepScene(
       sendLEDCommand({ type: "relay", action: "toggle" });
     }
   }
+
+  sendLEDCommand({
+    type: "strip",
+    index: STRIP_INDEX.bathroom,
+    action: "apply",
+    payload: {
+      brightness: brightnessPercent(10),
+      mode: "auto",
+    },
+  });
 
   let bedroomOffTimer = null;
 

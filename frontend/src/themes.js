@@ -26,8 +26,8 @@ export const themes = {
       liquidFreshDark: "#0284c7",
       liquidGrayLight: "#9ca3af",
       liquidGrayDark: "#6b7280",
-      liquidUrineLight: "#fbbf24",
-      liquidUrineDark: "#d97706",
+      liquidUrineLight: "#fde68a",
+      liquidUrineDark: "#fbbf24",
       
       // Icon color - same as accent blue for consistency
       iconBlue: "#475569",
@@ -100,8 +100,8 @@ export const themes = {
       liquidFreshDark: "#2563eb",
       liquidGrayLight: "#94a3b8",
       liquidGrayDark: "#64748b",
-      liquidUrineLight: "#fcd34d",
-      liquidUrineDark: "#f59e0b",
+      liquidUrineLight: "#fef9c3",
+      liquidUrineDark: "#fde047",
       
       // Icon color - same as water color for consistency
       iconBlue: "#6BA3FF",

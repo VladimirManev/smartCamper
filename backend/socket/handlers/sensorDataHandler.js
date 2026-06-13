@@ -481,6 +481,13 @@ function handleVictron(io, topicParts, message) {
         timestamp: new Date().toISOString(),
       });
 
+      if (process.env.DEBUG_VICTRON_SOCKET) {
+        const shunt = statusData.smartshunt;
+        console.log(
+          `📤 Victron → socket smartshunt ${shunt?.voltage ?? "—"}V ${shunt?.current ?? "—"}A ${shunt?.soc ?? "—"}%`
+        );
+      }
+
       return true;
     } catch (error) {
       console.log(`❌ Failed to parse Victron status JSON: ${error.message}`);

@@ -7,9 +7,17 @@ import {
   BATTERY_SYSTEM_NODES,
   BATTERY_WIRE_LINKS,
   BATTERY_NODES_WITHOUT_OFF_BADGE,
+  BATTERY_WIRE_POWER_LABELS,
 } from "../config/batterySystemNodes";
 import { buildWireShape } from "../utils/batteryWireGeometry";
-import { deriveWireAmpsFromNodes, formatWireAmps, hasWireCurrent, computeBatteryFlow } from "../utils/batteryWireAmps";
+import {
+  deriveWireAmpsFromNodes,
+  formatWireLabel,
+  formatWirePower,
+  getTotalSolarPower,
+  hasWireLabelValue,
+  computeBatteryFlow,
+} from "../utils/batteryWireAmps";
 import { BatteryNodeCard } from "./BatteryNodeCard";
 import { BatteryDiagramCenter } from "./BatteryDiagramCenter";
 
@@ -27,10 +35,10 @@ function getWireLabelClassName() {
   return "battery-energy-diagram__wire-label";
 }
 
-function getWireElementProps(wire, amps, isOffline) {
+function getWireElementProps(wire, value, isOffline) {
   const shouldPulse =
     !isOffline &&
-    hasWireCurrent(amps) &&
+    hasWireLabelValue(wire.id, value) &&
     (wire.flow === "charge" || wire.flow === "discharge");
 
   if (!shouldPulse) {
@@ -46,6 +54,7 @@ function getWireElementProps(wire, amps, isOffline) {
  * @param {Object} props.nodes - id -> metrics object
  * @param {Object} props.wireAmps - wire id -> amps
  * @param {Object} [props.batteryFlow] - net flow from SmartShunt (preferred)
+ * @param {number|null} [props.batteryVoltage]
  * @param {Record<string, boolean>} [props.offlineByNode]
  * @param {Record<string, boolean>} [props.offlineByWire]
  * @param {boolean} [props.smartShuntOffline]
@@ -56,6 +65,7 @@ export function BatteryEnergyDiagram({
   nodes = {},
   wireAmps = {},
   batteryFlow: batteryFlowProp,
+  batteryVoltage = null,
   offlineByNode = {},
   offlineByWire = {},
   smartShuntOffline = false,
@@ -79,9 +89,20 @@ export function BatteryEnergyDiagram({
     return deriveWireAmpsFromNodes(nodes);
   }, [wireAmps, nodes]);
 
+  const totalSolarPower = useMemo(
+    () => getTotalSolarPower(resolvedWireAmps),
+    [resolvedWireAmps]
+  );
+
   const batteryFlow = useMemo(() => {
     if (smartShuntOffline) {
-      return { direction: "idle", amps: 0, watts: 0, netAmps: 0 };
+      return {
+        direction: "idle",
+        amps: 0,
+        watts: 0,
+        netAmps: 0,
+        voltage: batteryFlowProp?.voltage ?? null,
+      };
     }
     return batteryFlowProp ?? computeBatteryFlow(resolvedWireAmps);
   }, [batteryFlowProp, resolvedWireAmps, smartShuntOffline]);
@@ -146,9 +167,12 @@ export function BatteryEnergyDiagram({
           {wires.map((wire) => {
             const amps = resolvedWireAmps[wire.id];
             const wireOffline = offlineByWire[wire.id] === true;
-            if (!hasWireCurrent(amps) || wire.labelX == null || wire.labelY == null) {
+            if (!hasWireLabelValue(wire.id, amps) || wire.labelX == null || wire.labelY == null) {
               return null;
             }
+            const isSolarWire = BATTERY_WIRE_POWER_LABELS.has(wire.id);
+            const showSolarTotal = isSolarWire && totalSolarPower > 0;
+
             return (
               <text
                 key={`${wire.id}-amps`}
@@ -160,7 +184,20 @@ export function BatteryEnergyDiagram({
                 textAnchor="middle"
                 dominantBaseline="middle"
               >
-                {formatWireAmps(amps)}
+                {isSolarWire ? (
+                  <>
+                    <tspan x={wire.labelX} dy={showSolarTotal ? "-0.45em" : "0"}>
+                      {formatWirePower(amps)}
+                    </tspan>
+                    {showSolarTotal && (
+                      <tspan x={wire.labelX} dy="1.05em">
+                        ({totalSolarPower}W)
+                      </tspan>
+                    )}
+                  </>
+                ) : (
+                  formatWireLabel(wire.id, amps)
+                )}
               </text>
             );
           })}
@@ -199,6 +236,7 @@ export function BatteryEnergyDiagram({
           <BatteryDiagramCenter
             charge={batteryLevel}
             flow={batteryFlow}
+            voltage={batteryVoltage ?? batteryFlow?.voltage}
             dataOffline={smartShuntOffline}
             disabled={disabled}
           />

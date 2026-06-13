@@ -32,10 +32,20 @@
 #define VICTRON_STATUS_PUBLISH_INTERVAL_MS 2000 // Full status every 2 seconds
 #define BLE_SCAN_INTERVAL_MS 100
 #define BLE_SCAN_WINDOW_MS 100 // Full window = best capture; BLE starts after WiFi connect
+#define BLE_SCAN_BURST_SEC 5   // Non-blocking scan burst, restarted from loop when idle
+
+// AC charger (Blue Smart / Phoenix)
+#define AC_CHARGER_ENABLED true
+#define AC_CHARGER_MAC "CF:82:A4:8F:EA:04"
+#define AC_CHARGER_KEY "619366844ff9d1adbff0669f3cfd62ca"
 
 // Victron device credentials from VictronConnect:
 // Settings -> Product Info -> Instant Readout via Bluetooth -> Show
+#if AC_CHARGER_ENABLED
+#define VICTRON_DEVICE_COUNT 5
+#else
 #define VICTRON_DEVICE_COUNT 4
+#endif
 
 #define VICTRON_DEVICE_0_NAME "SmartShunt"
 #define VICTRON_DEVICE_0_MAC "E7:47:43:C9:5D:09"
@@ -52,11 +62,6 @@
 #define VICTRON_DEVICE_3_NAME "MPPT2"
 #define VICTRON_DEVICE_3_MAC "DC:41:88:BE:96:18"
 #define VICTRON_DEVICE_3_KEY "ac0f048ff4ff8c411f2c5eb05bc42a5e"
-
-// AC charger (Blue Smart / Phoenix) - enable when credentials are available
-#define AC_CHARGER_ENABLED false
-#define AC_CHARGER_MAC ""
-#define AC_CHARGER_KEY ""
 
 // Debug settings
 #define DEBUG_SERIAL true

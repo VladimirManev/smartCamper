@@ -5,6 +5,9 @@
 #include "FloorHeatingController.h"
 #include "FloorHeatingManager.h"
 #include <Arduino.h>
+#include <math.h>
+
+unsigned long FloorHeatingSensor::globalRelaySettleUntil = 0;
 
 FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, uint8_t pin) 
   : oneWire(pin), sensors(&oneWire) {
@@ -27,6 +30,7 @@ FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, u
   this->lastSensorRead = 0;
   this->lastDataSent = 0;
   this->lastTemperature = 0.0;
+  this->lastAcceptedTemperature = NAN;
   this->lastPublishedTemperature = NAN;  // Initialize as NAN to force first publish
   this->forceUpdateRequested = false;
   this->lastMQTTState = false;  // Initialize as disconnected
@@ -88,6 +92,19 @@ void FloorHeatingSensor::setManager(FloorHeatingManager* mgr) {
   manager = mgr;
 }
 
+bool FloorHeatingSensor::isGlobalRelaySettling() {
+  return millis() < globalRelaySettleUntil;
+}
+
+void FloorHeatingSensor::beginGlobalRelaySettle() {
+  globalRelaySettleUntil = millis() + HEATING_RELAY_SETTLE_MS;
+}
+
+void FloorHeatingSensor::onRelayChanged() {
+  conversionStarted = false;
+  lastAcceptedTemperature = NAN;
+}
+
 void FloorHeatingSensor::loop() {
   // Validate mqttManager pointer
   if (mqttManager == nullptr) {
@@ -129,6 +146,14 @@ void FloorHeatingSensor::loop() {
       }
       return;
     }
+  }
+
+  // Global EMI settle after any relay toggle — skip reads on all circles
+  if (isGlobalRelaySettling()) {
+    if (conversionStarted) {
+      conversionStarted = false;
+    }
+    return;
   }
   
   bool mqttConnected = mqttManager->isMQTTConnected();
@@ -208,6 +233,17 @@ void FloorHeatingSensor::loop() {
       
       // Process if valid
       if (!isnan(temperature) && temperature != -127.0) {  // -127.0 is DallasTemperature error value
+      // Spike filter — floor temp cannot jump more than HEATING_TEMP_MAX_DELTA at once
+      if (!isnan(lastAcceptedTemperature) &&
+          fabs(temperature - lastAcceptedTemperature) > HEATING_TEMP_MAX_DELTA) {
+        if (DEBUG_SERIAL) {
+          Serial.println("⏭️ Circle " + String(circleIndex) + " spike ignored: " +
+                         String(temperature, 1) + "°C (last: " + String(lastAcceptedTemperature, 1) + "°C)");
+        }
+        forceUpdateRequested = false;
+      } else {
+      lastAcceptedTemperature = temperature;
+
       // Valid reading - reset error counter
       if (failedReadCount > 0) {
         failedReadCount = 0;
@@ -272,6 +308,7 @@ void FloorHeatingSensor::loop() {
         
         // DO NOT publish here - wait for averaging (every 6th measurement or 30 seconds)
       }
+      }  // spike filter accepted
       } else {
         // Invalid reading - increment error counter
         failedReadCount++;

@@ -30,6 +30,25 @@ function isVictronDeviceStale(publishedAt, updatedAt) {
   return publishedAt - updatedAt > VICTRON_STALE_MS;
 }
 
+/** Refresh publishedAt/updatedAt so frontend stale checks stay LIVE. */
+function withFreshVictronTimestamps(data) {
+  const publishedAt = Date.now();
+  const updatedAt = publishedAt - 200;
+  const copy = JSON.parse(JSON.stringify(data));
+  copy.publishedAt = publishedAt;
+  for (const [key, device] of Object.entries(copy)) {
+    if (key === "publishedAt") continue;
+    if (device && typeof device === "object" && "updatedAt" in device) {
+      device.updatedAt = updatedAt;
+    }
+  }
+  return copy;
+}
+
+function buildStaticVictronPayload() {
+  return withFreshVictronTimestamps(STATIC.victronStatusUpdate.data);
+}
+
 function ts() {
   return new Date().toISOString();
 }
@@ -285,7 +304,7 @@ function randomVictronPayload() {
       : 0;
   const loadsCurrent =
     loadsPower > 0 && batteryVoltage > 0 ? round2(loadsPower / batteryVoltage) : 0;
-  const publishedAt = Date.now() % 10000000;
+  const publishedAt = Date.now();
   const baseUpdatedAt = publishedAt - Math.floor(Math.random() * 600);
   const acChargerUpdatedAt = acChargerLive
     ? baseUpdatedAt + 60
@@ -362,6 +381,12 @@ function logAcChargerMockPhase(data) {
 
 function emitVictronStatus(socket, data) {
   logAcChargerMockPhase(data);
+  if (process.env.DEBUG_MOCK_VICTRON) {
+    const shunt = data?.smartshunt;
+    console.log(
+      `[mock] victron smartshunt ${shunt?.voltage ?? "—"}V ${shunt?.current ?? "—"}A ${shunt?.soc ?? "—"}%`
+    );
+  }
   socket.emit("victronStatusUpdate", {
     type: "full",
     data,
@@ -489,7 +514,7 @@ function sendAll(io, socket) {
     ...STATIC.applianceStatusUpdate,
     timestamp: stamp,
   });
-  emitVictronStatus(socket, randomVictronPayload());
+  emitVictronStatus(socket, buildStaticVictronPayload());
 
   // Client hooks may attach after the first burst; resend sensors shortly after connect.
   [150, 600].forEach((ms) => {

@@ -153,6 +153,10 @@ void FloorHeatingController::setRelayState(uint8_t circleIndex, bool state) {
     relayStates[circleIndex] = state;
     digitalWrite(relayPins[circleIndex], state ? HIGH : LOW);
     
+    if (manager != nullptr) {
+      manager->onRelayChanged();
+    }
+    
     if (DEBUG_SERIAL) {
       Serial.println("🔥 Circle " + String(circleIndex) + " relay " + String(state ? "ON" : "OFF") + 
                      " (Pin " + String(relayPins[circleIndex]) + ")");

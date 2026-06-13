@@ -59,6 +59,9 @@ public:
   // Status publishing (public for ButtonHandler and Controller callbacks)
   void publishFullStatus();
   void publishCircleStatus(uint8_t circleIndex, bool forcePublish = false);
+
+  // Global sensor blind period after any relay ON/OFF
+  void onRelayChanged();
   
   void printStatus() const;
 };

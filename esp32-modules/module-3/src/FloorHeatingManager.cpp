@@ -89,6 +89,13 @@ void FloorHeatingManager::begin() {
   }
 }
 
+void FloorHeatingManager::onRelayChanged() {
+  FloorHeatingSensor::beginGlobalRelaySettle();
+  for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {
+    sensors[i].onRelayChanged();
+  }
+}
+
 void FloorHeatingManager::loop() {
   // Update sensors (read temperature - works offline, only if circle is in TEMP_CONTROL mode)
   for (uint8_t i = 0; i < NUM_HEATING_CIRCLES; i++) {

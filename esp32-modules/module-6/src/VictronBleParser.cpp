@@ -62,7 +62,8 @@ bool parseHexKey(const char *hexKey, uint8_t *outKey) {
 
 bool isSupportedRecordType(uint8_t recordType) {
   return recordType == RECORD_BATTERY_MONITOR || recordType == RECORD_SOLAR_CHARGER ||
-         recordType == RECORD_DCDC_CONVERTER || recordType == RECORD_ORION_XS;
+         recordType == RECORD_DCDC_CONVERTER || recordType == RECORD_ORION_XS ||
+         recordType == RECORD_AC_CHARGER;
 }
 
 bool decryptVictronPayload(const uint8_t *key, const uint8_t *cipher, size_t cipherLen,
@@ -180,6 +181,31 @@ bool parseOrionXs(const uint8_t *payload, size_t payloadLen, OrionReading &out) 
 
   out.inputCurrentValid = inputCurrentRaw != 0xFFFF;
   out.inputCurrent = roundTo2Decimals(inputCurrentRaw * 0.1f);
+
+  return true;
+}
+
+bool parseAcCharger(const uint8_t *payload, size_t payloadLen, AcChargerReading &out) {
+  BitReader reader(payload, payloadLen);
+
+  out.deviceState = (uint8_t)reader.readUnsigned(8);
+  out.errorCode = (uint8_t)reader.readUnsigned(8);
+
+  uint32_t voltageRaw = reader.readUnsigned(13);
+  uint32_t currentRaw = reader.readUnsigned(11);
+
+  reader.skip(13 + 11 + 13 + 11 + 13 + 11 + 7);
+
+  uint32_t acCurrentRaw = reader.readUnsigned(9);
+
+  out.voltageValid = voltageRaw != 0x1FFF;
+  out.voltage = roundTo1Decimal(voltageRaw * 0.01f);
+
+  out.currentValid = currentRaw != 0x7FF;
+  out.current = roundTo2Decimals(currentRaw * 0.1f);
+
+  out.acCurrentValid = acCurrentRaw != 0x1FF;
+  out.acCurrent = roundTo2Decimals(acCurrentRaw * 0.1f);
 
   return true;
 }

@@ -30,6 +30,7 @@ function formatSensorValue(value, suffix, decimals = 1) {
  * @param {Object} props.nodes
  * @param {Object} props.wireAmps
  * @param {Object} [props.batteryFlow]
+ * @param {number|null} [props.batteryVoltage]
  * @param {Record<string, boolean>} [props.offlineByNode]
  * @param {Record<string, boolean>} [props.offlineByWire]
  * @param {boolean} [props.smartShuntOffline]
@@ -52,6 +53,7 @@ export function StatusModalContent({
   nodes,
   wireAmps,
   batteryFlow,
+  batteryVoltage,
   offlineByNode,
   offlineByWire,
   smartShuntOffline,
@@ -106,6 +108,7 @@ export function StatusModalContent({
             nodes={nodes}
             wireAmps={wireAmps}
             batteryFlow={batteryFlow}
+            batteryVoltage={batteryVoltage}
             offlineByNode={offlineByNode}
             offlineByWire={offlineByWire}
             smartShuntOffline={smartShuntOffline}

@@ -24,12 +24,14 @@ const CAP = { x: 48.1, y: 9.35, w: 2.85, h: 5.4, rx: 1 };
 /**
  * @param {Object} props
  * @param {number|null} props.charge - State of charge 0–100
+ * @param {number|null} [props.voltage]
  * @param {boolean} props.disabled
  * @param {Function} [props.onClick]
  * @param {Function} [props.onLongPress]
  */
 export const BatteryCard = ({
   charge,
+  voltage = null,
   disabled = false,
   onClick,
   onLongPress,
@@ -64,15 +66,30 @@ export const BatteryCard = ({
   const fillColor = hasCharge ? getBatteryFillColor(pct) : null;
   const fillW = (INNER.w * pct) / 100;
 
+  const showVoltage =
+    hasCharge && voltage != null && !Number.isNaN(Number(voltage));
+  const voltageText = showVoltage ? `${Number(voltage).toFixed(1)}V` : "";
+
   const batteryContent = (
     <div
       className="battery-card-content"
       role="img"
-      aria-label={hasCharge ? `Battery ${pct} percent` : undefined}
+      aria-label={
+        hasCharge
+          ? showVoltage
+            ? `Battery ${pct} percent ${voltageText}`
+            : `Battery ${pct} percent`
+          : undefined
+      }
     >
       {hasCharge && (
         <span className="battery-ios-pct" aria-hidden="true">
           {pct}%
+        </span>
+      )}
+      {hasCharge && showVoltage && (
+        <span className="battery-ios-voltage" aria-hidden="true">
+          {voltageText}
         </span>
       )}
       <svg

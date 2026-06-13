@@ -8,11 +8,18 @@ import { getBatteryFillColor } from "../utils/batteryFillColor";
 /**
  * @param {Object} props
  * @param {number|null} props.charge - 0–100
- * @param {{ direction?: 'charge' | 'discharge' | 'idle', amps?: number, watts?: number }} [props.flow]
+ * @param {{ direction?: 'charge' | 'discharge' | 'idle', amps?: number, watts?: number, voltage?: number|null }} [props.flow]
+ * @param {number|null} [props.voltage]
  * @param {boolean} [props.dataOffline]
  * @param {boolean} props.disabled
  */
-export function BatteryDiagramCenter({ charge, flow, dataOffline = false, disabled = false }) {
+export function BatteryDiagramCenter({
+  charge,
+  flow,
+  voltage: voltageProp,
+  dataOffline = false,
+  disabled = false,
+}) {
   const clipId = useId().replace(/:/g, "");
 
   const hasCharge =
@@ -28,12 +35,34 @@ export function BatteryDiagramCenter({ charge, flow, dataOffline = false, disabl
   const netAmps = Number(flow?.netAmps) || 0;
   const showFlow = hasCharge && Math.abs(netAmps) > 0.05;
 
-  const pctY = showFlow ? 32 : 39;
+  const voltage = voltageProp ?? flow?.voltage;
+  const showVoltage =
+    hasCharge && voltage != null && !Number.isNaN(Number(voltage));
+  const voltageText = showVoltage ? `${Number(voltage).toFixed(1)}V` : "";
+
   const ampsText = showFlow ? `${netAmps.toFixed(1)}A` : "";
   const wattsText = showFlow ? `${Math.round(flow?.watts ?? 0)}W` : "";
 
+  const textLines = [{ text: `${pct}%`, className: "battery-diagram-center__pct" }];
+  if (showVoltage) {
+    textLines.push({ text: voltageText, className: "battery-diagram-center__flow-metric" });
+  }
+  if (showFlow) {
+    textLines.push({ text: ampsText, className: "battery-diagram-center__flow-metric" });
+    textLines.push({ text: wattsText, className: "battery-diagram-center__flow-metric" });
+  }
+
+  const TEXT_LINE_GAP = 10;
+  const INNER_TEXT_CENTER_Y = 39;
+  const textStartY =
+    INNER_TEXT_CENTER_Y - ((textLines.length - 1) * TEXT_LINE_GAP) / 2;
+
   const flowAria =
     netAmps > 0.05 ? "charging" : netAmps < -0.05 ? "discharging" : "";
+
+  const ariaParts = [`Battery ${pct} percent`];
+  if (showVoltage) ariaParts.push(voltageText);
+  if (showFlow) ariaParts.push(flowAria, ampsText, wattsText);
 
   return (
     <div
@@ -45,11 +74,7 @@ export function BatteryDiagramCenter({ charge, flow, dataOffline = false, disabl
         .filter(Boolean)
         .join(" ")}
       aria-label={
-        hasCharge
-          ? showFlow
-            ? `Battery ${pct} percent, ${flowAria} ${ampsText} ${wattsText}`
-            : `Battery ${pct} percent`
-          : "Battery"
+        hasCharge ? ariaParts.join(", ") : "Battery"
       }
     >
       {dataOffline && !disabled && (
@@ -95,37 +120,18 @@ export function BatteryDiagramCenter({ charge, flow, dataOffline = false, disabl
         )}
         {hasCharge && (
           <>
-            <text
-              className="battery-diagram-center__pct"
-              x="24"
-              y={pctY}
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              {pct}%
-            </text>
-            {showFlow && (
-              <>
-                <text
-                  className="battery-diagram-center__flow-metric"
-                  x="24"
-                  y="44"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                >
-                  {ampsText}
-                </text>
-                <text
-                  className="battery-diagram-center__flow-metric"
-                  x="24"
-                  y="54"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                >
-                  {wattsText}
-                </text>
-              </>
-            )}
+            {textLines.map((line, index) => (
+              <text
+                key={line.text}
+                className={line.className}
+                x="24"
+                y={textStartY + index * TEXT_LINE_GAP}
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {line.text}
+              </text>
+            ))}
           </>
         )}
       </svg>

@@ -67,6 +67,8 @@
 #define HEATING_TEMP_AVERAGE_INTERVAL 30000 // 30 seconds - average calculation interval
 #define HEATING_TEMP_THRESHOLD 0.1         // 0.1°C change threshold for publishing
 #define HEATING_TEMP_AVERAGE_COUNT 6       // Number of measurements to average (6 measurements = 30 seconds)
+#define HEATING_RELAY_SETTLE_MS 1000       // Ignore sensor reads after any relay ON/OFF (global EMI settle)
+#define HEATING_TEMP_MAX_DELTA 1.0         // Reject readings that jump more than this vs last accepted value (°C)
 
 // Leveling Sensor Configuration (Module 3 specific - GY-521 MPU6050)
 #define LEVELING_I2C_SDA 21      // GPIO pin for I²C SDA (Wire interface)

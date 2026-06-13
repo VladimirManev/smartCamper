@@ -25,6 +25,7 @@ private:
   unsigned long lastSensorRead;
   unsigned long lastDataSent;
   float lastTemperature;
+  float lastAcceptedTemperature;   // Last reading passed spike filter (NAN = no baseline yet)
   float lastPublishedTemperature;  // Last temperature value that was published to backend
   bool forceUpdateRequested;
   bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
@@ -45,6 +46,9 @@ private:
   
   FloorHeatingController* controller;  // Reference to controller to check mode
   FloorHeatingManager* manager;  // Reference to manager for publishing status
+
+  static unsigned long globalRelaySettleUntil;  // Shared across all circles after any relay change
+  static bool isGlobalRelaySettling();
   
   // Sensor reading functions
   float readTemperature();
@@ -66,6 +70,11 @@ public:
   
   // Force update
   void forceUpdate();
+
+  // Called when any heating relay toggles — reset local read state for EMI recovery
+  void onRelayChanged();
+
+  static void beginGlobalRelaySettle();
   
   // Set controller reference (to check if circle is in TEMP_CONTROL mode)
   void setController(FloorHeatingController* ctrl);

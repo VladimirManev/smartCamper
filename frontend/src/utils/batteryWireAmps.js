@@ -1,5 +1,7 @@
+import { BATTERY_WIRE_POWER_LABELS } from "../config/batterySystemNodes";
+
 /**
- * Wire current (A) labels — derive from node metrics when backend omits wireAmps.
+ * Wire current (A) / power (W) labels — derive from node metrics when backend omits wireAmps.
  */
 
 /**
@@ -17,14 +19,8 @@ function ampsFromPowerVoltage(power, voltage) {
  */
 export function deriveWireAmpsFromNodes(nodes = {}) {
   return {
-    "solar1-mppt1": ampsFromPowerVoltage(
-      nodes.solarPanelGroup1?.power,
-      nodes.solarPanelGroup1?.voltage
-    ),
-    "solar2-mppt2": ampsFromPowerVoltage(
-      nodes.solarPanelGroup2?.power,
-      nodes.solarPanelGroup2?.voltage
-    ),
+    "solar1-mppt1": Number(nodes.solarPanelGroup1?.power) || 0,
+    "solar2-mppt2": Number(nodes.solarPanelGroup2?.power) || 0,
     "alternator-dcdc": Number(nodes.alternator?.current) || 0,
     "dcdc-battery": Number(nodes.dcDcBooster?.current) || 0,
     "mppt1-battery": ampsFromPowerVoltage(
@@ -39,10 +35,7 @@ export function deriveWireAmpsFromNodes(nodes = {}) {
       nodes.dcLoads?.power,
       nodes.dcLoads?.voltage
     ),
-    "ac-battery": ampsFromPowerVoltage(
-      (nodes.charger230v?.voltage ?? 230) * (nodes.charger230v?.current ?? 0),
-      12.6
-    ),
+    "ac-battery": Number(nodes.charger230v?.batteryCurrent) || 0,
   };
 }
 
@@ -52,6 +45,46 @@ export function deriveWireAmpsFromNodes(nodes = {}) {
 export function formatWireAmps(amps) {
   if (amps == null || Number.isNaN(Number(amps))) return "—A";
   return `${Number(amps).toFixed(1)}A`;
+}
+
+/**
+ * @param {number|null|undefined} watts
+ */
+export function formatWirePower(watts) {
+  if (watts == null || Number.isNaN(Number(watts))) return "—W";
+  return `${Math.round(Number(watts))}W`;
+}
+
+/**
+ * Combined PV power from both solar panel groups (W).
+ * @param {Record<string, number>} wireAmps
+ */
+export function getTotalSolarPower(wireAmps = {}) {
+  const solar1 = Number(wireAmps["solar1-mppt1"]) || 0;
+  const solar2 = Number(wireAmps["solar2-mppt2"]) || 0;
+  return Math.round(solar1 + solar2);
+}
+
+/**
+ * @param {string} wireId
+ * @param {number|null|undefined} value
+ */
+export function formatWireLabel(wireId, value) {
+  if (BATTERY_WIRE_POWER_LABELS.has(wireId)) {
+    return formatWirePower(value);
+  }
+  return formatWireAmps(value);
+}
+
+/**
+ * @param {string} wireId
+ * @param {number|null|undefined} value
+ */
+export function hasWireLabelValue(wireId, value) {
+  if (BATTERY_WIRE_POWER_LABELS.has(wireId)) {
+    return Number(value) > 0;
+  }
+  return hasWireCurrent(value);
 }
 
 const WIRE_MIN_VISIBLE_AMPS = 0.05;
@@ -80,7 +113,7 @@ export function hasWireCurrent(amps) {
  * Net battery flow from wire currents (charge in minus discharge out).
  * @param {Record<string, number>} wireAmps
  * @param {number} [batteryVoltage]
- * @returns {{ direction: 'charge' | 'discharge' | 'idle', amps: number, watts: number, netAmps: number }}
+ * @returns {{ direction: 'charge' | 'discharge' | 'idle', amps: number, watts: number, netAmps: number, voltage: number }}
  */
 export function computeBatteryFlow(wireAmps = {}, batteryVoltage = DEFAULT_BATTERY_VOLTAGE) {
   const chargeIn = BATTERY_CHARGE_WIRES.reduce(
@@ -99,5 +132,5 @@ export function computeBatteryFlow(wireAmps = {}, batteryVoltage = DEFAULT_BATTE
   if (netAmps > WIRE_MIN_VISIBLE_AMPS) direction = "charge";
   else if (netAmps < -WIRE_MIN_VISIBLE_AMPS) direction = "discharge";
 
-  return { direction, amps: absAmps, watts, netAmps };
+  return { direction, amps: absAmps, watts, netAmps, voltage: batteryVoltage };
 }

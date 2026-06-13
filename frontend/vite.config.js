@@ -65,9 +65,10 @@ export default defineConfig({
     })
   ],
   server: {
-    // Listen on LAN too — open http://<this-machine-ip>:<port>/ from phone/tablet on same Wi‑Fi
-    host: true,
-    port: 5174,
+    // Default localhost — stable on macOS/Cursor sandbox. For phone on LAN: VITE_DEV_HOST=0.0.0.0 npm run dev
+    host: process.env.VITE_DEV_HOST || "127.0.0.1",
+    port: Number(process.env.VITE_DEV_PORT || 5174),
+    strictPort: false,
     watch: {
       usePolling: true,
       interval: 100,

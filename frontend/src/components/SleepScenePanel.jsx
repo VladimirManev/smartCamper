@@ -82,7 +82,7 @@ export function SleepScenePanel({ onApply, onBack }) {
             onChange={(v) => setOption("lightsOffExceptBedroom", v)}
             spanAll
           >
-            Lights off (not bedroom)
+            Lights off (not bedroom/bathroom)
           </SceneOptionRow>
           <SceneStepperOptionRow
             checked={options.bedroomDimThenOff}

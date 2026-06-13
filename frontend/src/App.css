@@ -15,8 +15,8 @@
   --color-liquid-fresh-dark: #2563eb;
   --color-liquid-gray-light: #94a3b8;
   --color-liquid-gray-dark: #64748b;
-  --color-liquid-urine-light: #fcd34d;
-  --color-liquid-urine-dark: #f59e0b;
+  --color-liquid-urine-light: #fef9c3;
+  --color-liquid-urine-dark: #fde047;
   
   /* Text colors */
   --color-text-primary: #f5f5f5;
@@ -1653,11 +1653,21 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.14rem;
-  padding-bottom: 0.3rem;
+  gap: 0.22rem;
+  padding: 0.12rem 0 0.18rem;
   box-sizing: border-box;
-  transform: translateY(-2px);
   pointer-events: none;
+}
+
+.battery-ios-voltage {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  user-select: none;
 }
 
 .battery-ios-pct {
@@ -2275,6 +2285,15 @@ body {
 .toilet-urine-card-root {
   --water-color-top: var(--color-liquid-urine-light);
   --water-color-bottom: var(--color-liquid-urine-dark);
+}
+
+/* Dark theme: urine fill was too dim (0.7 opacity on dark glass) */
+.app:not(.app--theme-day) .toilet-urine-card-root .water-tank-card .neumorphic-button::after {
+  opacity: 1;
+}
+
+.app:not(.app--theme-day) .toilet-urine-modal .gray-water-modal-fill {
+  opacity: 1;
 }
 
 .gray-water-modal:not(.fresh-water-modal):not(.toilet-urine-modal) .gray-water-modal-fill {
@@ -2984,6 +3003,13 @@ body {
   transition: stroke-dasharray 0.5s ease, opacity 0.3s ease;
   filter: drop-shadow(0 0 4px var(--color-accent-blue-60));
   stroke-linejoin: round;
+}
+
+/* Day theme: ON ring around icon — darker sky blue */
+.app--theme-day .neumorphic-button.on .horseshoe-fill {
+  stroke: #0284c7 !important;
+  filter: drop-shadow(0 0 2px rgba(2, 132, 199, 0.85))
+    drop-shadow(0 0 6px rgba(2, 132, 199, 0.4));
 }
 
 /* Button text */

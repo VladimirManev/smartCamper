@@ -258,6 +258,33 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
       
       StripState& st = ledStripController.getStripState(stripIndex);
       bool needRedraw = false;
+
+      // Bathroom AUTO preset: set PIR brightness without forcing strip ON when off
+      if (adoc.containsKey("mode") && adoc.containsKey("brightness")) {
+        String ms = adoc["mode"].as<String>();
+        ms.toLowerCase();
+        if (ms == "auto" && stripIndex == MOTION_STRIP_INDEX) {
+          uint8_t b = (uint8_t)adoc["brightness"].as<unsigned int>();
+          if (b < 1) b = 1;
+          if (b > 255) b = 255;
+
+          if (st.on && st.mode == STRIP_MODE_AUTO) {
+            st.lastAutoBrightness = b;
+            ledStripController.setBrightnessSmooth(stripIndex, b);
+          } else {
+            if (st.on) {
+              ledStripController.turnOffStrip(stripIndex);
+            }
+            st.lastAutoBrightness = b;
+            if (st.mode != STRIP_MODE_AUTO) {
+              ledStripController.setStripMode(stripIndex, STRIP_MODE_AUTO);
+            } else {
+              publishStripStatus(stripIndex);
+            }
+          }
+          return;
+        }
+      }
       
       if (adoc.containsKey("channels")) {
         JsonObject ch = adoc["channels"];

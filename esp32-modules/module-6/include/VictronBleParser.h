@@ -14,6 +14,7 @@ static const uint8_t RECORD_BATTERY_MONITOR = 0x02;
 static const uint8_t RECORD_SOLAR_CHARGER = 0x01;
 static const uint8_t RECORD_DCDC_CONVERTER = 0x04;
 static const uint8_t RECORD_ORION_XS = 0x0F;
+static const uint8_t RECORD_AC_CHARGER = 0x08;
 
 struct SmartShuntReading {
   bool voltageValid;
@@ -56,6 +57,17 @@ struct OrionReading {
   uint32_t offReason;
 };
 
+struct AcChargerReading {
+  uint8_t deviceState;
+  uint8_t errorCode;
+  bool voltageValid;
+  float voltage;
+  bool currentValid;
+  float current;
+  bool acCurrentValid;
+  float acCurrent;
+};
+
 class BitReader {
  public:
   BitReader(const uint8_t *data, size_t dataLen);
@@ -78,6 +90,7 @@ bool decryptVictronPayload(const uint8_t *key, const uint8_t *cipher, size_t cip
 bool parseBatteryMonitor(const uint8_t *payload, size_t payloadLen, SmartShuntReading &out);
 bool parseSolarCharger(const uint8_t *payload, size_t payloadLen, MpptReading &out);
 bool parseOrionXs(const uint8_t *payload, size_t payloadLen, OrionReading &out);
+bool parseAcCharger(const uint8_t *payload, size_t payloadLen, AcChargerReading &out);
 
 float roundTo1Decimal(float value);
 float roundTo2Decimals(float value);

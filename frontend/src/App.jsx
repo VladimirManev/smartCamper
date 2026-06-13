@@ -47,6 +47,11 @@ import {
   buildAllOffScenePayload,
 } from "./components/AllOffScenePanel";
 import { applyScene, applyNormalScene, applyDriveScene, applyFilmScene, applyCookingScene, applySleepScene, applyAllOffScene, isSceneDisabled as isSceneDisabledForModules } from "./utils/applyScene";
+import {
+  APPLIANCE_INDEX,
+  getApplianceToggleCommands,
+  isBoilerControlEnabled,
+} from "./constants/appliances";
 import { CardModal } from "./components/CardModal";
 import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
 import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
@@ -132,6 +137,7 @@ function App() {
     wireAmps: batteryWireAmps,
     batteryLevel,
     batteryFlow: batterySystemFlow,
+    batteryVoltage,
     offlineByNode: batteryOfflineByNode,
     offlineByWire: batteryOfflineByWire,
     smartShuntOffline,
@@ -712,6 +718,7 @@ function App() {
           nodes={batterySystemNodes}
           wireAmps={batteryWireAmps}
           batteryFlow={batterySystemFlow}
+          batteryVoltage={batteryVoltage}
           offlineByNode={batteryOfflineByNode}
           offlineByWire={batteryOfflineByWire}
           smartShuntOffline={smartShuntOffline}
@@ -746,6 +753,7 @@ function App() {
           nodes={batterySystemNodes}
           wireAmps={batteryWireAmps}
           batteryFlow={batterySystemFlow}
+          batteryVoltage={batteryVoltage}
           offlineByNode={batteryOfflineByNode}
           offlineByWire={batteryOfflineByWire}
           smartShuntOffline={smartShuntOffline}
@@ -833,7 +841,11 @@ function App() {
             variant="relay"
             strip={appliances[data.index]}
             onToggle={() => handleApplianceToggle(data.index)}
-            disabled={!isModule5Online}
+            disabled={
+              !isModule5Online ||
+              (data.index === APPLIANCE_INDEX.boiler &&
+                !isBoilerControlEnabled(appliances, isModule5Online))
+            }
             icon={getApplianceModalIcon(modal.cardName)}
           />
         );
@@ -910,16 +922,13 @@ function App() {
 
   // Appliance command handlers
   const handleApplianceToggle = (index) => {
-    // Don't send command if module is offline
     if (!isModule5Online) {
       return;
     }
-    
-    sendApplianceCommand({
-      type: "relay",
-      index: index,
-      action: "toggle",
-    });
+
+    for (const command of getApplianceToggleCommands(appliances, index)) {
+      sendApplianceCommand(command);
+    }
   };
 
   const handleSceneSelect = useCallback(
@@ -1451,6 +1460,7 @@ function App() {
         <div className="card-wrapper">
           <BatteryCard
             charge={batteryLevel}
+            voltage={batteryVoltage}
             disabled={!isModule6Online}
             onClick={() => activateFromMainMenu("battery", "Battery")}
             onLongPress={() => activateFromMainMenu("battery", "Battery")}
@@ -1493,7 +1503,7 @@ function App() {
             }
             type="relay"
             icon="boiler"
-            disabled={!isModule5Online}
+            disabled={!isBoilerControlEnabled(appliances, isModule5Online)}
           />
           <p className="card-label">Boiler</p>
         </div>

@@ -41,12 +41,20 @@ struct CachedOrion {
   unsigned long updatedAt;
 };
 
+struct CachedAcCharger {
+  bool hasData;
+  AcChargerReading reading;
+  unsigned long updatedAt;
+};
+
 static VictronDeviceConfig devices[VICTRON_DEVICE_COUNT];
 static CachedSmartShunt smartShuntCache = {false, {}, 0};
 static CachedMppt mppt1Cache = {false, {}, 0};
 static CachedMppt mppt2Cache = {false, {}, 0};
 static CachedOrion orionCache = {false, {}, 0};
+static CachedAcCharger acChargerCache = {false, {}, 0};
 static BLEScan *bleScan = nullptr;
+static unsigned long lastBleScanStartMs = 0;
 
 static bool copyManufacturerData(BLEAdvertisedDevice &device, uint8_t *out, size_t *outLen,
                                  size_t maxLen) {
@@ -96,6 +104,38 @@ static void updateOrionCache(const OrionReading &reading, unsigned long nowMs) {
   orionCache.updatedAt = nowMs;
 }
 
+static void touchDeviceCache(VictronDeviceRole role, unsigned long nowMs) {
+  switch (role) {
+    case ROLE_SMARTSHUNT:
+      if (smartShuntCache.hasData) {
+        smartShuntCache.updatedAt = nowMs;
+      }
+      break;
+    case ROLE_MPPT1:
+      if (mppt1Cache.hasData) {
+        mppt1Cache.updatedAt = nowMs;
+      }
+      break;
+    case ROLE_MPPT2:
+      if (mppt2Cache.hasData) {
+        mppt2Cache.updatedAt = nowMs;
+      }
+      break;
+    case ROLE_ORION:
+      if (orionCache.hasData) {
+        orionCache.updatedAt = nowMs;
+      }
+      break;
+    case ROLE_AC_CHARGER:
+      if (acChargerCache.hasData) {
+        acChargerCache.updatedAt = nowMs;
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 static bool handleParsedPayload(VictronDeviceConfig *device, uint8_t recordType,
                                 const uint8_t *plain, size_t plainLen, unsigned long nowMs) {
   switch (device->role) {
@@ -136,6 +176,21 @@ static bool handleParsedPayload(VictronDeviceConfig *device, uint8_t recordType,
           return false;
         }
         updateOrionCache(reading, nowMs);
+      }
+      return true;
+
+    case ROLE_AC_CHARGER:
+      if (recordType != RECORD_AC_CHARGER) {
+        return false;
+      }
+      {
+        AcChargerReading reading;
+        if (!parseAcCharger(plain, plainLen, reading)) {
+          return false;
+        }
+        acChargerCache.hasData = true;
+        acChargerCache.reading = reading;
+        acChargerCache.updatedAt = nowMs;
       }
       return true;
 
@@ -185,6 +240,7 @@ class VictronScanCallbacks : public BLEAdvertisedDeviceCallbacks {
 
     uint16_t dataCounter = record[5] | ((uint16_t)record[6] << 8);
     if (dataCounter == device->lastDataCounter) {
+      touchDeviceCache(device->role, millis());
       return;
     }
 
@@ -226,6 +282,9 @@ static bool initDevices() {
       {VICTRON_DEVICE_1_NAME, VICTRON_DEVICE_1_MAC, VICTRON_DEVICE_1_KEY, ROLE_ORION},
       {VICTRON_DEVICE_2_NAME, VICTRON_DEVICE_2_MAC, VICTRON_DEVICE_2_KEY, ROLE_MPPT1},
       {VICTRON_DEVICE_3_NAME, VICTRON_DEVICE_3_MAC, VICTRON_DEVICE_3_KEY, ROLE_MPPT2},
+#if AC_CHARGER_ENABLED
+      {"ACCharger", AC_CHARGER_MAC, AC_CHARGER_KEY, ROLE_AC_CHARGER},
+#endif
   };
 
   for (size_t i = 0; i < VICTRON_DEVICE_COUNT; i++) {
@@ -339,6 +398,34 @@ static void appendOrionJson(JsonDocument &doc) {
   obj["updatedAt"] = orionCache.updatedAt;
 }
 
+static void appendAcChargerJson(JsonDocument &doc) {
+#if !AC_CHARGER_ENABLED
+  doc["acCharger"] = nullptr;
+  return;
+#else
+  if (!acChargerCache.hasData) {
+    doc["acCharger"] = nullptr;
+    return;
+  }
+
+  JsonObject obj = doc.createNestedObject("acCharger");
+  const AcChargerReading &r = acChargerCache.reading;
+
+  obj["deviceState"] = r.deviceState;
+  obj["errorCode"] = r.errorCode;
+  if (r.voltageValid) {
+    obj["voltage"] = roundTo1Decimal(r.voltage);
+  }
+  if (r.currentValid) {
+    obj["current"] = roundTo2Decimals(r.current);
+  }
+  if (r.acCurrentValid) {
+    obj["acCurrent"] = roundTo2Decimals(r.acCurrent);
+  }
+  obj["updatedAt"] = acChargerCache.updatedAt;
+#endif
+}
+
 VictronManager::VictronManager(ModuleManager *moduleMgr)
     : commandHandler(&moduleMgr->getMQTTManager(), this, MODULE_ID),
       lastPublishMs(0),
@@ -375,14 +462,18 @@ void VictronManager::startBle() {
 
   BLEDevice::init("");
   bleScan = BLEDevice::getScan();
-  bleScan->setAdvertisedDeviceCallbacks(new VictronScanCallbacks());
+  // wantDuplicates=true: Victron re-advertises same counter every ~200ms
+  bleScan->setAdvertisedDeviceCallbacks(new VictronScanCallbacks(), true, true);
   bleScan->setActiveScan(true);
   bleScan->setInterval(BLE_SCAN_INTERVAL_MS);
   bleScan->setWindow(BLE_SCAN_WINDOW_MS);
-  bleScan->start(0, false);
-  bleScanActive = true;
 
   bleInitialized = true;
+
+  if (bleScan->start(BLE_SCAN_BURST_SEC, nullptr, false)) {
+    bleScanActive = true;
+    lastBleScanStartMs = millis();
+  }
 
   if (DEBUG_SERIAL) {
     Serial.println("Victron BLE continuous scan started");
@@ -398,6 +489,15 @@ void VictronManager::loop() {
 
   if (!bleInitialized && moduleManager->isConnected()) {
     startBle();
+  }
+
+  if (bleInitialized && bleScan != nullptr &&
+      nowMs - lastBleScanStartMs >= (BLE_SCAN_BURST_SEC * 1000UL)) {
+    // Async burst — start(0, false) blocks forever on ESP32 Arduino BLE 2.x
+    if (bleScan->start(BLE_SCAN_BURST_SEC, nullptr, false)) {
+      bleScanActive = true;
+      lastBleScanStartMs = nowMs;
+    }
   }
 
   if (nowMs - lastPublishMs >= VICTRON_STATUS_PUBLISH_INTERVAL_MS) {
@@ -416,19 +516,14 @@ void VictronManager::publishFullStatus() {
     return;
   }
 
-  StaticJsonDocument<1024> doc;
+  StaticJsonDocument<1280> doc;
   doc["publishedAt"] = millis();
 
   appendSmartShuntJson(doc);
   appendMpptJson(doc, "mppt1", mppt1Cache);
   appendMpptJson(doc, "mppt2", mppt2Cache);
   appendOrionJson(doc);
-
-#if AC_CHARGER_ENABLED
-  doc["acCharger"] = nullptr;
-#else
-  doc["acCharger"] = nullptr;
-#endif
+  appendAcChargerJson(doc);
 
   String jsonString;
   serializeJson(doc, jsonString);
@@ -453,4 +548,5 @@ void VictronManager::printStatus() const {
   Serial.println("  MPPT1 data: " + String(mppt1Cache.hasData ? "Yes" : "No"));
   Serial.println("  MPPT2 data: " + String(mppt2Cache.hasData ? "Yes" : "No"));
   Serial.println("  Orion data: " + String(orionCache.hasData ? "Yes" : "No"));
+  Serial.println("  AC Charger data: " + String(acChargerCache.hasData ? "Yes" : "No"));
 }

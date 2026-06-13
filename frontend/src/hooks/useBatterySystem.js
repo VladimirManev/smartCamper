@@ -13,6 +13,7 @@ const IDLE_BATTERY_FLOW = {
   amps: 0,
   watts: 0,
   netAmps: 0,
+  voltage: null,
 };
 
 const EMPTY_OFFLINE_BY_NODE = Object.fromEntries(
@@ -27,6 +28,7 @@ const EMPTY_OFFLINE_BY_NODE = Object.fromEntries(
  *   wireAmps: Object,
  *   batteryLevel: number|null,
  *   batteryFlow: Object,
+ *   batteryVoltage: number|null,
  *   offlineByNode: Record<string, boolean>,
  *   offlineByWire: Record<string, boolean>,
  *   smartShuntOffline: boolean,
@@ -37,6 +39,7 @@ export function useBatterySystem(socket, moduleStatuses) {
   const [wireAmps, setWireAmps] = useState({});
   const [batteryLevel, setBatteryLevel] = useState(null);
   const [batteryFlow, setBatteryFlow] = useState(IDLE_BATTERY_FLOW);
+  const [batteryVoltage, setBatteryVoltage] = useState(null);
   const [offlineByNode, setOfflineByNode] = useState(EMPTY_OFFLINE_BY_NODE);
   const [offlineByWire, setOfflineByWire] = useState({});
   const [smartShuntOffline, setSmartShuntOffline] = useState(true);
@@ -52,6 +55,7 @@ export function useBatterySystem(socket, moduleStatuses) {
       setWireAmps({});
       setBatteryLevel(null);
       setBatteryFlow(IDLE_BATTERY_FLOW);
+      setBatteryVoltage(null);
       setOfflineByNode(EMPTY_OFFLINE_BY_NODE);
       setOfflineByWire({});
       setSmartShuntOffline(true);
@@ -81,6 +85,7 @@ export function useBatterySystem(socket, moduleStatuses) {
       setWireAmps(mapped.wireAmps);
       setBatteryLevel(mapped.batteryLevel);
       setBatteryFlow(mapped.batteryFlow);
+      setBatteryVoltage(mapped.batteryVoltage);
       setOfflineByNode(mapped.offlineByNode);
       setOfflineByWire(mapped.offlineByWire);
       setSmartShuntOffline(mapped.smartShuntOffline);
@@ -106,6 +111,7 @@ export function useBatterySystem(socket, moduleStatuses) {
       setWireAmps({});
       setBatteryLevel(null);
       setBatteryFlow(IDLE_BATTERY_FLOW);
+      setBatteryVoltage(null);
       setOfflineByNode(EMPTY_OFFLINE_BY_NODE);
       setOfflineByWire({});
       setSmartShuntOffline(true);
@@ -117,6 +123,7 @@ export function useBatterySystem(socket, moduleStatuses) {
     wireAmps,
     batteryLevel,
     batteryFlow,
+    batteryVoltage,
     offlineByNode,
     offlineByWire,
     smartShuntOffline,

@@ -40,6 +40,9 @@ export const BATTERY_NODES_WITHOUT_OFF_BADGE = new Set([
   "dcLoads",
 ]);
 
+/** Wires labeled in watts (PV power) instead of amps. */
+export const BATTERY_WIRE_POWER_LABELS = new Set(["solar1-mppt1", "solar2-mppt2"]);
+
 /** Victron payload key per wire (for suppressing live flow animation when stale). */
 export const BATTERY_WIRE_VICTRON_SOURCE = {
   "solar1-mppt1": "mppt1",
