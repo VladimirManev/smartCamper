@@ -306,14 +306,16 @@ export function applyAllOffScene(
  * @property {boolean} boilerOff
  * @property {boolean} inverterOff
  * @property {boolean} lightsOffExceptBedroom
+ * @property {boolean} bathroomAuto10
  * @property {boolean} bedroomDimThenOff
  * @property {number} bedroomOffSeconds
  */
 
-function getSleepLightsOffExceptBedroomPlan(ledStrips, relays) {
+function getSleepLightsOffExceptBedroomPlan(ledStrips, relays, skipBathroom = true) {
   const stripIndices = [];
   for (const index of LIGHTING_GROUP_STRIP_INDICES) {
-    if (index === STRIP_INDEX.bedroom || index === STRIP_INDEX.bathroom) continue;
+    if (index === STRIP_INDEX.bedroom) continue;
+    if (index === STRIP_INDEX.bathroom && skipBathroom) continue;
     if (isStripActiveForLightingGroup(index, ledStrips[index])) {
       stripIndices.push(index);
     }
@@ -357,7 +359,11 @@ export function applySleepScene(
   }
 
   if (options.lightsOffExceptBedroom) {
-    const { stripIndices, toggleAmbient } = getSleepLightsOffExceptBedroomPlan(ledStrips, relays);
+    const { stripIndices, toggleAmbient } = getSleepLightsOffExceptBedroomPlan(
+      ledStrips,
+      relays,
+      options.bathroomAuto10
+    );
     for (const index of stripIndices) {
       sendLEDCommand({ type: "strip", index, action: "off" });
     }
@@ -366,15 +372,17 @@ export function applySleepScene(
     }
   }
 
-  sendLEDCommand({
-    type: "strip",
-    index: STRIP_INDEX.bathroom,
-    action: "apply",
-    payload: {
-      brightness: brightnessPercent(10),
-      mode: "auto",
-    },
-  });
+  if (options.bathroomAuto10) {
+    sendLEDCommand({
+      type: "strip",
+      index: STRIP_INDEX.bathroom,
+      action: "apply",
+      payload: {
+        brightness: brightnessPercent(10),
+        mode: "auto",
+      },
+    });
+  }
 
   let bedroomOffTimer = null;
 

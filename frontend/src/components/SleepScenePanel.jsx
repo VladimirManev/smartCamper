@@ -24,6 +24,7 @@ export const DEFAULT_SLEEP_OPTIONS = {
   boilerOff: true,
   inverterOff: true,
   lightsOffExceptBedroom: true,
+  bathroomAuto10: true,
   bedroomDimThenOff: true,
   bedroomOffSeconds: SLEEP_BEDROOM_OFF_DEFAULT_SECONDS,
   delay: false,
@@ -45,6 +46,7 @@ export function buildSleepScenePayload(options) {
     boilerOff: options.boilerOff,
     inverterOff: options.inverterOff,
     lightsOffExceptBedroom: options.lightsOffExceptBedroom,
+    bathroomAuto10: options.bathroomAuto10,
     bedroomDimThenOff: options.bedroomDimThenOff,
     bedroomOffSeconds: options.bedroomOffSeconds,
   };
@@ -80,9 +82,14 @@ export function SleepScenePanel({ onApply, onBack }) {
           <SceneOptionRow
             checked={options.lightsOffExceptBedroom}
             onChange={(v) => setOption("lightsOffExceptBedroom", v)}
-            spanAll
           >
-            Lights off (not bedroom/bathroom)
+            Lights off
+          </SceneOptionRow>
+          <SceneOptionRow
+            checked={options.bathroomAuto10}
+            onChange={(v) => setOption("bathroomAuto10", v)}
+          >
+            Bath AUTO 10%
           </SceneOptionRow>
           <SceneStepperOptionRow
             checked={options.bedroomDimThenOff}
