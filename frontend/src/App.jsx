@@ -1460,7 +1460,6 @@ function App() {
         <div className="card-wrapper">
           <BatteryCard
             charge={batteryLevel}
-            voltage={batteryVoltage}
             disabled={!isModule6Online}
             onClick={() => activateFromMainMenu("battery", "Battery")}
             onLongPress={() => activateFromMainMenu("battery", "Battery")}
