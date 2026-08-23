@@ -19,6 +19,14 @@ const { Server } = require("socket.io");
 const PORT = Number(process.env.MOCK_SOCKET_PORT || 3100);
 const AC_CHARGER_CYCLE_MS = 15000;
 const VICTRON_STALE_MS = 6000;
+const PERIMETER_SENSORS = [
+  "front",
+  "rear",
+  "left_front",
+  "left_rear",
+  "right_front",
+  "right_rear",
+];
 let lastLoggedAcPhase = null;
 
 function isMockAcChargerLive() {
@@ -55,7 +63,7 @@ function ts() {
 
 function buildModuleStatuses() {
   const modules = {};
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 1; i <= 8; i++) {
     const moduleId = `module-${i}`;
     const now = Date.now();
     modules[moduleId] = {
@@ -458,6 +466,110 @@ function handleMockLedCommand(socket, ledState, payload) {
   emitLedStatus(socket, ledState);
 }
 
+function createInitialSecurityState() {
+  return {
+    zone1: {
+      armed: false,
+      phase: "idle",
+      ignoreInteriorPir: false,
+      siren: false,
+      smoke: false,
+    },
+    zone2: { armed: false },
+    inputs: {
+      spareOpen: false,
+      interiorPir: false,
+      doors: {
+        driver: false,
+        passenger: false,
+        sliding: false,
+        rear: false,
+      },
+      perimeter: Object.fromEntries(
+        PERIMETER_SENSORS.map((sensor) => [sensor, false])
+      ),
+      perimeterLastMotion: Object.fromEntries(
+        PERIMETER_SENSORS.map((sensor) => [sensor, null])
+      ),
+    },
+  };
+}
+
+function emitSecurityStatus(socket, securityState) {
+  socket.emit("securityStatusUpdate", {
+    type: "full",
+    data: JSON.parse(JSON.stringify(securityState)),
+    timestamp: ts(),
+  });
+}
+
+function clearPerimeterMotion(securityState) {
+  for (const sensor of PERIMETER_SENSORS) {
+    securityState.inputs.perimeter[sensor] = false;
+    securityState.inputs.perimeterLastMotion[sensor] = null;
+  }
+}
+
+function simulatePerimeterMotion(securityState, sensorId) {
+  const sensor = PERIMETER_SENSORS.includes(sensorId)
+    ? sensorId
+    : PERIMETER_SENSORS[Math.floor(Math.random() * PERIMETER_SENSORS.length)];
+  const now = Date.now();
+  securityState.inputs.perimeter[sensor] = true;
+  securityState.inputs.perimeterLastMotion[sensor] = now;
+  return sensor;
+}
+
+function handleMockSecurityCommand(socket, securityState, payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  if (payload.zone === 2 && payload.action === "on") {
+    securityState.zone2.armed = true;
+    emitSecurityStatus(socket, securityState);
+    return;
+  }
+
+  if (payload.zone === 2 && payload.action === "off") {
+    securityState.zone2.armed = false;
+    clearPerimeterMotion(securityState);
+    emitSecurityStatus(socket, securityState);
+    return;
+  }
+
+  if (payload.zone === 2 && payload.action === "simulate_motion") {
+    simulatePerimeterMotion(securityState, payload.sensor);
+    emitSecurityStatus(socket, securityState);
+  }
+}
+
+function createPerimeterMotionSimulator(socket, securityState) {
+  const intervalMs = Number(process.env.MOCK_PERIMETER_MOTION_INTERVAL_MS || 10000);
+  let interval = null;
+
+  return {
+    start() {
+      if (interval) return;
+      interval = setInterval(() => {
+        const sensor = simulatePerimeterMotion(securityState);
+        emitSecurityStatus(socket, securityState);
+        if (process.env.DEBUG_MOCK_SOCKET) {
+          console.log(
+            `[mock] perimeter motion on ${sensor} (armed=${securityState.zone2.armed})`
+          );
+        }
+      }, intervalMs);
+    },
+    stop() {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    },
+  };
+}
+
 function createInitialApplianceState() {
   return JSON.parse(JSON.stringify(STATIC.applianceStatusUpdate.data));
 }
@@ -500,7 +612,7 @@ function handleMockApplianceCommand(socket, applianceState, payload) {
   emitApplianceStatus(socket, applianceState);
 }
 
-function sendAll(io, socket) {
+function sendAll(socket, securityState) {
   const stamp = ts();
   socket.emit("moduleStatusUpdate", {
     modules: buildModuleStatuses(),
@@ -527,6 +639,7 @@ function sendAll(io, socket) {
     timestamp: stamp,
   });
   emitVictronStatus(socket, buildStaticVictronPayload());
+  emitSecurityStatus(socket, securityState);
 
   // Client hooks may attach after the first burst; resend sensors shortly after connect.
   [150, 600].forEach((ms) => {
@@ -546,12 +659,15 @@ io.on("connection", (socket) => {
   console.log(`[mock] client connected ${socket.id}`);
   const ledState = createInitialLedState();
   const applianceState = createInitialApplianceState();
+  const securityState = createInitialSecurityState();
+  const motionSim = createPerimeterMotionSimulator(socket, securityState);
 
   // Let the browser attach Socket.io listeners before the first burst (React useEffect).
   const connectDelayMs = Number(process.env.MOCK_CONNECT_DELAY_MS || 450);
   let sensorTimer = null;
   const connectTimer = setTimeout(() => {
-    sendAll(io, socket);
+    sendAll(socket, securityState);
+    motionSim.start();
     const sensorIntervalMs = Number(process.env.MOCK_SENSOR_INTERVAL_MS || 4000);
     sensorTimer = setInterval(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
@@ -570,6 +686,13 @@ io.on("connection", (socket) => {
     handleMockApplianceCommand(socket, applianceState, payload);
     if (process.env.DEBUG_MOCK_SOCKET) {
       console.log("[mock] applianceCommand", payload);
+    }
+  });
+
+  socket.on("securityCommand", (payload) => {
+    handleMockSecurityCommand(socket, securityState, payload);
+    if (process.env.DEBUG_MOCK_SOCKET) {
+      console.log("[mock] securityCommand", payload);
     }
   });
 
@@ -603,6 +726,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     clearTimeout(connectTimer);
     if (sensorTimer) clearInterval(sensorTimer);
+    motionSim.stop();
     console.log(`[mock] client disconnected ${socket.id} (${reason})`);
   });
 });
@@ -610,6 +734,9 @@ io.on("connection", (socket) => {
 server.listen(PORT, () => {
   console.log(`[mock] Socket.io listening on http://localhost:${PORT}`);
   console.log(`[mock] Optional: MOCK_SENSOR_INTERVAL_MS (default 4000)`);
+  console.log(
+    `[mock] Perimeter motion every ${Number(process.env.MOCK_PERIMETER_MOTION_INTERVAL_MS || 10000) / 1000}s (armed or not)`
+  );
   console.log(
     `[mock] AC charger: ${AC_CHARGER_CYCLE_MS / 1000}s on / ${AC_CHARGER_CYCLE_MS / 1000}s off (no payload)`
   );

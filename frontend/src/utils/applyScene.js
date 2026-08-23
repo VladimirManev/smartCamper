@@ -96,6 +96,29 @@ export function applyNormalScene({ sendLEDCommand, sendApplianceCommand, applian
 }
 
 /**
+ * Master ON (long-press Light group when all off): main, kitchen, bathroom, bedroom @ 50% neutral white.
+ * @param {{ sendLEDCommand: Function }} ctx
+ */
+export function applyLightingMasterOn({ sendLEDCommand }) {
+  const payload = {
+    brightness: brightnessPercent(50),
+    mode: "on",
+    state: "ON",
+    effect: "normal",
+    channels: { ...LED_WHITE_PRESETS.neutral },
+  };
+
+  for (const index of [
+    STRIP_INDEX.main,
+    STRIP_INDEX.kitchen,
+    STRIP_INDEX.bathroom,
+    STRIP_INDEX.bedroom,
+  ]) {
+    sendLEDCommand({ type: "strip", index, action: "apply", payload });
+  }
+}
+
+/**
  * Film: optional audio ON, kitchen OFF, main warm white @ 10%.
  *
  * @param {Object} ctx

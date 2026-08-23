@@ -15,7 +15,7 @@ import { getThemeColor } from "../utils/getThemeColor";
  * @param {Function} props.onClick - Click handler function (opens modal)
  * @param {boolean} props.disabled - Whether the control is disabled/offline
  * @param {boolean} props.anyActive - True when any lighting-group strip is on (bathroom AUTO excluded)
- * @param {Function} [props.onLongPress] - e.g. master OFF for all lit channels in the group
+ * @param {Function} [props.onLongPress] - master OFF when lit; master ON @ 50% neutral when all off
  */
 export const LEDGroupCard = ({
   name,

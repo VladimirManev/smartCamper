@@ -38,6 +38,9 @@ import { ECGIndicator } from "./components/ECGIndicator";
 import { ClockDateCard, ClockCalendarLines } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
 import { StatusCard } from "./components/StatusCard";
+import { AlarmCard } from "./components/AlarmCard";
+import { PerimeterCard } from "./components/PerimeterCard";
+import { PerimeterModalContent } from "./components/PerimeterModalContent";
 import { StatusModalContent } from "./components/StatusModalContent";
 import { ScenesGroupCard } from "./components/ScenesGroupCard";
 import { ScenesModalContent } from "./components/ScenesModalContent";
@@ -46,7 +49,17 @@ import {
   DEFAULT_ALL_OFF_OPTIONS,
   buildAllOffScenePayload,
 } from "./components/AllOffScenePanel";
-import { applyScene, applyNormalScene, applyDriveScene, applyFilmScene, applyCookingScene, applySleepScene, applyAllOffScene, isSceneDisabled as isSceneDisabledForModules } from "./utils/applyScene";
+import {
+  applyScene,
+  applyNormalScene,
+  applyDriveScene,
+  applyFilmScene,
+  applyCookingScene,
+  applySleepScene,
+  applyAllOffScene,
+  applyLightingMasterOn,
+  isSceneDisabled as isSceneDisabledForModules,
+} from "./utils/applyScene";
 import {
   APPLIANCE_INDEX,
   getApplianceToggleCommands,
@@ -82,6 +95,8 @@ import {
 } from "./constants/displaySettings";
 import { useDisplayBacklight } from "./hooks/useDisplayBacklight";
 import { useDisplayWakeOnLight } from "./hooks/useDisplayWakeOnLight";
+import { useDisplayWakeOnPerimeterMotion } from "./hooks/useDisplayWakeOnPerimeterMotion";
+import { useSecurityController } from "./hooks/useSecurityController";
 import { DisplayWakeOverlay } from "./components/DisplayWakeOverlay";
 import "./App.css";
 
@@ -172,6 +187,9 @@ function App() {
   // Check if module-7 is online (fresh water level)
   const isModule7Online = isModuleOnline("module-7");
 
+  // Check if module-8 is online (security alarm)
+  const isModule8Online = isModuleOnline("module-8");
+
   // LED controller
   const { ledStrips, relays, sendLEDCommand } = useLEDController(socket);
 
@@ -182,6 +200,13 @@ function App() {
 
   // Appliance controller
   const { appliances, sendApplianceCommand } = useApplianceController(socket);
+
+  const {
+    zone2Armed,
+    perimeterLastMotion,
+    setZone2Armed,
+    simulatePerimeterMotion,
+  } = useSecurityController(socket);
 
   // Floor heating controller
   const { circles, sendFloorHeatingCommand } = useFloorHeating(socket);
@@ -357,6 +382,20 @@ function App() {
     },
     [isTabletLandscape]
   );
+
+  const openPerimeterModal = useCallback(() => {
+    activateFromMainMenu("perimeter", "Perimeter");
+  }, [activateFromMainMenu]);
+
+  useDisplayWakeOnPerimeterMotion({
+    zone2Armed,
+    perimeterLastMotion,
+    isAsleep: isDisplayAsleep,
+    isFeatureEnabled: isDisplayBacklightFeatureEnabled,
+    isModuleOnline: isModule8Online,
+    turnOn: turnDisplayOn,
+    openPerimeterModal,
+  });
 
   useEffect(() => {
     if (!isTabletLandscape) return;
@@ -774,6 +813,23 @@ function App() {
       );
     }
 
+    if (cardType === "alarm") {
+      // Placeholder — controls come later
+      return null;
+    }
+
+    if (cardType === "perimeter") {
+      return (
+        <PerimeterModalContent
+          disabled={!isModule8Online}
+          armed={zone2Armed}
+          perimeterLastMotion={perimeterLastMotion}
+          onToggleArm={setZone2Armed}
+          onSimulateMotion={simulatePerimeterMotion}
+        />
+      );
+    }
+
     if (cardType === "settings") {
       // Settings modal content
       return (
@@ -969,17 +1025,26 @@ function App() {
     });
   };
 
-  /** Long-press Light group: turn off each lit strip (same commands as per-zone off; kitchen = index 0 only) + Ambient toggle if ON. Bathroom AUTO: no command. */
+  /** Long-press Light group: all off when lit; all on @ 50% neutral when everything is off. */
   const handleLightingGroupLongPress = () => {
     if (!isModule2Online) return;
-    const { stripIndices, toggleAmbient } = getLightingMasterOffPlan(ledStrips, relays);
-    if (stripIndices.length === 0 && !toggleAmbient) return;
-    for (const index of stripIndices) {
-      sendLEDCommand({ type: "strip", index, action: "off" });
+
+    if (lightingGroupActive) {
+      const { stripIndices, toggleAmbient } = getLightingMasterOffPlan(
+        ledStrips,
+        relays
+      );
+      if (stripIndices.length === 0 && !toggleAmbient) return;
+      for (const index of stripIndices) {
+        sendLEDCommand({ type: "strip", index, action: "off" });
+      }
+      if (toggleAmbient) {
+        sendLEDCommand({ type: "relay", action: "toggle" });
+      }
+      return;
     }
-    if (toggleAmbient) {
-      sendLEDCommand({ type: "relay", action: "toggle" });
-    }
+
+    applyLightingMasterOn({ sendLEDCommand });
   };
 
   // Appliance command handlers
@@ -1536,6 +1601,29 @@ function App() {
             onLongPress={() => activateFromMainMenu("battery", "Battery")}
           />
           <p className="card-label">Battery</p>
+        </div>
+
+        <div className="card-wrapper">
+          <AlarmCard
+            name="Alarm"
+            onClick={() => activateFromMainMenu("alarm", "Alarm")}
+            disabled={!isModule8Online}
+          />
+          <p className="card-label">Alarm</p>
+        </div>
+
+        <div className="card-wrapper">
+          <PerimeterCard
+            name="Perimeter"
+            onClick={() => activateFromMainMenu("perimeter", "Perimeter")}
+            onLongPress={() => {
+              if (!isModule8Online) return;
+              setZone2Armed(!zone2Armed);
+            }}
+            disabled={!isModule8Online}
+            armed={zone2Armed}
+          />
+          <p className="card-label">Perimeter</p>
         </div>
         </div>
 

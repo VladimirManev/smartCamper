@@ -3341,6 +3341,15 @@ body {
   color: var(--color-text-primary);
 }
 
+/* Perimeter modal: fit on one screen, no inner scroll. */
+.modal-content:has(.perimeter-modal) {
+  overflow: hidden;
+  padding: 0.35rem 0.5rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* LED strip modal: keep content on one screen when possible (no inner scroll). */
 .modal-content:has(.led-strip-modal--strip) {
   overflow-y: visible;
@@ -4689,7 +4698,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     max-height: none;
     min-height: 0;
     overflow: visible;
-    align-self: flex-end;
+    align-self: flex-start;
     z-index: 2;
   }
 
@@ -4702,14 +4711,14 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     justify-items: center;
   }
 
-  /* Empty row 3 slot between primary block and appliances */
+  /* Row 3: alarm; appliances follow on row 4 */
   .app.app--tablet-landscape .tablet-split__left-inner .main-menu-grid--appliances {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.3rem 0.45rem;
     width: 100%;
     justify-items: center;
-    margin-top: calc(var(--tablet-split-card-size) + 1.15rem);
+    margin-top: 0.35rem;
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-wrapper {
@@ -5481,3 +5490,257 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     font-size: 0.58rem;
   }
 }
+
+/* ===== Perimeter modal (bird's-eye image + zone overlays) ===== */
+.perimeter-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 0;
+  gap: 0;
+  justify-content: flex-start;
+}
+
+.perimeter-modal--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.perimeter-modal__main {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  margin-top: 0.35rem;
+}
+
+.perimeter-modal__stage {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(78vw, 290px);
+  height: min(54vh, 400px);
+  max-height: calc(80vh - 7rem);
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.perimeter-modal__van-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  transform: scale(1.04) translateY(24%);
+  transform-origin: center center;
+}
+
+.perimeter-modal__van-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center center;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.perimeter-modal__zone {
+  position: absolute;
+  z-index: 3;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.perimeter-modal__zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.28) 0%,
+    rgba(34, 197, 94, 0.14) 100%
+  );
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.14);
+  pointer-events: none;
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease;
+}
+
+/* Front/rear fan — sharp tip toward van, wide outward */
+.perimeter-modal__zone--front::before {
+  clip-path: polygon(49.5% 100%, 50.5% 100%, 99% 0%, 1% 0%);
+}
+
+.perimeter-modal__zone--rear::before {
+  clip-path: polygon(49.5% 0%, 50.5% 0%, 99% 100%, 1% 100%);
+}
+
+/* Same fan rotated 90° for side zones */
+.perimeter-modal__zone--left_front::before,
+.perimeter-modal__zone--left_rear::before {
+  clip-path: polygon(100% 49.5%, 100% 50.5%, 0% 1%, 0% 99%);
+}
+
+.perimeter-modal__zone--right_front::before,
+.perimeter-modal__zone--right_rear::before {
+  clip-path: polygon(0% 49.5%, 0% 50.5%, 100% 1%, 100% 99%);
+}
+
+.perimeter-modal__zone--alert::before {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.48) 0%,
+    rgba(239, 68, 68, 0.24) 100%
+  );
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.3);
+  animation: perimeter-zone-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes perimeter-zone-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.perimeter-modal__arm.neumorphic-button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: none;
+  width: clamp(4.6rem, 22vw, 5.75rem);
+  height: clamp(4.6rem, 22vw, 5.75rem);
+  min-width: 4.6rem;
+  min-height: 4.6rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  z-index: 5;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.perimeter-modal__arm .button-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit;
+}
+
+.perimeter-modal__arm .icon-container {
+  --icon-size: clamp(1.65rem, 8vw, 2.15rem);
+}
+
+.perimeter-modal__age {
+  position: absolute;
+  z-index: 5;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #fff;
+  opacity: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 0 5px rgba(0, 0, 0, 0.95),
+    0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.perimeter-modal__zone--front .perimeter-modal__age {
+  top: 26%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.perimeter-modal__zone--rear .perimeter-modal__age {
+  top: 74%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.perimeter-modal__zone--left_front .perimeter-modal__age,
+.perimeter-modal__zone--left_rear .perimeter-modal__age {
+  left: 22%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.perimeter-modal__zone--right_front .perimeter-modal__age,
+.perimeter-modal__zone--right_rear .perimeter-modal__age {
+  left: 78%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.perimeter-modal__hint {
+  margin: auto 0 0;
+  padding-top: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  opacity: 0.75;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.app.app--tablet-landscape
+  .tablet-embedded-panel__body.modal-content:has(.perimeter-modal) {
+  overflow: hidden;
+}
+
+.app.app--tablet-landscape .perimeter-modal__main {
+  margin-top: 0.5rem;
+}
+
+.app.app--tablet-landscape .perimeter-modal__stage {
+  width: min(42vw, 320px);
+  height: min(48vh, 380px);
+  max-height: calc(100vh - 10rem);
+}
+
+.app.app--tablet-landscape .perimeter-modal__arm.neumorphic-button {
+  width: clamp(4.75rem, 12vh, 6rem);
+  height: clamp(4.75rem, 12vh, 6rem);
+  min-width: 4.75rem;
+  min-height: 4.75rem;
+}
+
+.app.app--tablet-landscape .perimeter-modal__arm .icon-container {
+  --icon-size: clamp(1.85rem, 4.5vh, 2.35rem);
+}
+
