@@ -6,6 +6,8 @@ export const APPLIANCE_INDEX = {
   wcFan: 3,
   boiler: 4,
   inverter: 5,
+  /** Tablet display backlight — relay 6 on module-5, not shown in appliance cards */
+  displayBacklight: 6,
 };
 
 export function isInverterOn(appliances) {

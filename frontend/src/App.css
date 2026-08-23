@@ -3719,6 +3719,17 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   margin-top: 1rem;
 }
 
+.display-wake-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #000;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
 /* Settings dropdown - smaller size */
 .settings-dropdown {
   width: auto;
@@ -4026,6 +4037,14 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   padding: 1.35rem 0.5rem 0 1.5rem;
   margin-left: 0;
   align-items: flex-start;
+}
+
+.clock-date-card--long-press {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 /* Date text container - below clock */

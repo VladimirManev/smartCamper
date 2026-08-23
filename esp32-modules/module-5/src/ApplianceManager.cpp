@@ -35,6 +35,11 @@ void ApplianceManager::begin() {
   
   // Initialize relay controller
   relayController.begin();
+
+  // Display backlight on by default (relay 6 — tablet UI)
+  if (NUM_RELAYS > 6) {
+    relayController.setRelay(6, true);
+  }
   
   // Initialize button handler
   buttonHandler.setApplianceManager(this);  // Set ApplianceManager reference for status publishing
@@ -146,6 +151,12 @@ void ApplianceManager::processApplianceCommand(char* topic, byte* payload, unsig
     
     if (action == "toggle") {
       relayController.toggleRelay(relayIndex);
+      publishRelayStatus();
+    } else if (action == "on") {
+      relayController.setRelay(relayIndex, true);
+      publishRelayStatus();
+    } else if (action == "off") {
+      relayController.setRelay(relayIndex, false);
       publishRelayStatus();
     } else {
       if (DEBUG_SERIAL) {

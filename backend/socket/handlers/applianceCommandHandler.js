@@ -19,13 +19,13 @@ const applianceCommandHandler = (socket, aedes, data) => {
   let mqttPayload = "{}";
 
   // Construct MQTT topic and payload according to command type
+  const relayActions = ["toggle", "on", "off"];
   if (
     data.type === "relay" &&
     typeof data.index === "number" &&
-    data.action === "toggle"
+    relayActions.includes(data.action)
   ) {
-    // Relay command: relay/{index}/toggle
-    mqttTopic = `smartcamper/commands/${moduleId}/relay/${data.index}/toggle`;
+    mqttTopic = `smartcamper/commands/${moduleId}/relay/${data.index}/${data.action}`;
   } else {
     console.log("❌ Invalid appliance command:", data);
     return;

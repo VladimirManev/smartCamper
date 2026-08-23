@@ -159,6 +159,7 @@ const STATIC = {
         3: { state: "OFF" },
         4: { state: "OFF" },
         5: { state: "ON" },
+        6: { state: "ON" },
       },
     },
     timestamp: ts(),
@@ -474,7 +475,12 @@ function handleMockApplianceCommand(socket, applianceState, payload) {
     return;
   }
 
-  if (payload.type !== "relay" || payload.action !== "toggle") {
+  if (payload.type !== "relay") {
+    return;
+  }
+
+  const relayActions = ["toggle", "on", "off"];
+  if (!relayActions.includes(payload.action)) {
     return;
   }
 
@@ -484,7 +490,13 @@ function handleMockApplianceCommand(socket, applianceState, payload) {
     return;
   }
 
-  relay.state = relay.state === "ON" ? "OFF" : "ON";
+  if (payload.action === "toggle") {
+    relay.state = relay.state === "ON" ? "OFF" : "ON";
+  } else if (payload.action === "on") {
+    relay.state = "ON";
+  } else if (payload.action === "off") {
+    relay.state = "OFF";
+  }
   emitApplianceStatus(socket, applianceState);
 }
 

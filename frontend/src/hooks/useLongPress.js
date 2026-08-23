@@ -58,6 +58,12 @@ export const useLongPress = (onLongPress, onClick, delay = 500) => {
     [onClick]
   );
 
+  const blockContextMenu = useCallback((event) => {
+    if (onLongPress) {
+      event.preventDefault();
+    }
+  }, [onLongPress]);
+
   return {
     onMouseDown: start,
     onTouchStart: start,
@@ -65,5 +71,6 @@ export const useLongPress = (onLongPress, onClick, delay = 500) => {
     onMouseLeave: (e) => clear(e, false), // Don't trigger click on mouse leave
     onTouchEnd: (e) => clear(e, true),
     onTouchCancel: (e) => clear(e, false), // Don't trigger click on touch cancel
+    onContextMenu: blockContextMenu,
   };
 };

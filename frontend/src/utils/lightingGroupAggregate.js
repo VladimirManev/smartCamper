@@ -59,3 +59,19 @@ export function getLightingMasterOffPlan(ledStrips, relays) {
   const toggleAmbient = relays?.[AMBIENT_RELAY_INDEX]?.state === "ON";
   return { stripIndices, toggleAmbient };
 }
+
+/**
+ * Any lighting zone physically ON — used to wake tablet display backlight.
+ * Bathroom AUTO: if strip state is ON (e.g. PIR), counts as lit.
+ * @param {Record<string, { state?: string }>} ledStrips
+ * @param {Record<string, { state?: string }>} relays
+ * @returns {boolean}
+ */
+export function isAnyLightOnForDisplayWake(ledStrips, relays) {
+  for (const index of LIGHTING_GROUP_STRIP_INDICES) {
+    if (ledStrips[index]?.state === "ON") {
+      return true;
+    }
+  }
+  return relays?.[AMBIENT_RELAY_INDEX]?.state === "ON";
+}

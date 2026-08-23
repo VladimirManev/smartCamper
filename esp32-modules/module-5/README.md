@@ -1,6 +1,6 @@
 # Module-5: Appliance Controller
 
-ESP32 module for controlling six appliances via relays: Audio System, Water Pump, Refrigerator, WC Fan, Boiler, and Inverter.
+ESP32 module for controlling six appliances via relays (Audio System, Water Pump, Refrigerator, WC Fan, Boiler, Inverter) plus a seventh relay for tablet display backlight.
 
 ## Hardware Configuration
 
@@ -14,6 +14,7 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 | **Relay 3** (WC Fan)        | 23  | Output          | Relay control for WC fan       |
 | **Relay 4** (Boiler)        | 27  | Output          | Relay control for boiler       |
 | **Relay 5** (Inverter)      | 32  | Output          | Relay control for inverter     |
+| **Relay 6** (Display backlight) | 13 | Output       | Tablet backlight (NO contact)  |
 | **Button 0** (Audio System) | 17  | Input (Pull-up) | Manual toggle for relay 0      |
 | **Button 1** (Water Pump)   | 21  | Input (Pull-up) | Manual toggle for relay 1      |
 | **Button 2** (Refrigerator) | 22  | Input (Pull-up) | Manual toggle for relay 2      |
@@ -33,6 +34,15 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 | **3** | WC Fan       | 23        | 25         | WC fan control       |
 | **4** | Boiler       | 27        | 26         | Boiler control       |
 | **5** | Inverter     | 32        | 33         | Inverter control     |
+| **6** | Display backlight | 13 | — | Tablet UI — no physical button |
+
+### Relay 6 — tablet display backlight
+
+- **GPIO 13**, **NO contact** in series with backlight supply (HIGH = relay energized = backlight ON)
+- Boot default: backlight **ON**
+- Frontend only (tablet landscape): long-press clock to off, Settings auto-off, tap black overlay to wake
+- **Not** shown on appliance cards in the UI
+- Display physical button may be wired in parallel across NO (bypass relay)
 
 ### Button Functions
 
@@ -63,15 +73,16 @@ ESP32 module for controlling six appliances via relays: Audio System, Water Pump
 | Topic                                                | Payload | Action              |
 | ---------------------------------------------------- | ------- | ------------------- |
 | `smartcamper/commands/module-5/relay/{index}/toggle` | `{}`    | Toggle relay        |
+| `smartcamper/commands/module-5/relay/{index}/on`     | `{}`    | Relay ON            |
+| `smartcamper/commands/module-5/relay/{index}/off`    | `{}`    | Relay OFF           |
 | `smartcamper/commands/module-5/force_update`         | `{}`    | Force status update |
 
 ### Command Format
 
-- `{index}` can be 0, 1, 2, 3, 4, or 5 (for the six relays)
+- `{index}` can be 0–6 (six appliances + display backlight)
 - Example: `smartcamper/commands/module-5/relay/0/toggle` - toggles relay 0 (Audio System)
-- Example: `smartcamper/commands/module-5/relay/3/toggle` - toggles relay 3 (WC Fan)
-- Example: `smartcamper/commands/module-5/relay/4/toggle` - toggles relay 4 (Boiler)
-- Example: `smartcamper/commands/module-5/relay/5/toggle` - toggles relay 5 (Inverter)
+- Example: `smartcamper/commands/module-5/relay/6/off` - turns off tablet display backlight
+- Example: `smartcamper/commands/module-5/relay/6/on` - turns on tablet display backlight
 
 ## Features
 
@@ -115,6 +126,7 @@ Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
 - **Toilet card** in main menu — `ToiletUrineTank`, yellow liquid, **WC** label
 - **Detail modal** — polls module-5 every 5 s while open
 - **Status panel** (tablet) — included in rotating slides
+- **Tablet display backlight** (tablet landscape only): long-press clock → off; tap overlay → on; Settings auto-off; wake when a light zone turns on (module-2). Relay index **6** in `applianceStatusUpdate`, no dedicated appliance card.
 
 ## Installation and Setup
 
@@ -145,7 +157,7 @@ Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
 ### Relays not working
 
 - Check relay power supply (12V DC)
-- Check relay connections (pins 14, 15, 16, 23, 27, 32)
+- Check relay connections (pins 14, 15, 16, 23, 27, 32, 13 for display backlight)
 - Check serial output for errors
 - Ensure proper ground connection between ESP32 and relays
 

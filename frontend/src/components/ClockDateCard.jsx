@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useLongPress } from "../hooks/useLongPress";
 
 function formatCalendarLines(date) {
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" })
@@ -42,8 +43,11 @@ export function ClockCalendarLines() {
 
 /**
  * @param {boolean} [props.showCalendar=true] — if false, only HH:MM (for tablet cluster next to sensors).
+ * @param {Function} [props.onLongPress] — long-press handler (tablet: turn display backlight off).
  */
-export const ClockDateCard = ({ showCalendar = true }) => {
+export const ClockDateCard = ({ showCalendar = true, onLongPress }) => {
+  const longPressHandlers = useLongPress(onLongPress, undefined, 500);
+
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -58,7 +62,8 @@ export const ClockDateCard = ({ showCalendar = true }) => {
 
   return (
     <div
-      className={`clock-date-card${showCalendar ? "" : " clock-date-card--time-only"}`}
+      className={`clock-date-card${showCalendar ? "" : " clock-date-card--time-only"}${onLongPress ? " clock-date-card--long-press" : ""}`}
+      {...(onLongPress ? longPressHandlers : {})}
     >
       <div className="clock-container">
         <time className="clock-time" dateTime={time.toISOString()}>

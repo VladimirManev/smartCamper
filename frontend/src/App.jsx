@@ -75,6 +75,14 @@ import {
   getRadiantMasterOffPlan,
 } from "./utils/radiantGroupAggregate";
 import { APPEARANCE_MODE_OPTIONS } from "./constants/appearanceModeLabels";
+import {
+  DISPLAY_AUTO_OFF_OPTIONS,
+  loadDisplayAutoOffSetting,
+  saveDisplayAutoOffSetting,
+} from "./constants/displaySettings";
+import { useDisplayBacklight } from "./hooks/useDisplayBacklight";
+import { useDisplayWakeOnLight } from "./hooks/useDisplayWakeOnLight";
+import { DisplayWakeOverlay } from "./components/DisplayWakeOverlay";
 import "./App.css";
 
 const DEFAULT_TABLET_PANEL_MODAL = {
@@ -276,6 +284,45 @@ function App() {
 
   // Appearance: day / night / automatic (Settings)
   const [uiAppearanceMode, setUiAppearanceMode] = useState("night");
+
+  // Tablet display backlight auto-off (Settings, tablet landscape only)
+  const [displayAutoOffOption, setDisplayAutoOffOption] = useState(
+    loadDisplayAutoOffSetting
+  );
+
+  const handleDisplayAutoOffChange = useCallback((value) => {
+    setDisplayAutoOffOption(value);
+    saveDisplayAutoOffSetting(value);
+  }, []);
+
+  const handleDisplayTurnOff = useCallback(() => {
+    if (isTabletLandscape) {
+      setModalStack([DEFAULT_TABLET_PANEL_MODAL]);
+    }
+  }, [isTabletLandscape]);
+
+  const {
+    isAsleep: isDisplayAsleep,
+    isFeatureEnabled: isDisplayBacklightFeatureEnabled,
+    turnOn: turnDisplayOn,
+    turnOff: turnDisplayOff,
+  } = useDisplayBacklight({
+    appliances,
+    sendApplianceCommand,
+    isTabletLandscape,
+    isModuleOnline: isModule5Online,
+    displayAutoOffOption,
+    onTurnOff: handleDisplayTurnOff,
+  });
+
+  useDisplayWakeOnLight({
+    ledStrips,
+    relays,
+    isAsleep: isDisplayAsleep,
+    isFeatureEnabled: isDisplayBacklightFeatureEnabled,
+    isModuleOnline: isModule2Online,
+    turnOn: turnDisplayOn,
+  });
 
   const resolvedTheme = useMemo(() => {
     if (uiAppearanceMode === "day") return THEME_DAY_KEY;
@@ -741,6 +788,21 @@ function App() {
               className="settings-dropdown"
             />
           </div>
+          {isTabletLandscape ? (
+            <>
+              <div className="settings-divider"></div>
+              <div className="settings-row">
+                <label className="settings-label">Display auto-off</label>
+                <CustomDropdown
+                  value={displayAutoOffOption}
+                  onChange={handleDisplayAutoOffChange}
+                  options={DISPLAY_AUTO_OFF_OPTIONS}
+                  disabled={!isDisplayBacklightFeatureEnabled}
+                  className="settings-dropdown"
+                />
+              </div>
+            </>
+          ) : null}
           <div className="settings-divider"></div>
         </>
       );
@@ -1256,7 +1318,16 @@ function App() {
   };
 
   const clockSlotWithCalendar = <ClockDateCard showCalendar />;
-  const clockSlotTimeOnly = <ClockDateCard showCalendar={false} />;
+  const clockSlotTimeOnly = (
+    <ClockDateCard
+      showCalendar={false}
+      onLongPress={
+        isTabletLandscape && isDisplayBacklightFeatureEnabled
+          ? turnDisplayOff
+          : undefined
+      }
+    />
+  );
 
   const sensorTextRow = (
     <div className="sensor-text-row">
@@ -1632,6 +1703,8 @@ function App() {
         onClose={() => setAllOffConfirmOpen(false)}
         onConfirm={handleConfirmQuickAllOff}
       />
+
+      <DisplayWakeOverlay isVisible={isDisplayAsleep} onWake={turnDisplayOn} />
 
       {!isTabletLandscape &&
         modalStack.map((modal, index) => {
