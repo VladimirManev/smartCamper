@@ -1,48 +1,120 @@
 /**
- * Fiat Ducato B-CAN — all doors decode test.
- * ID 0x06214000 byte1:
+ * Fiat Ducato B-CAN sniffer (listen-only) — ESP32 + WCMCU-230.
+ *
+ * Prints only when an ID changes after being stable (filters counters).
+ *
+ * Known doors — E 06214000 byte1:
  *   driver 0x04, passenger 0x08, sliding 0x30, rear 0x40
  *
- * Wiring: WCMCU-230, OBD 1+9, GPIO 17 TX / 16 RX, 50 kbit/s listen-only.
- * Upload: cd esp32-modules/test && pio run -t upload && pio device monitor
+ * Wiring:
+ *   WCMCU-230 3V3  -> ESP32 3.3V
+ *   WCMCU-230 GND  -> ESP32 GND + vehicle GND (OBD pin 4 or 5)
+ *   WCMCU-230 CTX  -> ESP32 GPIO 17 (TX)
+ *   WCMCU-230 CRX  -> ESP32 GPIO 16 (RX)
+ *   WCMCU-230 CANH -> OBD pin 1
+ *   WCMCU-230 CANL -> OBD pin 9
+ *
+ * Upload:  cd esp32-modules/test && pio run -t upload && pio device monitor
+ * Wait for "Ready", then do one action at a time.
  */
 
 #include <Arduino.h>
 #include "driver/twai.h"
+#include <string.h>
 
 static const gpio_num_t CAN_TX_PIN = GPIO_NUM_17;
 static const gpio_num_t CAN_RX_PIN = GPIO_NUM_16;
 
 #define CAN_TIMING TWAI_TIMING_CONFIG_50KBITS()
 
-static const uint32_t DOOR_ID = 0x06214000;
-static const uint8_t DOOR_BYTE = 1;
+static const unsigned WARMUP_MS = 3000;
+static const unsigned STABLE_MS = 500;
+static const int CACHE_SIZE = 128;
 
-static const uint8_t MASK_DRIVER = 0x04;
-static const uint8_t MASK_PASSENGER = 0x08;
-static const uint8_t MASK_SLIDING = 0x30;
-static const uint8_t MASK_REAR = 0x40;
-
-struct DoorState {
-  bool driver;
-  bool passenger;
-  bool sliding;
-  bool rear;
+struct CachedFrame {
+  uint32_t id;
+  uint8_t extd;
+  uint8_t dlc;
+  uint8_t data[8];
+  unsigned long lastChangeMs;
+  bool used;
 };
 
-static bool haveState = false;
-static DoorState state = {};
+static CachedFrame cache[CACHE_SIZE];
+static bool ready = false;
+static unsigned long bootMs = 0;
 
-static void printDoor(const char *name, bool open) {
-  Serial.printf("%s %s\n", name, open ? "OPEN" : "CLOSED");
+static void printFrame(const twai_message_t &msg) {
+  if (msg.extd) {
+    Serial.printf("E %08X [%u] ", msg.identifier, msg.data_length_code);
+  } else {
+    Serial.printf("  %03X [%u] ", msg.identifier, msg.data_length_code);
+  }
+  for (int i = 0; i < msg.data_length_code; i++) {
+    Serial.printf("%02X ", msg.data[i]);
+  }
+  Serial.println();
+}
+
+static CachedFrame *findOrAlloc(uint32_t id, uint8_t extd) {
+  CachedFrame *freeSlot = nullptr;
+  for (int i = 0; i < CACHE_SIZE; i++) {
+    if (cache[i].used && cache[i].id == id && cache[i].extd == extd) {
+      return &cache[i];
+    }
+    if (!cache[i].used && freeSlot == nullptr) {
+      freeSlot = &cache[i];
+    }
+  }
+  return freeSlot;
+}
+
+static void handleFrame(const twai_message_t &msg) {
+  CachedFrame *slot = findOrAlloc(msg.identifier, msg.extd);
+  if (slot == nullptr) {
+    return;
+  }
+
+  const uint8_t dlc = msg.data_length_code;
+  const unsigned long now = millis();
+
+  if (!slot->used) {
+    slot->used = true;
+    slot->id = msg.identifier;
+    slot->extd = msg.extd;
+    slot->dlc = dlc;
+    memcpy(slot->data, msg.data, dlc);
+    slot->lastChangeMs = now;
+    return;
+  }
+
+  bool changed =
+      (slot->dlc != dlc) || (memcmp(slot->data, msg.data, dlc) != 0);
+  if (!changed) {
+    return;
+  }
+
+  const bool wasStable = (now - slot->lastChangeMs) >= STABLE_MS;
+  slot->dlc = dlc;
+  memcpy(slot->data, msg.data, dlc);
+  slot->lastChangeMs = now;
+
+  if (ready && wasStable) {
+    printFrame(msg);
+  }
 }
 
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("B-CAN all doors test  50 kbit/s  OBD 1+9");
-  Serial.println("ID E 06214000 byte1 masks: D04 P08 S30 R40");
+  Serial.println("B-CAN sniffer listen-only (stable-change)");
+  Serial.printf("TX=GPIO%d RX=GPIO%d  50 kbit/s  OBD 1+9  stable>=%ums\n",
+                (int)CAN_TX_PIN, (int)CAN_RX_PIN, STABLE_MS);
+  Serial.println("Doors known on E 06214000 byte1 — ignore those for new hunts");
+
+  memset(cache, 0, sizeof(cache));
+  bootMs = millis();
 
   twai_general_config_t g_config =
       TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_LISTEN_ONLY);
@@ -57,50 +129,19 @@ void setup() {
     Serial.println("TWAI start failed");
     return;
   }
-  Serial.println("Listening...");
+  Serial.printf("Warmup %u ms...\n", WARMUP_MS);
 }
 
 void loop() {
+  if (!ready && (millis() - bootMs >= WARMUP_MS)) {
+    ready = true;
+    Serial.println("Ready — one action at a time");
+  }
+
   twai_message_t msg;
-  if (twai_receive(&msg, pdMS_TO_TICKS(100)) != ESP_OK) {
-    return;
+  if (twai_receive(&msg, pdMS_TO_TICKS(50)) == ESP_OK) {
+    if (!msg.rtr) {
+      handleFrame(msg);
+    }
   }
-  if (msg.rtr || !msg.extd || msg.identifier != DOOR_ID) {
-    return;
-  }
-  if (msg.data_length_code <= DOOR_BYTE) {
-    return;
-  }
-
-  const uint8_t b = msg.data[DOOR_BYTE];
-  DoorState next = {
-      .driver = (b & MASK_DRIVER) != 0,
-      .passenger = (b & MASK_PASSENGER) != 0,
-      .sliding = (b & MASK_SLIDING) != 0,
-      .rear = (b & MASK_REAR) != 0,
-  };
-
-  if (!haveState) {
-    haveState = true;
-    state = next;
-    printDoor("DRIVER", state.driver);
-    printDoor("PASSENGER", state.passenger);
-    printDoor("SLIDING", state.sliding);
-    printDoor("REAR", state.rear);
-    return;
-  }
-
-  if (next.driver != state.driver) {
-    printDoor("DRIVER", next.driver);
-  }
-  if (next.passenger != state.passenger) {
-    printDoor("PASSENGER", next.passenger);
-  }
-  if (next.sliding != state.sliding) {
-    printDoor("SLIDING", next.sliding);
-  }
-  if (next.rear != state.rear) {
-    printDoor("REAR", next.rear);
-  }
-  state = next;
 }
