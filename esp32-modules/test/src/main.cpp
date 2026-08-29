@@ -45,11 +45,12 @@ static void printStatus() {
     return;
   }
   Serial.printf(
-      "STAT state=%u rx=%lu tx=%lu rx_miss=%lu arb_lost=%lu bus_err=%lu "
-      "rx_q=%u\n",
-      (unsigned)s.state, (unsigned long)s.rx_count, (unsigned long)s.tx_count,
-      (unsigned long)s.rx_missed_count, (unsigned long)s.arb_lost_count,
-      (unsigned long)s.bus_error_count, (unsigned)s.msgs_to_rx);
+      "STAT state=%u rx_err=%u tx_err=%u rx_miss=%lu arb_lost=%lu "
+      "bus_err=%lu rx_q=%u\n",
+      (unsigned)s.state, (unsigned)s.rx_error_counter,
+      (unsigned)s.tx_error_counter, (unsigned long)s.rx_missed_count,
+      (unsigned long)s.arb_lost_count, (unsigned long)s.bus_error_count,
+      (unsigned)s.msgs_to_rx);
 }
 
 void setup() {
