@@ -1,106 +1,249 @@
 /**
- * Fiat Ducato B-CAN sniffer (listen-only) — ESP32 + WCMCU-230.
+ * Fiat Ducato 2015 B-CAN decode test — ESP32 + WCMCU-230.
  *
- * Prints only when an ID changes after being stable (filters counters).
+ * OBD pins 1+9, 50 kbit/s, listen-only.
+ * TX=GPIO17, RX=GPIO16.
  *
- * Known doors — E 06214000 byte1:
- *   driver 0x04, passenger 0x08, sliding 0x30, rear 0x40
+ * Upload: cd esp32-modules/test && pio run -t upload && pio device monitor
  *
- * Wiring:
- *   WCMCU-230 3V3  -> ESP32 3.3V
- *   WCMCU-230 GND  -> ESP32 GND + vehicle GND (OBD pin 4 or 5)
- *   WCMCU-230 CTX  -> ESP32 GPIO 17 (TX)
- *   WCMCU-230 CRX  -> ESP32 GPIO 16 (RX)
- *   WCMCU-230 CANH -> OBD pin 1
- *   WCMCU-230 CANL -> OBD pin 9
- *
- * Upload:  cd esp32-modules/test && pio run -t upload && pio device monitor
- * Wait for "Ready", then do one action at a time.
+ * === Signal map (discovered) ===
+ * E 06214000
+ *   byte0 bit 0x20  handbrake ON
+ *   byte1 bit 0x04  driver door open
+ *   byte1 bit 0x08  passenger door open
+ *   byte1 bit 0x30  sliding door open
+ *   byte1 bit 0x40  rear door open
+ * E 02214000
+ *   byte1 bit 0x60  parking lights ON
+ *   byte1 bit 0x10  high beam / flash
+ *   byte2 bit 0x20  right turn
+ *   byte2 bit 0x40  left turn
+ *   byte2 bit 0x60  hazards
+ * E 02294000  (pulses)
+ *   byte5 bit 0x80  lock (both zones)
+ *   byte5 bit 0x08  unlock front (cockpit)
+ *   byte6 bit 0x80  unlock rear
+ * E 04214001
+ *   byte7 bit 0x04  reverse gear ON
+ * E 0E094024
+ *   byte1 0x1A radio ON, 0x1E radio OFF
  */
 
 #include <Arduino.h>
 #include "driver/twai.h"
-#include <string.h>
 
 static const gpio_num_t CAN_TX_PIN = GPIO_NUM_17;
 static const gpio_num_t CAN_RX_PIN = GPIO_NUM_16;
 
 #define CAN_TIMING TWAI_TIMING_CONFIG_50KBITS()
 
-static const unsigned WARMUP_MS = 3000;
-static const unsigned STABLE_MS = 500;
-static const int CACHE_SIZE = 128;
+static const uint32_t ID_DOORS = 0x06214000;
+static const uint32_t ID_LIGHTS = 0x02214000;
+static const uint32_t ID_LOCKS = 0x02294000;
+static const uint32_t ID_REVERSE = 0x04214001;
+static const uint32_t ID_RADIO = 0x0E094024;
 
-struct CachedFrame {
-  uint32_t id;
-  uint8_t extd;
-  uint8_t dlc;
-  uint8_t data[8];
-  unsigned long lastChangeMs;
-  bool used;
+struct DoorLightState {
+  bool handbrake;
+  bool driver;
+  bool passenger;
+  bool sliding;
+  bool rear;
+  bool parking;
+  bool highBeam;
+  bool rightTurn;
+  bool leftTurn;
+  bool hazards;
+  bool reverse;
+  bool radioOn;
+  bool radioKnown;
 };
 
-static CachedFrame cache[CACHE_SIZE];
-static bool ready = false;
-static unsigned long bootMs = 0;
+static bool haveBody = false;
+static bool haveLights = false;
+static bool haveReverse = false;
+static DoorLightState st = {};
 
-static void printFrame(const twai_message_t &msg) {
-  if (msg.extd) {
-    Serial.printf("E %08X [%u] ", msg.identifier, msg.data_length_code);
+static void logChange(const char *name, bool on) {
+  Serial.printf("%s %s\n", name, on ? "ON" : "OFF");
+}
+
+static void logDoor(const char *name, bool open) {
+  Serial.printf("%s %s\n", name, open ? "OPEN" : "CLOSED");
+}
+
+static void logPulse(const char *name) {
+  Serial.printf("%s\n", name);
+}
+
+static uint8_t prevLockB5 = 0;
+static uint8_t prevLockB6 = 0;
+static bool haveLocks = false;
+
+static void handleDoors(const twai_message_t &msg) {
+  if (msg.data_length_code < 2) {
+    return;
+  }
+  const uint8_t b0 = msg.data[0];
+  const uint8_t b1 = msg.data[1];
+
+  DoorLightState n = st;
+  n.handbrake = (b0 & 0x20) != 0;
+  n.driver = (b1 & 0x04) != 0;
+  n.passenger = (b1 & 0x08) != 0;
+  n.sliding = (b1 & 0x30) != 0;
+  n.rear = (b1 & 0x40) != 0;
+
+  if (!haveBody) {
+    haveBody = true;
+    st.handbrake = n.handbrake;
+    st.driver = n.driver;
+    st.passenger = n.passenger;
+    st.sliding = n.sliding;
+    st.rear = n.rear;
+    logChange("HANDBRAKE", st.handbrake);
+    logDoor("DRIVER_DOOR", st.driver);
+    logDoor("PASSENGER_DOOR", st.passenger);
+    logDoor("SLIDING_DOOR", st.sliding);
+    logDoor("REAR_DOOR", st.rear);
+    return;
+  }
+
+  if (n.handbrake != st.handbrake) {
+    logChange("HANDBRAKE", n.handbrake);
+  }
+  if (n.driver != st.driver) {
+    logDoor("DRIVER_DOOR", n.driver);
+  }
+  if (n.passenger != st.passenger) {
+    logDoor("PASSENGER_DOOR", n.passenger);
+  }
+  if (n.sliding != st.sliding) {
+    logDoor("SLIDING_DOOR", n.sliding);
+  }
+  if (n.rear != st.rear) {
+    logDoor("REAR_DOOR", n.rear);
+  }
+  st.handbrake = n.handbrake;
+  st.driver = n.driver;
+  st.passenger = n.passenger;
+  st.sliding = n.sliding;
+  st.rear = n.rear;
+}
+
+static void handleLights(const twai_message_t &msg) {
+  if (msg.data_length_code < 3) {
+    return;
+  }
+  const uint8_t b1 = msg.data[1];
+  const uint8_t b2 = msg.data[2];
+
+  const bool parking = (b1 & 0x60) != 0;
+  const bool highBeam = (b1 & 0x10) != 0;
+  const bool rightTurn = (b2 & 0x20) != 0;
+  const bool leftTurn = (b2 & 0x40) != 0;
+  const bool hazards = (b2 & 0x60) == 0x60;
+
+  if (!haveLights) {
+    haveLights = true;
+    st.parking = parking;
+    st.highBeam = highBeam;
+    st.rightTurn = rightTurn;
+    st.leftTurn = leftTurn;
+    st.hazards = hazards;
+    logChange("PARKING_LIGHTS", st.parking);
+    logChange("HIGH_BEAM", st.highBeam);
+    logChange("RIGHT_TURN", st.rightTurn);
+    logChange("LEFT_TURN", st.leftTurn);
+    logChange("HAZARDS", st.hazards);
+    return;
+  }
+
+  if (parking != st.parking) {
+    logChange("PARKING_LIGHTS", parking);
+  }
+  if (highBeam != st.highBeam) {
+    logChange("HIGH_BEAM", highBeam);
+  }
+  if (hazards != st.hazards) {
+    logChange("HAZARDS", hazards);
   } else {
-    Serial.printf("  %03X [%u] ", msg.identifier, msg.data_length_code);
-  }
-  for (int i = 0; i < msg.data_length_code; i++) {
-    Serial.printf("%02X ", msg.data[i]);
-  }
-  Serial.println();
-}
-
-static CachedFrame *findOrAlloc(uint32_t id, uint8_t extd) {
-  CachedFrame *freeSlot = nullptr;
-  for (int i = 0; i < CACHE_SIZE; i++) {
-    if (cache[i].used && cache[i].id == id && cache[i].extd == extd) {
-      return &cache[i];
+    if (rightTurn != st.rightTurn) {
+      logChange("RIGHT_TURN", rightTurn);
     }
-    if (!cache[i].used && freeSlot == nullptr) {
-      freeSlot = &cache[i];
+    if (leftTurn != st.leftTurn) {
+      logChange("LEFT_TURN", leftTurn);
     }
   }
-  return freeSlot;
+  st.parking = parking;
+  st.highBeam = highBeam;
+  st.rightTurn = rightTurn;
+  st.leftTurn = leftTurn;
+  st.hazards = hazards;
 }
 
-static void handleFrame(const twai_message_t &msg) {
-  CachedFrame *slot = findOrAlloc(msg.identifier, msg.extd);
-  if (slot == nullptr) {
+static void handleLocks(const twai_message_t &msg) {
+  if (msg.data_length_code < 7) {
+    return;
+  }
+  const uint8_t b5 = msg.data[5];
+  const uint8_t b6 = msg.data[6];
+
+  if (!haveLocks) {
+    haveLocks = true;
+    prevLockB5 = b5;
+    prevLockB6 = b6;
     return;
   }
 
-  const uint8_t dlc = msg.data_length_code;
-  const unsigned long now = millis();
+  if ((b5 & 0x80) && !(prevLockB5 & 0x80)) {
+    logPulse("LOCK_ALL");
+  }
+  if ((b5 & 0x08) && !(prevLockB5 & 0x08)) {
+    logPulse("UNLOCK_FRONT");
+  }
+  if ((b6 & 0x80) && !(prevLockB6 & 0x80)) {
+    logPulse("UNLOCK_REAR");
+  }
+  prevLockB5 = b5;
+  prevLockB6 = b6;
+}
 
-  if (!slot->used) {
-    slot->used = true;
-    slot->id = msg.identifier;
-    slot->extd = msg.extd;
-    slot->dlc = dlc;
-    memcpy(slot->data, msg.data, dlc);
-    slot->lastChangeMs = now;
+static void handleReverse(const twai_message_t &msg) {
+  if (msg.data_length_code < 8) {
     return;
   }
-
-  bool changed =
-      (slot->dlc != dlc) || (memcmp(slot->data, msg.data, dlc) != 0);
-  if (!changed) {
+  const bool on = (msg.data[7] & 0x04) != 0;
+  if (!haveReverse) {
+    haveReverse = true;
+    st.reverse = on;
+    logChange("REVERSE", st.reverse);
     return;
   }
+  if (on != st.reverse) {
+    logChange("REVERSE", on);
+    st.reverse = on;
+  }
+}
 
-  const bool wasStable = (now - slot->lastChangeMs) >= STABLE_MS;
-  slot->dlc = dlc;
-  memcpy(slot->data, msg.data, dlc);
-  slot->lastChangeMs = now;
-
-  if (ready && wasStable) {
-    printFrame(msg);
+static void handleRadio(const twai_message_t &msg) {
+  if (msg.data_length_code < 2) {
+    return;
+  }
+  const uint8_t b1 = msg.data[1];
+  if (b1 != 0x1A && b1 != 0x1E) {
+    return;
+  }
+  const bool on = (b1 == 0x1A);
+  if (!st.radioKnown) {
+    st.radioKnown = true;
+    st.radioOn = on;
+    logChange("RADIO", st.radioOn);
+    return;
+  }
+  if (on != st.radioOn) {
+    logChange("RADIO", on);
+    st.radioOn = on;
   }
 }
 
@@ -108,13 +251,8 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("B-CAN sniffer listen-only (stable-change)");
-  Serial.printf("TX=GPIO%d RX=GPIO%d  50 kbit/s  OBD 1+9  stable>=%ums\n",
-                (int)CAN_TX_PIN, (int)CAN_RX_PIN, STABLE_MS);
-  Serial.println("Doors known on E 06214000 byte1 — ignore those for new hunts");
-
-  memset(cache, 0, sizeof(cache));
-  bootMs = millis();
+  Serial.println("B-CAN full decode test  50 kbit/s  OBD 1+9");
+  Serial.println("See signal map in main.cpp header");
 
   twai_general_config_t g_config =
       TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_LISTEN_ONLY);
@@ -129,19 +267,35 @@ void setup() {
     Serial.println("TWAI start failed");
     return;
   }
-  Serial.printf("Warmup %u ms...\n", WARMUP_MS);
+  Serial.println("Listening...");
 }
 
 void loop() {
-  if (!ready && (millis() - bootMs >= WARMUP_MS)) {
-    ready = true;
-    Serial.println("Ready — one action at a time");
+  twai_message_t msg;
+  if (twai_receive(&msg, pdMS_TO_TICKS(50)) != ESP_OK) {
+    return;
+  }
+  if (msg.rtr || !msg.extd) {
+    return;
   }
 
-  twai_message_t msg;
-  if (twai_receive(&msg, pdMS_TO_TICKS(50)) == ESP_OK) {
-    if (!msg.rtr) {
-      handleFrame(msg);
-    }
+  switch (msg.identifier) {
+    case ID_DOORS:
+      handleDoors(msg);
+      break;
+    case ID_LIGHTS:
+      handleLights(msg);
+      break;
+    case ID_LOCKS:
+      handleLocks(msg);
+      break;
+    case ID_REVERSE:
+      handleReverse(msg);
+      break;
+    case ID_RADIO:
+      handleRadio(msg);
+      break;
+    default:
+      break;
   }
 }
