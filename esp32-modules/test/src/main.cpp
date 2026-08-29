@@ -8,11 +8,11 @@
  *   WCMCU-230 GND  -> ESP32 GND + vehicle GND (OBD pin 4 or 5)
  *   WCMCU-230 CTX  -> ESP32 GPIO 17 (TX)
  *   WCMCU-230 CRX  -> ESP32 GPIO 16 (RX)
- *   WCMCU-230 CANH -> OBD pin 6
- *   WCMCU-230 CANL -> OBD pin 14
+ *   WCMCU-230 CANH -> OBD pin 1  (Ducato B-CAN)
+ *   WCMCU-230 CANL -> OBD pin 9
  *
  * Upload:  cd esp32-modules/test && pio run -t upload && pio device monitor
- * Wait for "Ready", then open/close one door.
+ * Wait for "Ready", then open/close one door (try key OFF too).
  */
 
 #include <Arduino.h>
@@ -22,7 +22,8 @@
 static const gpio_num_t CAN_TX_PIN = GPIO_NUM_17;
 static const gpio_num_t CAN_RX_PIN = GPIO_NUM_16;
 
-#define CAN_TIMING TWAI_TIMING_CONFIG_500KBITS()
+// Ducato B-CAN (OBD pins 1+9). C-CAN was 500k on pins 6+14.
+#define CAN_TIMING TWAI_TIMING_CONFIG_50KBITS()
 
 static const unsigned WARMUP_MS = 3000;
 static const unsigned STABLE_MS = 500;  // print only if quiet this long before change
@@ -105,8 +106,8 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("CAN sniffer listen-only (stable-change only)");
-  Serial.printf("TX=GPIO%d RX=GPIO%d  500 kbit/s  stable>=%ums\n",
+  Serial.println("CAN sniffer listen-only B-CAN (stable-change only)");
+  Serial.printf("TX=GPIO%d RX=GPIO%d  50 kbit/s  OBD 1+9  stable>=%ums\n",
                 (int)CAN_TX_PIN, (int)CAN_RX_PIN, STABLE_MS);
 
   memset(cache, 0, sizeof(cache));
