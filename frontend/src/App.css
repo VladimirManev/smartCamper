@@ -1833,6 +1833,105 @@ body {
   box-sizing: border-box;
 }
 
+/* SOC history nested modal */
+.soc-history-modal {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.35rem 0.25rem 0.75rem;
+  box-sizing: border-box;
+}
+
+.soc-history-modal__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.soc-history-modal__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.soc-history-modal__live {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.65));
+}
+
+.soc-history-modal__status {
+  margin: 1.5rem 0.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.65));
+  line-height: 1.4;
+}
+
+.soc-history-modal__status--error {
+  color: rgba(220, 120, 120, 0.95);
+}
+
+.soc-history-modal__chart-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.soc-history-modal__chart {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.soc-history-modal__grid {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.soc-history-modal__line {
+  stroke: var(--color-accent, #6cb6ff);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.soc-history-modal__dot {
+  fill: var(--color-accent, #6cb6ff);
+}
+
+.soc-history-modal__axis-label {
+  fill: var(--color-text-secondary, rgba(255, 255, 255, 0.55));
+  font-size: 9px;
+}
+
+.soc-history-modal__footer {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.app--theme-day .soc-history-modal__grid {
+  stroke: rgba(0, 0, 0, 0.1);
+}
+
+.app--theme-day .soc-history-modal__live,
+.app--theme-day .soc-history-modal__status,
+.app--theme-day .soc-history-modal__footer,
+.app--theme-day .soc-history-modal__axis-label {
+  color: rgba(0, 0, 0, 0.55);
+  fill: rgba(0, 0, 0, 0.55);
+}
+
 .battery-energy-diagram {
   --battery-node-size: min(8.71rem, 26.6vh, 36.3vw);
   --battery-center-width: clamp(7.4rem, 30vw, 9rem);
@@ -2230,6 +2329,17 @@ body {
   align-items: center;
   position: relative;
   z-index: 2;
+}
+
+.battery-diagram-center--clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.battery-diagram-center--clickable:focus-visible {
+  outline: 2px solid var(--color-accent, rgba(120, 180, 255, 0.7));
+  outline-offset: 4px;
+  border-radius: 0.5rem;
 }
 
 .battery-diagram-center__off-badge {

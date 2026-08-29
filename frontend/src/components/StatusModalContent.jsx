@@ -37,6 +37,7 @@ function formatSensorValue(value, suffix, decimals = 1) {
  * @param {Record<string, boolean>} [props.offlineByWire]
  * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.batteryDisabled
+ * @param {Function} [props.onOpenBatteryHistory]
  * @param {number|null} props.grayWaterLevel
  * @param {number|null} props.grayWaterTemperature
  * @param {boolean} props.grayWaterDisabled
@@ -61,6 +62,7 @@ export function StatusModalContent({
   offlineByWire,
   smartShuntOffline,
   batteryDisabled = false,
+  onOpenBatteryHistory,
   grayWaterLevel,
   grayWaterTemperature,
   grayWaterDisabled = false,
@@ -117,6 +119,7 @@ export function StatusModalContent({
             offlineByWire={offlineByWire}
             smartShuntOffline={smartShuntOffline}
             disabled={batteryDisabled}
+            onOpenHistory={onOpenBatteryHistory}
           />
         </div>
         <div className={paneClass(1)} aria-hidden={activeIndex !== 1}>

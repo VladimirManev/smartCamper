@@ -59,6 +59,7 @@ function getWireElementProps(wire, value, isOffline) {
  * @param {Record<string, boolean>} [props.offlineByWire]
  * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.disabled
+ * @param {Function} [props.onOpenHistory]
  */
 export function BatteryEnergyDiagram({
   batteryLevel,
@@ -70,6 +71,7 @@ export function BatteryEnergyDiagram({
   offlineByWire = {},
   smartShuntOffline = false,
   disabled = false,
+  onOpenHistory,
 }) {
   const containerRef = useRef(null);
   const batterySlotRef = useRef(null);
@@ -239,6 +241,7 @@ export function BatteryEnergyDiagram({
             voltage={batteryVoltage ?? batteryFlow?.voltage}
             dataOffline={smartShuntOffline}
             disabled={disabled}
+            onOpenHistory={onOpenHistory}
           />
         </div>
       </div>

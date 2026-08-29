@@ -12,6 +12,7 @@ const { staticMiddleware, fallbackMiddleware } = require("./middleware/static");
 
 // Import routes
 const mainRoutes = require("./routes/main");
+const historyRoutes = require("./routes/history");
 const notFoundRoutes = require("./routes/404");
 
 // Import MQTT broker
@@ -43,6 +44,7 @@ app.use(loggerMiddleware);
 
 // API Routes - must be before static middleware
 app.use("/", mainRoutes);
+app.use("/api/history", historyRoutes);
 
 // Static files middleware - serves React build files
 // Must be before fallback middleware
@@ -67,5 +69,6 @@ server.listen(PORT, () => {
   console.log(`🚀 SmartCamper Backend running on port ${PORT}`);
   console.log(`📡 HTTP: http://localhost:${PORT}`);
   console.log(`💚 Health: http://localhost:${PORT}/health`);
+  console.log(`📜 History: http://localhost:${PORT}/api/history/readings?metric=soc&hours=24`);
   console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
 });

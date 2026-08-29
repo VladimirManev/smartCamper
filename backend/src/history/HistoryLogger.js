@@ -5,7 +5,7 @@
  * - events table exists but is unused for now
  */
 
-const { openHistoryDb } = require("./db");
+const { getHistoryDb } = require("./db");
 const { selectVictronReadings } = require("./victronSampler");
 
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -20,7 +20,7 @@ const CLIMATE_METRICS = {
 
 class HistoryLogger {
   constructor(options = {}) {
-    this.db = openHistoryDb(options.dbPath);
+    this.db = getHistoryDb(options.dbPath);
     this.lastVictronByMetric = new Map();
     this.latestClimate = {
       indoor_temp: null,
@@ -76,11 +76,7 @@ class HistoryLogger {
       clearInterval(this.purgeTimer);
       this.purgeTimer = null;
     }
-    try {
-      this.db.close();
-    } catch (_) {
-      // ignore close errors on shutdown
-    }
+    // Keep shared DB open for HTTP API until process exit
   }
 
   /**

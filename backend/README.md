@@ -74,6 +74,14 @@ Phase 1 test scope: write-only history for charts. Inspect with `sqlite3` / DB B
 
 DB path defaults to `backend/data/smartcamper.db`. Override with `HISTORY_DB_PATH`. The `events` table is created but unused for now.
 
+### HTTP API (read)
+
+```http
+GET /api/history/readings?metric=soc&hours=24
+```
+
+Returns `{ metric, unit, hours, points: [{ ts, value }] }` (points may be downsampled). Supported metrics include `soc`, `voltage`, `current`, `solar_w`, `orion_output_a`, climate metrics.
+
 Example inspect:
 
 ```bash
@@ -84,6 +92,8 @@ sqlite3 backend/data/smartcamper.db "SELECT datetime(ts/1000,'unixepoch'), metri
 
 - `DEBUG_MQTT` — verbose MQTT logging when set.
 - `HISTORY_DB_PATH` — optional path to the SQLite history file.
+
+Frontend (production build served by this server) loads history via same origin. In Vite dev against the Pi, set `VITE_USE_PI_BACKEND=true` (same as Socket).
 
 ## Run
 

@@ -9,6 +9,11 @@ const Database = require("better-sqlite3");
 
 const DEFAULT_DB_PATH = path.join(__dirname, "../../data/smartcamper.db");
 
+/** @type {import("better-sqlite3").Database|null} */
+let sharedDb = null;
+/** @type {string|null} */
+let sharedDbPath = null;
+
 /**
  * Open (or create) the history database and apply schema.
  * @param {string} [dbPath] - Absolute or relative path to .db file
@@ -56,7 +61,30 @@ function openHistoryDb(dbPath = process.env.HISTORY_DB_PATH || DEFAULT_DB_PATH) 
   return db;
 }
 
+/**
+ * Shared DB handle for logger + HTTP API (same process).
+ * @param {string} [dbPath]
+ * @returns {import("better-sqlite3").Database}
+ */
+function getHistoryDb(dbPath = process.env.HISTORY_DB_PATH || DEFAULT_DB_PATH) {
+  const resolved = path.resolve(dbPath);
+  if (sharedDb && sharedDbPath === resolved) {
+    return sharedDb;
+  }
+  if (sharedDb) {
+    try {
+      sharedDb.close();
+    } catch (_) {
+      // ignore
+    }
+  }
+  sharedDb = openHistoryDb(resolved);
+  sharedDbPath = resolved;
+  return sharedDb;
+}
+
 module.exports = {
   openHistoryDb,
+  getHistoryDb,
   DEFAULT_DB_PATH,
 };

@@ -10,6 +10,7 @@
  *   VITE_MOCK_BACKEND=false  +  VITE_USE_PI_BACKEND=true  →  http://192.168.4.1:3000
  *
  * Default URL: http://localhost:3100 (override with MOCK_SOCKET_PORT)
+ * Also serves GET /api/history/readings?metric=soc&hours=24 (synthetic SOC curve).
  * MOCK_CONNECT_DELAY_MS — wait before first emit burst (default 450).
  */
 
@@ -19,6 +20,7 @@ const { Server } = require("socket.io");
 const PORT = Number(process.env.MOCK_SOCKET_PORT || 3100);
 const AC_CHARGER_CYCLE_MS = 15000;
 const VICTRON_STALE_MS = 6000;
+const HISTORY_STEP_MS = 10 * 60 * 1000;
 const PERIMETER_SENSORS = [
   "front",
   "rear",
@@ -28,6 +30,103 @@ const PERIMETER_SENSORS = [
   "right_rear",
 ];
 let lastLoggedAcPhase = null;
+
+/**
+ * Synthetic SOC readings for local chart testing (same shape as real API).
+ * @param {number} hours
+ * @returns {Array<{ ts: number, value: number }>}
+ */
+function buildMockSocPoints(hours = 24) {
+  const safeHours = Math.min(Math.max(Number(hours) || 24, 1), 24 * 30);
+  const now = Date.now();
+  const spanMs = safeHours * 60 * 60 * 1000;
+  const start = now - spanMs;
+  const points = [];
+
+  for (let ts = start; ts <= now; ts += HISTORY_STEP_MS) {
+    const t = ts / 1000;
+    const soc = Math.round(
+      72 + Math.sin(t / 9000) * 16 + Math.sin(t / 3200) * 5
+    );
+    points.push({
+      ts,
+      value: Math.min(98, Math.max(12, soc)),
+    });
+  }
+
+  if (points.length === 0 || points[points.length - 1].ts !== now) {
+    const t = now / 1000;
+    points.push({
+      ts: now,
+      value: Math.min(
+        98,
+        Math.max(12, Math.round(72 + Math.sin(t / 9000) * 16 + Math.sin(t / 3200) * 5))
+      ),
+    });
+  }
+
+  return points;
+}
+
+/**
+ * Minimal HTTP handler for history API (Socket.io uses the same server).
+ * @returns {boolean} true if the request was handled
+ */
+function handleHistoryHttp(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return true;
+  }
+
+  let url;
+  try {
+    url = new URL(req.url || "/", `http://localhost:${PORT}`);
+  } catch (_) {
+    res.writeHead(400);
+    res.end("Bad request");
+    return true;
+  }
+
+  if (url.pathname !== "/api/history/readings") {
+    return false;
+  }
+
+  if (req.method !== "GET") {
+    res.writeHead(405, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Method not allowed" }));
+    return true;
+  }
+
+  const metric = (url.searchParams.get("metric") || "").trim();
+  const hours = Number(url.searchParams.get("hours") || 24);
+
+  if (metric !== "soc") {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        error: "Mock history only supports metric=soc",
+      })
+    );
+    return true;
+  }
+
+  const safeHours = Math.min(Math.max(hours || 24, 1), 24 * 30);
+  const body = {
+    metric: "soc",
+    unit: "%",
+    hours: safeHours,
+    points: buildMockSocPoints(safeHours),
+  };
+
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body));
+  return true;
+}
 
 function isMockAcChargerLive() {
   return Math.floor(Date.now() / AC_CHARGER_CYCLE_MS) % 2 === 0;
@@ -872,7 +971,14 @@ function sendAll(socket, securityState) {
   });
 }
 
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  if (handleHistoryHttp(req, res)) {
+    return;
+  }
+  // Socket.io handles /socket.io/* ; anything else is unused by the mock.
+  res.writeHead(404, { "Content-Type": "text/plain" });
+  res.end("Not found");
+});
 const io = new Server(server, {
   cors: { origin: true, credentials: true },
 });
@@ -964,6 +1070,9 @@ io.on("connection", (socket) => {
 
 server.listen(PORT, () => {
   console.log(`[mock] Socket.io listening on http://localhost:${PORT}`);
+  console.log(
+    `[mock] History: http://localhost:${PORT}/api/history/readings?metric=soc&hours=24`
+  );
   console.log(`[mock] Alarm PIN: ${MOCK_ALARM_PIN}`);
   console.log(`[mock] Exit/entry delay: ${MOCK_EXIT_DELAY_MS / 1000}s / ${MOCK_ENTRY_DELAY_MS / 1000}s`);
   console.log(`[mock] Motion pulse on every round minute (:00)`);

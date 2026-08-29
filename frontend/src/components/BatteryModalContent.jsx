@@ -15,6 +15,7 @@ import { BatteryEnergyDiagram } from "./BatteryEnergyDiagram";
  * @param {Record<string, boolean>} [props.offlineByWire]
  * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.disabled
+ * @param {Function} [props.onOpenHistory]
  */
 export function BatteryModalContent({
   batteryLevel,
@@ -26,6 +27,7 @@ export function BatteryModalContent({
   offlineByWire,
   smartShuntOffline,
   disabled = false,
+  onOpenHistory,
 }) {
   return (
     <div className="battery-modal">
@@ -39,6 +41,7 @@ export function BatteryModalContent({
         offlineByWire={offlineByWire}
         smartShuntOffline={smartShuntOffline}
         disabled={disabled}
+        onOpenHistory={onOpenHistory}
       />
     </div>
   );

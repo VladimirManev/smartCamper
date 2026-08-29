@@ -12,6 +12,7 @@ import { getBatteryFillColor } from "../utils/batteryFillColor";
  * @param {number|null} [props.voltage]
  * @param {boolean} [props.dataOffline]
  * @param {boolean} props.disabled
+ * @param {Function} [props.onOpenHistory] - open nested SOC history modal
  */
 export function BatteryDiagramCenter({
   charge,
@@ -19,6 +20,7 @@ export function BatteryDiagramCenter({
   voltage: voltageProp,
   dataOffline = false,
   disabled = false,
+  onOpenHistory,
 }) {
   const clipId = useId().replace(/:/g, "");
 
@@ -64,17 +66,43 @@ export function BatteryDiagramCenter({
   if (showVoltage) ariaParts.push(voltageText);
   if (showFlow) ariaParts.push(flowAria, ampsText, wattsText);
 
+  const canOpenHistory = typeof onOpenHistory === "function";
+
+  const handleActivate = () => {
+    if (canOpenHistory) {
+      onOpenHistory();
+    }
+  };
+
   return (
     <div
       className={[
         "battery-diagram-center",
         disabled && "battery-diagram-center--disabled",
         dataOffline && "battery-diagram-center--offline",
+        canOpenHistory && "battery-diagram-center--clickable",
       ]
         .filter(Boolean)
         .join(" ")}
       aria-label={
-        hasCharge ? ariaParts.join(", ") : "Battery"
+        hasCharge
+          ? `${ariaParts.join(", ")}${canOpenHistory ? ". Open SOC history" : ""}`
+          : canOpenHistory
+            ? "Battery. Open SOC history"
+            : "Battery"
+      }
+      role={canOpenHistory ? "button" : undefined}
+      tabIndex={canOpenHistory ? 0 : undefined}
+      onClick={canOpenHistory ? handleActivate : undefined}
+      onKeyDown={
+        canOpenHistory
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleActivate();
+              }
+            }
+          : undefined
       }
     >
       {dataOffline && !disabled && (

@@ -42,7 +42,7 @@
 
 ## История (SQLite)
 
-Тестов обхват: запис само на readings (Victron SOC/V/A/solar, Orion output A, indoor temp/humidity, outdoor temp). Без API/UI засега — преглед с `sqlite3`. Задържане 30 дни. Подробности в английския `README.md`. Env: `HISTORY_DB_PATH` (опционално).
+Тестов обхват: запис на readings (Victron SOC/V/A/solar, Orion output A, indoor temp/humidity, outdoor temp). Четене: `GET /api/history/readings?metric=soc&hours=24`. Задържане 30 дни. Подробности в английския `README.md`. Env: `HISTORY_DB_PATH` (опционално).
 
 ## Стартиране
 

@@ -72,6 +72,7 @@ import { GrayWaterModalContent } from "./components/GrayWaterModalContent";
 import { FreshWaterModalContent } from "./components/FreshWaterModalContent";
 import { ToiletUrineModalContent } from "./components/ToiletUrineModalContent";
 import { BatteryModalContent } from "./components/BatteryModalContent";
+import { BatterySocHistoryModalContent } from "./components/BatterySocHistoryModalContent";
 import {
   LEDStripModalContent,
   getApplianceModalIcon,
@@ -846,8 +847,13 @@ function App() {
           offlineByWire={batteryOfflineByWire}
           smartShuntOffline={smartShuntOffline}
           disabled={!isModule6Online}
+          onOpenHistory={() => openModal("soc-history", "SOC · 24h")}
         />
       );
+    }
+
+    if (cardType === "soc-history") {
+      return <BatterySocHistoryModalContent liveSoc={batteryLevel} />;
     }
 
     if (cardType === "alarm") {
@@ -926,6 +932,7 @@ function App() {
           offlineByWire={batteryOfflineByWire}
           smartShuntOffline={smartShuntOffline}
           batteryDisabled={!isModule6Online}
+          onOpenBatteryHistory={() => openModal("soc-history", "SOC · 24h")}
           grayWaterLevel={grayWaterLevel}
           grayWaterTemperature={grayWaterTemperature}
           grayWaterDisabled={!isModule1Online}
