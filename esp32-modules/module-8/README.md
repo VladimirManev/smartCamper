@@ -21,8 +21,12 @@ Works offline (button + local logic). WiFi/MQTT follow the same pattern as other
 | Siren relay | 27 | Active HIGH |
 | Smoke relay | 32 | Active HIGH |
 | Zone1 status LED | 33 | Blinks 500 ms when zone 1 arming/armed |
+| CAN TX (WCMCU CTX) | 17 | Ducato B-CAN listen-only |
+| CAN RX (WCMCU CRX) | 16 | OBD pins 1+9, 50 kbit/s |
 
 Adjust pins in `src/Config.h` if your board wiring differs.
+
+Door open/closed comes from CAN ID `0x06214000` (see `esp32-modules/test/CAN_SIGNALS.md`). MQTT `inputs.doors.*` updates when bits change; last known state is kept while the bus sleeps.
 
 ## Button sequences
 

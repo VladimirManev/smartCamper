@@ -17,6 +17,7 @@ void AlarmManager::begin() {
 
   buzzer.begin();
   alarmSystem.begin();
+  canDoors.begin();
 
   if (DEBUG_SERIAL) {
     Serial.println("Alarm Manager ready");
@@ -26,6 +27,11 @@ void AlarmManager::begin() {
 void AlarmManager::loop() {
   buzzer.loop();
   alarmSystem.loop();
+  canDoors.loop();
+
+  if (canDoors.consumeChanged()) {
+    alarmSystem.markStatusDirty();
+  }
 
   if (alarmSystem.consumeStatusDirty()) {
     publishStatus();
@@ -58,10 +64,11 @@ void AlarmManager::publishStatus() {
   inputs["interiorPir"] = alarmSystem.isInteriorPir();
 
   JsonObject doors = inputs.createNestedObject("doors");
-  doors["driver"] = false;
-  doors["passenger"] = false;
-  doors["sliding"] = false;
-  doors["rear"] = false;
+  CanDoorState d = canDoors.getState();
+  doors["driver"] = d.driver;
+  doors["passenger"] = d.passenger;
+  doors["sliding"] = d.sliding;
+  doors["rear"] = d.rear;
 
   JsonObject perim = inputs.createNestedObject("perimeter");
   perim["front"] = alarmSystem.getPerimeterPir(0);

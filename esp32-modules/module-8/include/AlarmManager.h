@@ -5,6 +5,7 @@
 #include "CommandHandler.h"
 #include "AlarmSystem.h"
 #include "BuzzerController.h"
+#include "CanDoorReader.h"
 
 class AlarmManager {
 private:
@@ -12,6 +13,7 @@ private:
   BuzzerController buzzer;
   AlarmSystem alarmSystem;
   CommandHandler commandHandler;
+  CanDoorReader canDoors;
 
   void publishStatus();
 

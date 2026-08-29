@@ -56,6 +56,16 @@
 #define SMOKE_RELAY_PIN 32
 #define ZONE1_LED_PIN 33
 
+// Ducato B-CAN (WCMCU-230, OBD pins 1+9, 50 kbit/s listen-only)
+#define CAN_TX_PIN 17
+#define CAN_RX_PIN 16
+#define CAN_DOOR_ID 0x06214000UL
+#define CAN_DOOR_BYTE 1
+#define CAN_MASK_DRIVER 0x04
+#define CAN_MASK_PASSENGER 0x08
+#define CAN_MASK_SLIDING 0x30
+#define CAN_MASK_REAR 0x40
+
 // --- Button sequence timing ---
 #define BUTTON_SHORT_MAX_MS 500
 #define BUTTON_TAP_GAP_MAX_MS 800
