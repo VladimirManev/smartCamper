@@ -51,11 +51,30 @@ void CanDoorReader::handleFrame(uint32_t id, const uint8_t *data, uint8_t dlc) {
     haveState = true;
     state = next;
     changed = true;
+    if (DEBUG_SERIAL) {
+      Serial.printf("CAN doors: D=%d P=%d S=%d R=%d\n", state.driver,
+                    state.passenger, state.sliding, state.rear);
+    }
     return;
   }
 
   if (next.driver != state.driver || next.passenger != state.passenger ||
       next.sliding != state.sliding || next.rear != state.rear) {
+    if (DEBUG_SERIAL) {
+      if (next.driver != state.driver) {
+        Serial.printf("DRIVER_DOOR %s\n", next.driver ? "OPEN" : "CLOSED");
+      }
+      if (next.passenger != state.passenger) {
+        Serial.printf("PASSENGER_DOOR %s\n",
+                      next.passenger ? "OPEN" : "CLOSED");
+      }
+      if (next.sliding != state.sliding) {
+        Serial.printf("SLIDING_DOOR %s\n", next.sliding ? "OPEN" : "CLOSED");
+      }
+      if (next.rear != state.rear) {
+        Serial.printf("REAR_DOOR %s\n", next.rear ? "OPEN" : "CLOSED");
+      }
+    }
     state = next;
     changed = true;
   }
