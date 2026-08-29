@@ -1,46 +1,30 @@
 /**
- * Fiat Ducato CAN sniffer (listen-only) — ESP32 + WCMCU-230 (SN65HVD230).
+ * Fiat Ducato B-CAN raw sniffer (listen-only) — ESP32 + WCMCU-230.
  *
- * Prints only when an ID changes after being stable (filters out counters).
+ * Diagnostic mode: print every frame + TWAI status every 2s.
  *
  * Wiring:
  *   WCMCU-230 3V3  -> ESP32 3.3V
  *   WCMCU-230 GND  -> ESP32 GND + vehicle GND (OBD pin 4 or 5)
  *   WCMCU-230 CTX  -> ESP32 GPIO 17 (TX)
  *   WCMCU-230 CRX  -> ESP32 GPIO 16 (RX)
- *   WCMCU-230 CANH -> OBD pin 1  (Ducato B-CAN)
+ *   WCMCU-230 CANH -> OBD pin 1  (B-CAN)
  *   WCMCU-230 CANL -> OBD pin 9
  *
  * Upload:  cd esp32-modules/test && pio run -t upload && pio device monitor
- * Wait for "Ready", then open/close one door (try key OFF too).
  */
 
 #include <Arduino.h>
 #include "driver/twai.h"
-#include <string.h>
 
 static const gpio_num_t CAN_TX_PIN = GPIO_NUM_17;
 static const gpio_num_t CAN_RX_PIN = GPIO_NUM_16;
 
-// Ducato B-CAN (OBD pins 1+9). C-CAN was 500k on pins 6+14.
 #define CAN_TIMING TWAI_TIMING_CONFIG_50KBITS()
 
-static const unsigned WARMUP_MS = 3000;
-static const unsigned STABLE_MS = 500;  // print only if quiet this long before change
-static const int CACHE_SIZE = 128;
-
-struct CachedFrame {
-  uint32_t id;
-  uint8_t extd;
-  uint8_t dlc;
-  uint8_t data[8];
-  unsigned long lastChangeMs;
-  bool used;
-};
-
-static CachedFrame cache[CACHE_SIZE];
-static bool ready = false;
-static unsigned long bootMs = 0;
+static const unsigned STATUS_MS = 2000;
+static unsigned long lastStatusMs = 0;
+static uint32_t rxCount = 0;
 
 static void printFrame(const twai_message_t &msg) {
   if (msg.extd) {
@@ -54,64 +38,27 @@ static void printFrame(const twai_message_t &msg) {
   Serial.println();
 }
 
-static CachedFrame *findOrAlloc(uint32_t id, uint8_t extd) {
-  CachedFrame *freeSlot = nullptr;
-  for (int i = 0; i < CACHE_SIZE; i++) {
-    if (cache[i].used && cache[i].id == id && cache[i].extd == extd) {
-      return &cache[i];
-    }
-    if (!cache[i].used && freeSlot == nullptr) {
-      freeSlot = &cache[i];
-    }
-  }
-  return freeSlot;
-}
-
-static void handleFrame(const twai_message_t &msg) {
-  CachedFrame *slot = findOrAlloc(msg.identifier, msg.extd);
-  if (slot == nullptr) {
+static void printStatus() {
+  twai_status_info_t s;
+  if (twai_get_status_info(&s) != ESP_OK) {
+    Serial.println("TWAI status read failed");
     return;
   }
-
-  const uint8_t dlc = msg.data_length_code;
-  const unsigned long now = millis();
-
-  if (!slot->used) {
-    slot->used = true;
-    slot->id = msg.identifier;
-    slot->extd = msg.extd;
-    slot->dlc = dlc;
-    memcpy(slot->data, msg.data, dlc);
-    slot->lastChangeMs = now;
-    return;
-  }
-
-  bool changed = (slot->dlc != dlc) ||
-                 (memcmp(slot->data, msg.data, dlc) != 0);
-  if (!changed) {
-    return;
-  }
-
-  const bool wasStable = (now - slot->lastChangeMs) >= STABLE_MS;
-  slot->dlc = dlc;
-  memcpy(slot->data, msg.data, dlc);
-  slot->lastChangeMs = now;
-
-  if (ready && wasStable) {
-    printFrame(msg);
-  }
+  Serial.printf(
+      "STAT state=%u rx=%lu tx=%lu rx_miss=%lu arb_lost=%lu bus_err=%lu "
+      "rx_q=%u\n",
+      (unsigned)s.state, (unsigned long)s.rx_count, (unsigned long)s.tx_count,
+      (unsigned long)s.rx_missed_count, (unsigned long)s.arb_lost_count,
+      (unsigned long)s.bus_error_count, (unsigned)s.msgs_to_rx);
 }
 
 void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("CAN sniffer listen-only B-CAN (stable-change only)");
-  Serial.printf("TX=GPIO%d RX=GPIO%d  50 kbit/s  OBD 1+9  stable>=%ums\n",
-                (int)CAN_TX_PIN, (int)CAN_RX_PIN, STABLE_MS);
-
-  memset(cache, 0, sizeof(cache));
-  bootMs = millis();
+  Serial.println("CAN sniffer listen-only B-CAN RAW");
+  Serial.printf("TX=GPIO%d RX=GPIO%d  50 kbit/s  OBD 1+9\n", (int)CAN_TX_PIN,
+                (int)CAN_RX_PIN);
 
   twai_general_config_t g_config =
       TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_PIN, CAN_RX_PIN, TWAI_MODE_LISTEN_ONLY);
@@ -126,19 +73,22 @@ void setup() {
     Serial.println("TWAI start failed");
     return;
   }
-  Serial.printf("Warmup %u ms...\n", WARMUP_MS);
+  Serial.println("Listening (raw)...");
+  lastStatusMs = millis();
 }
 
 void loop() {
-  if (!ready && (millis() - bootMs >= WARMUP_MS)) {
-    ready = true;
-    Serial.println("Ready — open/close one door");
-  }
-
   twai_message_t msg;
   if (twai_receive(&msg, pdMS_TO_TICKS(50)) == ESP_OK) {
     if (!msg.rtr) {
-      handleFrame(msg);
+      rxCount++;
+      printFrame(msg);
     }
+  }
+
+  if (millis() - lastStatusMs >= STATUS_MS) {
+    lastStatusMs = millis();
+    Serial.printf("rx_total=%lu  ", (unsigned long)rxCount);
+    printStatus();
   }
 }
