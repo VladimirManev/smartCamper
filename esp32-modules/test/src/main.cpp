@@ -1,5 +1,5 @@
 /**
- * Fiat Ducato B-CAN raw sniffer (listen-only) — ESP32 + WCMCU-230.
+ * Fiat Ducato C-CAN raw sniffer (listen-only) — ESP32 + WCMCU-230.
  *
  * Diagnostic mode: print every frame + TWAI status every 2s.
  *
@@ -8,8 +8,8 @@
  *   WCMCU-230 GND  -> ESP32 GND + vehicle GND (OBD pin 4 or 5)
  *   WCMCU-230 CTX  -> ESP32 GPIO 17 (TX)
  *   WCMCU-230 CRX  -> ESP32 GPIO 16 (RX)
- *   WCMCU-230 CANH -> OBD pin 1  (B-CAN)
- *   WCMCU-230 CANL -> OBD pin 9
+ *   WCMCU-230 CANH -> OBD pin 6  (C-CAN)
+ *   WCMCU-230 CANL -> OBD pin 14
  *
  * Upload:  cd esp32-modules/test && pio run -t upload && pio device monitor
  */
@@ -20,7 +20,7 @@
 static const gpio_num_t CAN_TX_PIN = GPIO_NUM_17;
 static const gpio_num_t CAN_RX_PIN = GPIO_NUM_16;
 
-#define CAN_TIMING TWAI_TIMING_CONFIG_50KBITS()
+#define CAN_TIMING TWAI_TIMING_CONFIG_500KBITS()
 
 static const unsigned STATUS_MS = 2000;
 static unsigned long lastStatusMs = 0;
@@ -57,8 +57,8 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("CAN sniffer listen-only B-CAN RAW");
-  Serial.printf("TX=GPIO%d RX=GPIO%d  50 kbit/s  OBD 1+9\n", (int)CAN_TX_PIN,
+  Serial.println("CAN sniffer listen-only C-CAN RAW");
+  Serial.printf("TX=GPIO%d RX=GPIO%d  500 kbit/s  OBD 6+14\n", (int)CAN_TX_PIN,
                 (int)CAN_RX_PIN);
 
   twai_general_config_t g_config =
