@@ -38,10 +38,10 @@ Discovered with ESP32 + WCMCU-230 listen-only sniffer. Keep for future module in
 
 ## Radio — `E 0E094024`
 
-| State | Byte1 |
-|-------|-------|
-| ON | `0x1A` |
-| OFF | `0x1E` |
+| State | Detection |
+|-------|-----------|
+| ON | byte1 `0x1A` |
+| OFF | ID stops for ~2s (byte1 `0x1E` alone is a power-up glitch, ignore) |
 
 ## Hardware notes
 

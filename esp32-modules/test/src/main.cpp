@@ -26,7 +26,7 @@
  * E 04214001
  *   byte7 bit 0x04  reverse gear ON
  * E 0E094024
- *   byte1 0x1A radio ON, 0x1E radio OFF
+ *   byte1 0x1A radio ON; OFF = 0x1E or ID stops (timeout ~2s)
  */
 
 #include <Arduino.h>
@@ -63,6 +63,9 @@ static bool haveBody = false;
 static bool haveLights = false;
 static bool haveReverse = false;
 static DoorLightState st = {};
+
+static const unsigned RADIO_OFF_TIMEOUT_MS = 2000;
+static unsigned long lastRadioMs = 0;
 
 static void logChange(const char *name, bool on) {
   Serial.printf("%s %s\n", name, on ? "ON" : "OFF");
@@ -231,20 +234,34 @@ static void handleRadio(const twai_message_t &msg) {
     return;
   }
   const uint8_t b1 = msg.data[1];
+  // 0x1A = ON. 0x1E is a transient on power-up; treat only 0x1A as ON.
   if (b1 != 0x1A && b1 != 0x1E) {
     return;
   }
-  const bool on = (b1 == 0x1A);
-  if (!st.radioKnown) {
-    st.radioKnown = true;
-    st.radioOn = on;
-    logChange("RADIO", st.radioOn);
+
+  lastRadioMs = millis();
+
+  if (b1 == 0x1A) {
+    if (!st.radioKnown || !st.radioOn) {
+      st.radioKnown = true;
+      st.radioOn = true;
+      logChange("RADIO", true);
+    }
     return;
   }
-  if (on != st.radioOn) {
-    logChange("RADIO", on);
-    st.radioOn = on;
+
+  // 0x1E: ignore alone (power-up glitch). Real OFF is timeout below.
+}
+
+static void pollRadioTimeout() {
+  if (!st.radioKnown || !st.radioOn) {
+    return;
   }
+  if (millis() - lastRadioMs < RADIO_OFF_TIMEOUT_MS) {
+    return;
+  }
+  st.radioOn = false;
+  logChange("RADIO", false);
 }
 
 void setup() {
@@ -272,30 +289,28 @@ void setup() {
 
 void loop() {
   twai_message_t msg;
-  if (twai_receive(&msg, pdMS_TO_TICKS(50)) != ESP_OK) {
-    return;
+  if (twai_receive(&msg, pdMS_TO_TICKS(50)) == ESP_OK) {
+    if (!msg.rtr && msg.extd) {
+      switch (msg.identifier) {
+        case ID_DOORS:
+          handleDoors(msg);
+          break;
+        case ID_LIGHTS:
+          handleLights(msg);
+          break;
+        case ID_LOCKS:
+          handleLocks(msg);
+          break;
+        case ID_REVERSE:
+          handleReverse(msg);
+          break;
+        case ID_RADIO:
+          handleRadio(msg);
+          break;
+        default:
+          break;
+      }
+    }
   }
-  if (msg.rtr || !msg.extd) {
-    return;
-  }
-
-  switch (msg.identifier) {
-    case ID_DOORS:
-      handleDoors(msg);
-      break;
-    case ID_LIGHTS:
-      handleLights(msg);
-      break;
-    case ID_LOCKS:
-      handleLocks(msg);
-      break;
-    case ID_REVERSE:
-      handleReverse(msg);
-      break;
-    case ID_RADIO:
-      handleRadio(msg);
-      break;
-    default:
-      break;
-  }
+  pollRadioTimeout();
 }
