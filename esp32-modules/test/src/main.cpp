@@ -1,7 +1,7 @@
 /**
  * Fiat Ducato CAN sniffer (listen-only) — ESP32 + WCMCU-230 (SN65HVD230).
  *
- * Prints a frame only when its data changes (after a short silent warmup).
+ * Prints only when an ID changes after being stable (filters out counters).
  *
  * Wiring:
  *   WCMCU-230 3V3  -> ESP32 3.3V
@@ -12,7 +12,7 @@
  *   WCMCU-230 CANL -> OBD pin 14
  *
  * Upload:  cd esp32-modules/test && pio run -t upload && pio device monitor
- * Wait for "Ready", then open/close one door and note which IDs change.
+ * Wait for "Ready", then open/close one door.
  */
 
 #include <Arduino.h>
@@ -25,6 +25,7 @@ static const gpio_num_t CAN_RX_PIN = GPIO_NUM_16;
 #define CAN_TIMING TWAI_TIMING_CONFIG_500KBITS()
 
 static const unsigned WARMUP_MS = 3000;
+static const unsigned STABLE_MS = 500;  // print only if quiet this long before change
 static const int CACHE_SIZE = 128;
 
 struct CachedFrame {
@@ -32,6 +33,7 @@ struct CachedFrame {
   uint8_t extd;
   uint8_t dlc;
   uint8_t data[8];
+  unsigned long lastChangeMs;
   bool used;
 };
 
@@ -67,17 +69,20 @@ static CachedFrame *findOrAlloc(uint32_t id, uint8_t extd) {
 static void handleFrame(const twai_message_t &msg) {
   CachedFrame *slot = findOrAlloc(msg.identifier, msg.extd);
   if (slot == nullptr) {
-    return;  // cache full — skip
+    return;
   }
 
   const uint8_t dlc = msg.data_length_code;
+  const unsigned long now = millis();
+
   if (!slot->used) {
     slot->used = true;
     slot->id = msg.identifier;
     slot->extd = msg.extd;
     slot->dlc = dlc;
     memcpy(slot->data, msg.data, dlc);
-    return;  // first sight — store only
+    slot->lastChangeMs = now;
+    return;
   }
 
   bool changed = (slot->dlc != dlc) ||
@@ -86,10 +91,12 @@ static void handleFrame(const twai_message_t &msg) {
     return;
   }
 
+  const bool wasStable = (now - slot->lastChangeMs) >= STABLE_MS;
   slot->dlc = dlc;
   memcpy(slot->data, msg.data, dlc);
+  slot->lastChangeMs = now;
 
-  if (ready) {
+  if (ready && wasStable) {
     printFrame(msg);
   }
 }
@@ -98,9 +105,9 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("CAN sniffer listen-only (print on change)");
-  Serial.printf("TX=GPIO%d RX=GPIO%d  500 kbit/s\n", (int)CAN_TX_PIN,
-                (int)CAN_RX_PIN);
+  Serial.println("CAN sniffer listen-only (stable-change only)");
+  Serial.printf("TX=GPIO%d RX=GPIO%d  500 kbit/s  stable>=%ums\n",
+                (int)CAN_TX_PIN, (int)CAN_RX_PIN, STABLE_MS);
 
   memset(cache, 0, sizeof(cache));
   bootMs = millis();
