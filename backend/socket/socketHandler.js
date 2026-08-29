@@ -14,6 +14,7 @@ const levelingCommandHandler = require("./handlers/levelingCommandHandler");
 const damperCommandHandler = require("./handlers/damperCommandHandler");
 const tableCommandHandler = require("./handlers/tableCommandHandler");
 const applianceCommandHandler = require("./handlers/applianceCommandHandler");
+const securityCommandHandler = require("./handlers/securityCommandHandler");
 const {
   sendForceUpdateToAllOnline,
   sendForceUpdate,
@@ -116,6 +117,11 @@ const setupSocketIO = (io, aedes) => {
     // Handle appliance commands from frontend
     socket.on("applianceCommand", (data) => {
       applianceCommandHandler(socket, aedes, data);
+    });
+
+    // Handle security alarm commands (module-8)
+    socket.on("securityCommand", (data) => {
+      securityCommandHandler(socket, aedes, data);
     });
 
     // Force one module to publish fresh sensor/state data (MQTT force_update)
