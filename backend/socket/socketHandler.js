@@ -5,6 +5,7 @@
  */
 
 const ModuleRegistry = require("../src/ModuleRegistry");
+const HistoryLogger = require("../src/history/HistoryLogger");
 const heartbeatHandler = require("./handlers/heartbeatHandler");
 const sensorDataHandler = require("./handlers/sensorDataHandler");
 const ledCommandHandler = require("./handlers/ledCommandHandler");
@@ -23,6 +24,9 @@ const FORCE_MODULE_ID_PATTERN = /^module-[1-9]\d*$/;
 const setupSocketIO = (io, aedes) => {
   // Initialize Module Registry for heartbeat tracking
   const moduleRegistry = new ModuleRegistry();
+
+  const historyLogger = new HistoryLogger();
+  historyLogger.start();
   
   // Callback when module status changes
   const onModuleStatusChange = (allStatuses) => {
@@ -45,6 +49,9 @@ const setupSocketIO = (io, aedes) => {
     if (process.env.DEBUG_MQTT) {
       console.log(`📨 MQTT: ${topic} = ${message}`);
     }
+
+    // History runs alongside the live bridge (does not alter WebSocket path)
+    historyLogger.handleMqtt(topic, message);
 
     // Try heartbeat handler first (most specific)
     if (heartbeatHandler(moduleRegistry, io, topic, message)) {
@@ -132,15 +139,18 @@ const setupSocketIO = (io, aedes) => {
   process.on("SIGINT", () => {
     console.log("🛑 Shutting down Module Registry...");
     moduleRegistry.stop();
+    historyLogger.stop();
   });
 
   process.on("SIGTERM", () => {
     console.log("🛑 Shutting down Module Registry...");
     moduleRegistry.stop();
+    historyLogger.stop();
   });
 
   return {
     moduleRegistry, // Expose registry for potential API access
+    historyLogger,
   };
 };
 

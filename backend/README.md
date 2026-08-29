@@ -11,6 +11,8 @@ Node.js server: **Express** (HTTP/static), **Socket.io** (WebSocket), **Aedes** 
 | `socket/handlers/`        | Topic-specific logic (sensors, LEDs, commands, `moduleCommandHandler`) |
 | `mqtt/`                   | Aedes broker setup                                                     |
 | `src/ModuleRegistry.js`   | Tracks module online/offline from heartbeats                           |
+| `src/history/`            | SQLite history logger (readings; `events` table reserved)              |
+| `data/smartcamper.db`     | Runtime SQLite file (created on start; not committed)                  |
 
 ## WebSocket: client → server
 
@@ -59,9 +61,29 @@ Emitted to all clients or to one client as noted in handlers:
 
 `aedes.on("publish", …)` forwards relevant topics through `heartbeatHandler` and `sensorDataHandler` (and related paths). Heartbeats update `ModuleRegistry` and may emit `moduleStatusUpdate`.
 
+## History logging (SQLite)
+
+Phase 1 test scope: write-only history for charts. Inspect with `sqlite3` / DB Browser until HTTP API exists.
+
+| What | Rule |
+| ---- | ---- |
+| Victron `soc`, `voltage`, `current`, `solar_w` | On meaningful change (1 pp / 0.1 V / 0.5 A / 10 W) or at least every 60 s |
+| Orion `orion_output_a` | Same as current (≥ 0.5 A change or 60 s) |
+| `indoor_temp`, `indoor_humidity`, `outdoor_temp` | Every 5 minutes (last known values) |
+| Retention | 30 days; purge on server start and every 24 h |
+
+DB path defaults to `backend/data/smartcamper.db`. Override with `HISTORY_DB_PATH`. The `events` table is created but unused for now.
+
+Example inspect:
+
+```bash
+sqlite3 backend/data/smartcamper.db "SELECT datetime(ts/1000,'unixepoch'), metric, value, unit FROM readings ORDER BY ts DESC LIMIT 20;"
+```
+
 ## Environment
 
 - `DEBUG_MQTT` — verbose MQTT logging when set.
+- `HISTORY_DB_PATH` — optional path to the SQLite history file.
 
 ## Run
 

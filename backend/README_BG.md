@@ -8,6 +8,8 @@
 - `socket/socketHandler.js` — връзки, мост MQTT → WebSocket, маршрутизиране на команди от клиента
 - `socket/handlers/` — обработка по теми и **`moduleCommandHandler.js`** (в т.ч. `force_update`)
 - `src/ModuleRegistry.js` — онлайн/офлайн състояние на модулите (heartbeat)
+- `src/history/` — SQLite история (readings; таблица `events` е празна засега)
+- `data/smartcamper.db` — runtime файл (създава се при старт; не се комитва)
 
 ## WebSocket: от frontend към сървъра
 
@@ -37,6 +39,10 @@
 ## WebSocket: от сървъра към клиента
 
 Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate`, `victronStatusUpdate` (подробности в английския `README.md`).
+
+## История (SQLite)
+
+Тестов обхват: запис само на readings (Victron SOC/V/A/solar, Orion output A, indoor temp/humidity, outdoor temp). Без API/UI засега — преглед с `sqlite3`. Задържане 30 дни. Подробности в английския `README.md`. Env: `HISTORY_DB_PATH` (опционално).
 
 ## Стартиране
 

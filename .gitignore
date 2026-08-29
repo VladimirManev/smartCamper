@@ -40,4 +40,8 @@ coverage/
 
 # Temporary folders
 tmp/
-temp/ 
+temp/
+
+# Local SQLite history DB (runtime data on Pi)
+backend/data/*.db
+backend/data/*.db-* 

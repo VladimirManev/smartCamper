@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "aedes": "^0.51.3",
+    "better-sqlite3": "^11.10.0",
     "express": "^5.1.0",
     "socket.io": "^4.8.1"
   }
