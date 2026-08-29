@@ -520,8 +520,97 @@ function simulatePerimeterMotion(securityState, sensorId) {
   return sensor;
 }
 
-function handleMockSecurityCommand(socket, securityState, payload) {
+const MOCK_ALARM_PIN = process.env.MOCK_ALARM_PIN || "1234";
+const MOCK_EXIT_DELAY_MS = Number(process.env.MOCK_EXIT_DELAY_MS || 30000);
+const MOCK_ENTRY_DELAY_MS = Number(process.env.MOCK_ENTRY_DELAY_MS || 30000);
+
+function createZone1DelayController(socket, securityState) {
+  let timer = null;
+
+  function clearTimer() {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  }
+
+  function resetIdle() {
+    clearTimer();
+    securityState.zone1.armed = false;
+    securityState.zone1.phase = "idle";
+    securityState.zone1.ignoreInteriorPir = false;
+    securityState.zone1.siren = false;
+    securityState.zone1.smoke = false;
+  }
+
+  return {
+    clearTimer,
+    arm(ignoreInteriorPir) {
+      clearTimer();
+      securityState.zone1.armed = true;
+      securityState.zone1.phase = "exit_delay";
+      securityState.zone1.ignoreInteriorPir = !!ignoreInteriorPir;
+      securityState.zone1.siren = false;
+      securityState.zone1.smoke = false;
+      emitSecurityStatus(socket, securityState);
+
+      timer = setTimeout(() => {
+        timer = null;
+        if (securityState.zone1.phase !== "exit_delay") return;
+        securityState.zone1.phase = "armed";
+        emitSecurityStatus(socket, securityState);
+      }, MOCK_EXIT_DELAY_MS);
+    },
+    disarm(pin) {
+      if (pin !== MOCK_ALARM_PIN) {
+        if (process.env.DEBUG_MOCK_SOCKET) {
+          console.log("[mock] zone1 disarm rejected (bad PIN)");
+        }
+        // Re-emit current status so UI can clear and retry
+        emitSecurityStatus(socket, securityState);
+        return false;
+      }
+      resetIdle();
+      emitSecurityStatus(socket, securityState);
+      return true;
+    },
+    /** Bench: trip while armed → entry_delay → alarm */
+    trip() {
+      if (securityState.zone1.phase !== "armed") return;
+      clearTimer();
+      securityState.zone1.phase = "entry_delay";
+      emitSecurityStatus(socket, securityState);
+      timer = setTimeout(() => {
+        timer = null;
+        if (securityState.zone1.phase !== "entry_delay") return;
+        securityState.zone1.phase = "alarm";
+        securityState.zone1.siren = true;
+        emitSecurityStatus(socket, securityState);
+      }, MOCK_ENTRY_DELAY_MS);
+    },
+    stop() {
+      clearTimer();
+    },
+  };
+}
+
+function handleMockSecurityCommand(socket, securityState, zone1Ctrl, payload) {
   if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  if (payload.zone === 1 && payload.action === "on") {
+    zone1Ctrl.arm(payload.ignoreInteriorPir);
+    return;
+  }
+
+  if (payload.zone === 1 && payload.action === "off") {
+    zone1Ctrl.disarm(String(payload.pin || ""));
+    return;
+  }
+
+  if (payload.zone === 1 && payload.action === "simulate_trip") {
+    zone1Ctrl.trip();
     return;
   }
 
@@ -544,24 +633,157 @@ function handleMockSecurityCommand(socket, securityState, payload) {
   }
 }
 
-function createPerimeterMotionSimulator(socket, securityState) {
-  const intervalMs = Number(process.env.MOCK_PERIMETER_MOTION_INTERVAL_MS || 10000);
-  let interval = null;
+/** Cycle door combos for alarm door-marker tests */
+function createDoorSimulator(socket, securityState) {
+  const stepMs = Number(process.env.MOCK_DOOR_STEP_MS || 8000);
+  const SCENES = [
+    {
+      driver: false,
+      passenger: false,
+      sliding: false,
+      rear: false,
+      label: "all closed",
+    },
+    {
+      driver: true,
+      passenger: false,
+      sliding: false,
+      rear: false,
+      label: "driver",
+    },
+    {
+      driver: false,
+      passenger: true,
+      sliding: false,
+      rear: false,
+      label: "passenger",
+    },
+    {
+      driver: true,
+      passenger: true,
+      sliding: false,
+      rear: false,
+      label: "both front",
+    },
+    {
+      driver: false,
+      passenger: false,
+      sliding: true,
+      rear: false,
+      label: "sliding",
+    },
+    {
+      driver: false,
+      passenger: false,
+      sliding: false,
+      rear: true,
+      label: "rear",
+    },
+    {
+      driver: true,
+      passenger: false,
+      sliding: true,
+      rear: false,
+      label: "driver + sliding",
+    },
+    {
+      driver: false,
+      passenger: true,
+      sliding: false,
+      rear: true,
+      label: "passenger + rear",
+    },
+    {
+      driver: true,
+      passenger: true,
+      sliding: true,
+      rear: true,
+      label: "all open",
+    },
+  ];
+  let timer = null;
+  let index = 0;
+
+  function applyScene(scene) {
+    securityState.inputs.doors.driver = !!scene.driver;
+    securityState.inputs.doors.passenger = !!scene.passenger;
+    securityState.inputs.doors.sliding = !!scene.sliding;
+    securityState.inputs.doors.rear = !!scene.rear;
+    console.log(`[mock] doors: ${scene.label}`);
+    emitSecurityStatus(socket, securityState);
+  }
+
+  function tick() {
+    index = (index + 1) % SCENES.length;
+    applyScene(SCENES[index]);
+    timer = setTimeout(tick, stepMs);
+  }
 
   return {
     start() {
-      if (interval) return;
-      interval = setInterval(() => {
-        const sensor = simulatePerimeterMotion(securityState);
-        emitSecurityStatus(socket, securityState);
-        if (process.env.DEBUG_MOCK_SOCKET) {
-          console.log(
-            `[mock] perimeter motion on ${sensor} (armed=${securityState.zone2.armed})`
-          );
-        }
-      }, intervalMs);
+      if (timer) return;
+      applyScene(SCENES[0]);
+      timer = setTimeout(tick, stepMs);
     },
     stop() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    },
+  };
+}
+
+function createRoundMinuteMotionSimulator(socket, securityState, zone1Ctrl) {
+  let timeout = null;
+  let interval = null;
+
+  function fireMotion() {
+    const now = new Date();
+    const sensor = simulatePerimeterMotion(securityState);
+    securityState.inputs.interiorPir = true;
+
+    console.log(
+      `[mock] :${String(now.getMinutes()).padStart(2, "0")} motion (perimeter=${sensor}, zone1=${securityState.zone1.phase})`
+    );
+
+    if (securityState.zone1.phase === "armed") {
+      zone1Ctrl.trip();
+    } else {
+      emitSecurityStatus(socket, securityState);
+    }
+
+    setTimeout(() => {
+      if (securityState.inputs.interiorPir) {
+        securityState.inputs.interiorPir = false;
+        emitSecurityStatus(socket, securityState);
+      }
+    }, 800);
+  }
+
+  function msUntilNextRoundMinute() {
+    const now = Date.now();
+    return 60_000 - (now % 60_000);
+  }
+
+  return {
+    start() {
+      if (timeout || interval) return;
+      const waitMs = msUntilNextRoundMinute();
+      console.log(
+        `[mock] Next motion pulse in ${Math.ceil(waitMs / 1000)}s (every round minute)`
+      );
+      timeout = setTimeout(() => {
+        timeout = null;
+        fireMotion();
+        interval = setInterval(fireMotion, 60_000);
+      }, waitMs);
+    },
+    stop() {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
       if (interval) {
         clearInterval(interval);
         interval = null;
@@ -660,7 +882,13 @@ io.on("connection", (socket) => {
   const ledState = createInitialLedState();
   const applianceState = createInitialApplianceState();
   const securityState = createInitialSecurityState();
-  const motionSim = createPerimeterMotionSimulator(socket, securityState);
+  const zone1Ctrl = createZone1DelayController(socket, securityState);
+  const motionSim = createRoundMinuteMotionSimulator(
+    socket,
+    securityState,
+    zone1Ctrl
+  );
+  const doorSim = createDoorSimulator(socket, securityState);
 
   // Let the browser attach Socket.io listeners before the first burst (React useEffect).
   const connectDelayMs = Number(process.env.MOCK_CONNECT_DELAY_MS || 450);
@@ -668,6 +896,7 @@ io.on("connection", (socket) => {
   const connectTimer = setTimeout(() => {
     sendAll(socket, securityState);
     motionSim.start();
+    doorSim.start();
     const sensorIntervalMs = Number(process.env.MOCK_SENSOR_INTERVAL_MS || 4000);
     sensorTimer = setInterval(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
@@ -690,7 +919,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("securityCommand", (payload) => {
-    handleMockSecurityCommand(socket, securityState, payload);
+    handleMockSecurityCommand(socket, securityState, zone1Ctrl, payload);
     if (process.env.DEBUG_MOCK_SOCKET) {
       console.log("[mock] securityCommand", payload);
     }
@@ -727,16 +956,21 @@ io.on("connection", (socket) => {
     clearTimeout(connectTimer);
     if (sensorTimer) clearInterval(sensorTimer);
     motionSim.stop();
+    doorSim.stop();
+    zone1Ctrl.stop();
     console.log(`[mock] client disconnected ${socket.id} (${reason})`);
   });
 });
 
 server.listen(PORT, () => {
   console.log(`[mock] Socket.io listening on http://localhost:${PORT}`);
-  console.log(`[mock] Optional: MOCK_SENSOR_INTERVAL_MS (default 4000)`);
+  console.log(`[mock] Alarm PIN: ${MOCK_ALARM_PIN}`);
+  console.log(`[mock] Exit/entry delay: ${MOCK_EXIT_DELAY_MS / 1000}s / ${MOCK_ENTRY_DELAY_MS / 1000}s`);
+  console.log(`[mock] Motion pulse on every round minute (:00)`);
   console.log(
-    `[mock] Perimeter motion every ${Number(process.env.MOCK_PERIMETER_MOTION_INTERVAL_MS || 10000) / 1000}s (armed or not)`
+    `[mock] Front door scenes every ${Number(process.env.MOCK_DOOR_STEP_MS || 8000) / 1000}s (closed → left → right → both)`
   );
+  console.log(`[mock] Optional: MOCK_SENSOR_INTERVAL_MS (default 4000)`);
   console.log(
     `[mock] AC charger: ${AC_CHARGER_CYCLE_MS / 1000}s on / ${AC_CHARGER_CYCLE_MS / 1000}s off (no payload)`
   );

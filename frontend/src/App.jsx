@@ -39,6 +39,7 @@ import { ClockDateCard, ClockCalendarLines } from "./components/ClockDateCard";
 import { SettingsCard } from "./components/SettingsCard";
 import { StatusCard } from "./components/StatusCard";
 import { AlarmCard } from "./components/AlarmCard";
+import { AlarmModalContent } from "./components/AlarmModalContent";
 import { PerimeterCard } from "./components/PerimeterCard";
 import { PerimeterModalContent } from "./components/PerimeterModalContent";
 import { StatusModalContent } from "./components/StatusModalContent";
@@ -96,6 +97,8 @@ import {
 import { useDisplayBacklight } from "./hooks/useDisplayBacklight";
 import { useDisplayWakeOnLight } from "./hooks/useDisplayWakeOnLight";
 import { useDisplayWakeOnPerimeterMotion } from "./hooks/useDisplayWakeOnPerimeterMotion";
+import { useDisplayWakeOnAlarm } from "./hooks/useDisplayWakeOnAlarm";
+import { useDisplaySleepWhenAlarmArmed } from "./hooks/useDisplaySleepWhenAlarmArmed";
 import { useSecurityController } from "./hooks/useSecurityController";
 import { DisplayWakeOverlay } from "./components/DisplayWakeOverlay";
 import "./App.css";
@@ -202,8 +205,17 @@ function App() {
   const { appliances, sendApplianceCommand } = useApplianceController(socket);
 
   const {
+    zone1Armed,
+    zone1Phase,
+    zone1CatMode,
+    zone1ExitStartedAt,
+    zone1ForceKeypad,
+    forceZone1Keypad,
+    armZone1,
+    disarmZone1,
     zone2Armed,
     perimeterLastMotion,
+    doors,
     setZone2Armed,
     simulatePerimeterMotion,
   } = useSecurityController(socket);
@@ -387,8 +399,33 @@ function App() {
     activateFromMainMenu("perimeter", "Perimeter");
   }, [activateFromMainMenu]);
 
+  const openAlarmModal = useCallback(() => {
+    activateFromMainMenu("alarm", "Alarm");
+  }, [activateFromMainMenu]);
+
+  const zone1BlocksPerimeter =
+    zone1Phase === "exit_delay" ||
+    zone1Phase === "entry_delay" ||
+    zone1Phase === "alarm";
+
+  useDisplayWakeOnAlarm({
+    zone1Phase,
+    isAsleep: isDisplayAsleep,
+    isFeatureEnabled: isDisplayBacklightFeatureEnabled,
+    isModuleOnline: isModule8Online,
+    turnOn: turnDisplayOn,
+    openAlarmModal,
+  });
+
+  useDisplaySleepWhenAlarmArmed({
+    zone1Phase,
+    isFeatureEnabled: isDisplayBacklightFeatureEnabled,
+    isModuleOnline: isModule8Online,
+    turnOff: turnDisplayOff,
+  });
+
   useDisplayWakeOnPerimeterMotion({
-    zone2Armed,
+    zone2Armed: zone2Armed && !zone1BlocksPerimeter,
     perimeterLastMotion,
     isAsleep: isDisplayAsleep,
     isFeatureEnabled: isDisplayBacklightFeatureEnabled,
@@ -814,8 +851,21 @@ function App() {
     }
 
     if (cardType === "alarm") {
-      // Placeholder — controls come later
-      return null;
+      return (
+        <AlarmModalContent
+          disabled={!isModule8Online}
+          armed={zone1Armed}
+          phase={zone1Phase}
+          catMode={zone1CatMode}
+          exitStartedAt={zone1ExitStartedAt}
+          forceKeypad={zone1ForceKeypad}
+          doors={doors}
+          onForceKeypad={forceZone1Keypad}
+          onArmNormal={() => armZone1(false)}
+          onArmCat={() => armZone1(true)}
+          onDisarm={disarmZone1}
+        />
+      );
     }
 
     if (cardType === "perimeter") {
@@ -887,6 +937,7 @@ function App() {
           indoorHumidity={indoorHumidity}
           outdoorTemperature={outdoorTemperature}
           sensorsDisabled={!isModule1Online}
+          doors={doors}
           onActiveSlideChange={handleStatusSlideChange}
         />
       );

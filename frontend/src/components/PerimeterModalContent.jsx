@@ -38,25 +38,26 @@ export function formatPerimeterMotionAge(ageMs) {
   return "5m";
 }
 
-function PerimeterEyeIcon({ filled = false }) {
+function PerimeterNoteIcon({ muted = false }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
-        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"
+        d="M9 18V6l11-2v12"
         stroke="currentColor"
         strokeWidth="2"
-        fill={filled ? "currentColor" : "none"}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle
-        cx="12"
-        cy="12"
-        r="3"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-      />
+      <circle cx="7" cy="18" r="3" stroke="currentColor" strokeWidth="2" fill="none" />
+      <circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="2" fill="none" />
+      {muted && (
+        <path
+          d="M4 5l16 14"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+        />
+      )}
     </svg>
   );
 }
@@ -150,7 +151,7 @@ export function PerimeterModalContent({
             <div
               className={`icon-container ${armed ? "icon-active" : "icon-inactive"}`}
             >
-              <PerimeterEyeIcon filled={armed} />
+              <PerimeterNoteIcon muted={!armed} />
             </div>
           </span>
         </button>

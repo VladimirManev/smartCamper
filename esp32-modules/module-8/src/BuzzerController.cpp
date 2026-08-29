@@ -60,6 +60,9 @@ void BuzzerController::playPerimeterAlert() {
   if (busy && pattern == BUZZ_DELAY_ESCALATION) {
     return;  // suppressed while delay indication runs
   }
+  if (busy && pattern == BUZZ_PERIMETER_ALERT) {
+    return;  // do not restart mid-alert (noisy pins)
+  }
   startPattern(BUZZ_PERIMETER_ALERT);
   shortBeepRemaining = PERIMETER_BEEP_COUNT;
   setPin(true);
@@ -172,18 +175,7 @@ void BuzzerController::updateDelayEscalation(unsigned long now) {
   unsigned long elapsed = now - patternStart;
 
   if (elapsed >= (DELAY_PHASE1_MS + DELAY_PHASE2_MS + DELAY_PHASE3_MS)) {
-    // keep continuous until external stop() — stay on in phase 3
-    if (!pinHigh) {
-      setPin(true);
-    }
-    return;
-  }
-
-  if (elapsed >= DELAY_PHASE1_MS + DELAY_PHASE2_MS) {
-    // phase 3 continuous
-    if (!pinHigh) {
-      setPin(true);
-    }
+    stop();
     return;
   }
 
@@ -198,20 +190,31 @@ void BuzzerController::updateDelayEscalation(unsigned long now) {
       nextToggleAt = now + BEEP_SHORT_MS;
     } else {
       setPin(false);
-      // align to ~1 Hz from pattern start
       unsigned long nextBeep = patternStart + ((elapsed / 1000) + 1) * 1000UL;
       nextToggleAt = nextBeep;
     }
     return;
   }
 
-  // phase 2: 2 beeps per second
+  if (elapsed < DELAY_PHASE1_MS + DELAY_PHASE2_MS) {
+    // phase 2: 2 beeps per second
+    if (!pinHigh) {
+      setPin(true);
+      nextToggleAt = now + BEEP_SHORT_MS;
+    } else {
+      setPin(false);
+      nextToggleAt = now + (500 - BEEP_SHORT_MS);
+    }
+    return;
+  }
+
+  // phase 3: 6 beeps per second
   if (!pinHigh) {
     setPin(true);
     nextToggleAt = now + BEEP_SHORT_MS;
   } else {
     setPin(false);
-    nextToggleAt = now + (500 - BEEP_SHORT_MS);
+    nextToggleAt = now + (DELAY_PHASE3_PERIOD_MS - BEEP_SHORT_MS);
   }
 }
 

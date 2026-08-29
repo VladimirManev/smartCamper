@@ -28,14 +28,14 @@ Adjust pins in `src/Config.h` if your board wiring differs.
 
 | Sequence | Action |
 |----------|--------|
-| 1 short + hold ≥3 s | Toggle zone 1 **normal** (with interior PIR) |
+| 1 short + hold ≥3 s | Arm zone 1 **normal**, or **disarm** zone 1 (normal or cat) |
 | 2 short + hold ≥3 s | Toggle zone 2 (perimeter) |
-| 3 short + hold ≥3 s | Toggle zone 1 **cat mode** (ignore interior PIR) |
+| 3 short + hold ≥3 s | Arm zone 1 **cat mode** only (ignore interior PIR) |
 | Other | Long error beep |
 
 Timing: short &lt; 500 ms; gap between taps ≤ 800 ms; hold ≥ 3 s.
 
-If zone 1 is already armed in one mode, the other interior sequence is rejected (error beep). Disarm first with the same mode sequence.
+While zone 1 is armed or arming, the cat sequence beeps error — disarm with **1 short + hold**.
 
 ## Zone 1 behaviour
 

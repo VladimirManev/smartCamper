@@ -2611,6 +2611,28 @@ body {
   padding-bottom: 0.35rem;
 }
 
+.status-modal__doors {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  overflow: hidden;
+}
+
+.status-modal__doors-stage.perimeter-modal__stage {
+  width: min(78vw, 290px);
+  height: min(58vh, 420px);
+  max-height: 100%;
+  margin: 0 auto;
+}
+
+.status-modal__doors-van-layer.perimeter-modal__van-layer {
+  transform: scale(1.25) translateY(-12%);
+}
+
 .status-modal__sensors {
   display: flex;
   flex-direction: column;
@@ -3342,8 +3364,17 @@ body {
 }
 
 /* Perimeter modal: fit on one screen, no inner scroll. */
-.modal-content:has(.perimeter-modal) {
+.modal-content:has(.perimeter-modal):not(:has(.alarm-modal)) {
   overflow: hidden;
+  padding: 0.35rem 0.5rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Alarm: allow open-door art to extend; same padding/flex as perimeter */
+.modal-content:has(.alarm-modal) {
+  overflow: visible;
   padding: 0.35rem 0.5rem 0.55rem;
   display: flex;
   flex-direction: column;
@@ -5559,6 +5590,67 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   z-index: 2;
 }
 
+/* Alarm: tweak van size here while picking marker layout */
+.alarm-modal__stage.perimeter-modal__stage {
+  width: min(78vw, 290px);
+  height: min(54vh, 400px);
+}
+
+.alarm-modal__van-layer.perimeter-modal__van-layer {
+  transform: scale(1.373) translateY(calc(24% - 5px));
+}
+
+.camper-doors__marker {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* Thick rounded stroke — door silhouette */
+.camper-doors__marker--stroke {
+  width: 2.4rem;
+  height: 0.42rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.85);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+}
+
+.camper-doors__marker--stroke.camper-doors__marker--open {
+  background: rgba(239, 68, 68, 0.92);
+  box-shadow:
+    0 0 10px rgba(239, 68, 68, 0.55),
+    0 0 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Left (driver) door — open outward at -45° */
+.camper-doors__marker--driver {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* Right (passenger) door — mirrored +45° */
+.camper-doors__marker--passenger {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* Sliding side door — along van length, ~2× longer */
+.camper-doors__marker--sliding {
+  width: 4.8rem;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* Rear barn doors — mostly along van length, open ±23° outward */
+.camper-doors__marker--rear_left {
+  transform: translate(-50%, -50%) rotate(113deg);
+}
+
+.camper-doors__marker--rear_right {
+  transform: translate(-50%, -50%) rotate(67deg);
+}
+
 .perimeter-modal__zone {
   position: absolute;
   z-index: 3;
@@ -5719,7 +5811,9 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 }
 
 .app.app--tablet-landscape
-  .tablet-embedded-panel__body.modal-content:has(.perimeter-modal) {
+  .tablet-embedded-panel__body.modal-content:has(.perimeter-modal),
+.app.app--tablet-landscape
+  .tablet-embedded-panel__body.modal-content:has(.alarm-modal) {
   overflow: hidden;
 }
 
@@ -5742,5 +5836,133 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 .app.app--tablet-landscape .perimeter-modal__arm .icon-container {
   --icon-size: clamp(1.85rem, 4.5vh, 2.35rem);
+}
+
+/* Alarm modal: lock left, cat right (same top as perimeter arm) */
+.alarm-modal__arm--left.perimeter-modal__arm.neumorphic-button {
+  left: 0;
+  right: auto;
+  top: 0;
+}
+
+.alarm-modal__arm--right.perimeter-modal__arm.neumorphic-button {
+  left: auto;
+  right: 0;
+  top: 0;
+}
+
+.alarm-modal .perimeter-modal__arm .icon-container {
+  --icon-size: clamp(2.05rem, 10vw, 2.65rem);
+}
+
+.app.app--tablet-landscape .alarm-modal .perimeter-modal__arm .icon-container {
+  --icon-size: clamp(2.25rem, 5.5vh, 2.85rem);
+}
+
+.alarm-modal .perimeter-modal__arm.neumorphic-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Exit delay: big countdown + Cancel */
+.alarm-modal__exit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 1rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.alarm-modal__countdown {
+  font-size: clamp(3.5rem, 18vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.alarm-modal__cancel {
+  appearance: none;
+  border: none;
+  background: var(--color-bg-secondary, rgba(0, 0, 0, 0.06));
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow:
+    4px 4px 10px rgba(0, 0, 0, 0.12),
+    -3px -3px 8px rgba(255, 255, 255, 0.55);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.alarm-modal__cancel:active {
+  box-shadow:
+    inset 3px 3px 8px rgba(0, 0, 0, 0.12),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.4);
+}
+
+/* Phone-style PIN keypad — no PIN echo */
+.alarm-modal__keypad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  gap: 1.7rem;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  padding: 0.5rem 0.25rem 0.25rem;
+  box-sizing: border-box;
+}
+
+.alarm-modal__keypad-row {
+  display: flex;
+  gap: 1.7rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.alarm-modal__key {
+  appearance: none;
+  border: none;
+  flex: 1;
+  max-width: 5rem;
+  aspect-ratio: 1.15;
+  border-radius: 50%;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary, rgba(0, 0, 0, 0.05));
+  box-shadow:
+    4px 4px 10px rgba(0, 0, 0, 0.1),
+    -3px -3px 8px rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.alarm-modal__key:active {
+  box-shadow:
+    inset 3px 3px 8px rgba(0, 0, 0, 0.12),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.35);
+}
+
+.app.app--tablet-landscape .alarm-modal__countdown {
+  font-size: clamp(4rem, 14vh, 6rem);
+}
+
+.app.app--tablet-landscape .alarm-modal__key {
+  max-width: 4.75rem;
+  font-size: 1.45rem;
 }
 

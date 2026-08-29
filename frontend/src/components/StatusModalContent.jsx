@@ -8,6 +8,7 @@ import { GrayWaterModalContent } from "./GrayWaterModalContent";
 import { FreshWaterModalContent } from "./FreshWaterModalContent";
 import { ToiletUrineModalContent } from "./ToiletUrineModalContent";
 import { ClockDateCard } from "./ClockDateCard";
+import { CamperDoorsStage, DEFAULT_DOORS } from "./CamperDoorsStage";
 
 const SLIDES = [
   "battery",
@@ -15,8 +16,9 @@ const SLIDES = [
   "fresh-water",
   "toilet-urine",
   "overview",
+  "doors",
 ];
-const SLIDE_TITLES = ["Battery", "Gray Water", "Fresh Water", "Toilet", ""];
+const SLIDE_TITLES = ["Battery", "Gray Water", "Fresh Water", "Toilet", "", ""];
 const ROTATE_MS = 4000;
 
 function formatSensorValue(value, suffix, decimals = 1) {
@@ -46,6 +48,7 @@ function formatSensorValue(value, suffix, decimals = 1) {
  * @param {number|null} props.indoorHumidity
  * @param {number|null} props.outdoorTemperature
  * @param {boolean} props.sensorsDisabled
+ * @param {Object} [props.doors] - { driver, passenger, sliding, rear }
  * @param {(title: string) => void} [props.onActiveSlideChange]
  */
 export function StatusModalContent({
@@ -69,6 +72,7 @@ export function StatusModalContent({
   indoorHumidity,
   outdoorTemperature,
   sensorsDisabled = false,
+  doors = DEFAULT_DOORS,
   onActiveSlideChange,
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -176,6 +180,19 @@ export function StatusModalContent({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        <div
+          className={paneClass(5)}
+          aria-hidden={activeIndex !== 5}
+          aria-label="Camper doors"
+        >
+          <div className="status-modal__doors">
+            <CamperDoorsStage
+              doors={doors}
+              stageClassName="status-modal__doors-stage"
+              vanLayerClassName="status-modal__doors-van-layer"
+            />
           </div>
         </div>
       </div>

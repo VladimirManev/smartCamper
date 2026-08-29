@@ -69,17 +69,25 @@
 #define SMOKE_START_AFTER_SIREN_MS 10000
 #define SMOKE_DURATION_MS 60000
 
-// Delay buzzer phases (exit + entry)
-#define DELAY_PHASE1_MS 10000  // 1 beep / s
-#define DELAY_PHASE2_MS 10000  // 2 beeps / s
-#define DELAY_PHASE3_MS 10000  // continuous
+// Delay buzzer phases (exit + entry) — totals EXIT/ENTRY delay
+#define DELAY_PHASE1_MS 3000  // 1 beep / s
+#define DELAY_PHASE2_MS 3000  // 2 beeps / s
+#define DELAY_PHASE3_MS 3000  // 6 beeps / s
+#define DELAY_PHASE3_PERIOD_MS 167  // ~1000/6
 
 // Perimeter alert
 #define PERIMETER_BEEP_COUNT 5
 #define PERIMETER_REPEAT_MS 8000
+#define PERIMETER_DEBOUNCE_MS 120  // require stable HIGH/LOW (filters floating chatter)
 
 // LED blink
 #define ZONE1_LED_BLINK_MS 500
+#define ZONE1_LED_CAT_ON_MS 70
+#define ZONE1_LED_CAT_OFF_MS 70
+#define ZONE1_LED_CAT_PAUSE_MS 450
+
+// Ignore sensor edges after boot (PIR / floating pins settle)
+#define INPUT_SETTLE_MS 2000
 
 // Buzzer tone lengths
 #define BEEP_SHORT_MS 80

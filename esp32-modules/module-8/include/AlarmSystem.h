@@ -29,6 +29,7 @@ private:
   bool smokeOn;
   bool zone1LedOn;
   unsigned long zone1LedLastToggle;
+  uint8_t zone1LedStep;  // cat-mode blink pattern step
   unsigned long phaseStartMs;
   unsigned long sirenStartMs;
   unsigned long smokeStartMs;
@@ -39,12 +40,16 @@ private:
   bool lastSpareOpen;
   bool spareLatchedOpen;  // ignore until closed after alarm cycle
   bool interiorPir;
-  bool perimeterPir[NUM_PERIMETER_PIRS];
+  bool perimeterRaw[NUM_PERIMETER_PIRS];
+  bool perimeterPir[NUM_PERIMETER_PIRS];  // debounced
   bool lastPerimeterPir[NUM_PERIMETER_PIRS];
+  unsigned long perimeterRawChangedAt[NUM_PERIMETER_PIRS];
 
   bool statusDirty;
   bool waitingConfirmThenExit;  // after confirm beep, start exit delay
   bool pendingArmIsCat;
+  unsigned long inputsReadyAt;  // ignore sensor edges until this time
+  bool inputsSettleLogged;
 
   static const char* perimeterNames[NUM_PERIMETER_PIRS];
   static const uint8_t perimeterPins[NUM_PERIMETER_PIRS];
