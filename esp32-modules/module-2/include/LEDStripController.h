@@ -91,6 +91,7 @@ private:
   
   void ensurePowerRelayOn(uint8_t stripIndex);
   void checkAndTurnOffPowerRelay();
+  void blankAllStrips();  // Clear+Show all strips after power relay comes up (kills power-on glitch)
   void turnOnStripAfterDelay(uint8_t stripIndex);
   
   // Callback for strip state changes (for status publishing)

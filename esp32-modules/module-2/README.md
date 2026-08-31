@@ -87,6 +87,7 @@ The module includes a power relay (GPIO 32 — see `Config.h`) that physically c
 
 **How it works:**
 - Relay turns ON automatically when any strip is turned on (with 100ms stabilization delay)
+- After the delay, all strips are blanked (black), then the target strip animation starts — avoids power-on glitch (first LED flash)
 - Relay turns OFF automatically when all strips are off (safety check every 60 seconds)
 - Prevents battery drain when all strips are off
 

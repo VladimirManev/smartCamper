@@ -1262,6 +1262,17 @@ void LEDStripController::checkAndTurnOffPowerRelay() {
   }
 }
 
+void LEDStripController::blankAllStrips() {
+  // ESP32 constraint: after relay restores V+, WS2812/SK6812 chips wake in an
+  // undefined state and the first LED often flashes green/red from data-line noise.
+  // Push black to every strip before any animation so idle strips stay dark.
+  RgbwColor off(0, 0, 0, 0);
+  for (uint8_t i = 0; i < NUM_STRIPS; i++) {
+    clearStrip(i, off);
+    showStrip(i);
+  }
+}
+
 void LEDStripController::turnOnStripAfterDelay(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
@@ -1270,6 +1281,8 @@ void LEDStripController::turnOnStripAfterDelay(uint8_t stripIndex) {
     // Already on, nothing to do
     return;
   }
+
+  blankAllStrips();
   
   // Turn on strip normally (but WITHOUT checking relay again)
   state.on = true;
