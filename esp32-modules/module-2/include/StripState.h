@@ -13,23 +13,22 @@ enum StripMode {
   STRIP_MODE_ON     // 2: on
 };
 
-// Visual effect when output is on (solid channels vs test patterns)
+// Visual effect when output is on (solid channels vs patterns / animations)
 enum StripEffect {
   STRIP_EFFECT_NORMAL = 0,
   STRIP_EFFECT_RAINBOW_STATIC = 1,
+  STRIP_EFFECT_FIREWORKS = 2,  // Classic WLED-style fireworks (animated)
 };
 
-// Transition types
+// Transition types (no random-LED wipe — removed)
 enum TransitionType {
-  TRANSITION_NONE,
-  TRANSITION_ON_CENTER_TO_EDGES,      // 0: Smoothly from center to edges
-  TRANSITION_ON_RANDOM_LEDS,           // 1: Random LEDs sequentially
-  TRANSITION_ON_LEFT_TO_RIGHT,         // 2: From left to right
-  TRANSITION_ON_EDGES_TO_CENTER,       // 3: From edges to center
-  TRANSITION_OFF_EDGES_TO_CENTER,      // 4: From edges to center
-  TRANSITION_OFF_RANDOM_LEDS,          // 5: Random LEDs sequentially
-  TRANSITION_OFF_LEFT_TO_RIGHT,        // 6: From left to right
-  TRANSITION_OFF_CENTER_TO_EDGES       // 7: From center to edges
+  TRANSITION_NONE = 0,
+  TRANSITION_ON_CENTER_TO_EDGES,
+  TRANSITION_ON_LEFT_TO_RIGHT,
+  TRANSITION_ON_EDGES_TO_CENTER,
+  TRANSITION_OFF_EDGES_TO_CENTER,
+  TRANSITION_OFF_LEFT_TO_RIGHT,
+  TRANSITION_OFF_CENTER_TO_EDGES
 };
 
 // Transition state
@@ -55,6 +54,7 @@ struct StripState {
   uint8_t chB;
   uint8_t chW;
   StripEffect effect;
+  unsigned long effectFrameTime;  // Last fireworks (etc.) frame time
   
   StripMode mode;
   uint8_t lastAutoBrightness;  // AUTO (strip 3): level for next PIR on

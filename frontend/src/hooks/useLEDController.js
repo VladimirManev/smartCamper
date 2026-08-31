@@ -27,7 +27,11 @@ function normalizeStripFromStatus(index, stripData) {
       w: ch.w ?? base.w,
     },
     effect:
-      stripData.effect === "rainbow_static" ? "rainbow_static" : "normal",
+      stripData.effect === "rainbow_static"
+        ? "rainbow_static"
+        : stripData.effect === "fireworks"
+          ? "fireworks"
+          : "normal",
   };
 }
 

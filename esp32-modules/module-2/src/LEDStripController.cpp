@@ -56,6 +56,7 @@ LEDStripController::LEDStripController(ModuleManager* moduleMgr)
     stripStates[i].chB = 255;
     stripStates[i].chW = 255;
     stripStates[i].effect = STRIP_EFFECT_NORMAL;
+    stripStates[i].effectFrameTime = 0;
   }
   
   // Special initialization for Strip 3 (motion activated)
@@ -252,6 +253,20 @@ RgbwColor LEDStripController::getPixelColor(uint8_t stripIndex, int pixelIndex, 
 }
 
 // Helper functions for working with different strip types
+RgbwColor LEDStripController::getRawPixelColor(uint8_t stripIndex, int pixelIndex) const {
+  if (stripIndex >= NUM_STRIPS) return RgbwColor(0, 0, 0, 0);
+  const StripState& state = stripStates[stripIndex];
+  switch (state.stripType) {
+    case 0: return ((LedStrip0*)state.strip)->GetPixelColor(pixelIndex);
+    case 1: return ((LedStrip1*)state.strip)->GetPixelColor(pixelIndex);
+    case 2: return ((LedStrip2*)state.strip)->GetPixelColor(pixelIndex);
+    case 3: return ((LedStrip3*)state.strip)->GetPixelColor(pixelIndex);
+    case 4: return ((LedStrip4*)state.strip)->GetPixelColor(pixelIndex);
+    case 5: return ((LedStrip5*)state.strip)->GetPixelColor(pixelIndex);
+    default: return RgbwColor(0, 0, 0, 0);
+  }
+}
+
 void LEDStripController::setPixelColor(uint8_t stripIndex, int pixelIndex, RgbwColor color) {
   if (stripIndex >= NUM_STRIPS) return;
   StripState& state = stripStates[stripIndex];
@@ -415,6 +430,12 @@ void LEDStripController::updateStrip(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
   
   StripState& state = stripStates[stripIndex];
+
+  // Fireworks owns the pixel buffer while active — don't paint solid/rainbow over it.
+  // Extension strips run their own fireworks frame in loop() when effect is copied.
+  if (state.on && state.effect == STRIP_EFFECT_FIREWORKS) {
+    return;
+  }
   
   if (state.on) {
     for (int i = 0; i < stripConfigs[stripIndex].ledCount; i++) {
@@ -458,45 +479,6 @@ void LEDStripController::transitionOnCenterToEdges(uint8_t stripIndex) {
   showStrip(stripIndex);
   
   if (progress >= 1.0) {
-    trans.active = false;
-  }
-}
-
-void LEDStripController::transitionOnRandomLeds(uint8_t stripIndex) {
-  StripState& state = stripStates[stripIndex];
-  TransitionState& trans = state.transition;
-  uint16_t ledCount = stripConfigs[stripIndex].ledCount;
-  
-  unsigned long elapsed = millis() - trans.startTime;
-  float progress = (float)elapsed / TRANSITION_DURATION;
-  if (progress > 1.0) progress = 1.0;
-  
-  if (trans.randomOrder == nullptr) {
-    trans.randomOrder = new uint8_t[ledCount];
-    for (int i = 0; i < ledCount; i++) {
-      trans.randomOrder[i] = i;
-    }
-    for (int i = ledCount - 1; i > 0; i--) {
-      int j = random(0, i + 1);
-      uint8_t temp = trans.randomOrder[i];
-      trans.randomOrder[i] = trans.randomOrder[j];
-      trans.randomOrder[j] = temp;
-    }
-    trans.randomIndex = 0;
-  }
-  
-  int targetCount = (int)(ledCount * progress);
-  clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
-  
-  for (int i = 0; i < targetCount && i < ledCount; i++) {
-    setPixelColor(stripIndex, trans.randomOrder[i], 
-                  getPixelColor(stripIndex, trans.randomOrder[i], trans.targetBrightness));
-  }
-  showStrip(stripIndex);
-  
-  if (progress >= 1.0) {
-    delete[] trans.randomOrder;
-    trans.randomOrder = nullptr;
     trans.active = false;
   }
 }
@@ -594,47 +576,6 @@ void LEDStripController::transitionOffEdgesToCenter(uint8_t stripIndex) {
   }
 }
 
-void LEDStripController::transitionOffRandomLeds(uint8_t stripIndex) {
-  StripState& state = stripStates[stripIndex];
-  TransitionState& trans = state.transition;
-  uint16_t ledCount = stripConfigs[stripIndex].ledCount;
-  
-  unsigned long elapsed = millis() - trans.startTime;
-  float progress = (float)elapsed / TRANSITION_DURATION;
-  if (progress > 1.0) progress = 1.0;
-  
-  if (trans.randomOrder == nullptr) {
-    trans.randomOrder = new uint8_t[ledCount];
-    for (int i = 0; i < ledCount; i++) {
-      trans.randomOrder[i] = i;
-    }
-    for (int i = ledCount - 1; i > 0; i--) {
-      int j = random(0, i + 1);
-      uint8_t temp = trans.randomOrder[i];
-      trans.randomOrder[i] = trans.randomOrder[j];
-      trans.randomOrder[j] = temp;
-    }
-    trans.randomIndex = 0;
-  }
-  
-  int offCount = (int)(ledCount * progress);
-  
-  for (int i = 0; i < ledCount; i++) {
-    setPixelColor(stripIndex, i, getPixelColor(stripIndex, i, trans.targetBrightness));
-  }
-  
-  for (int i = 0; i < offCount && i < ledCount; i++) {
-    setPixelColor(stripIndex, trans.randomOrder[i], RgbwColor(0, 0, 0, 0));
-  }
-  showStrip(stripIndex);
-  
-  if (progress >= 1.0) {
-    delete[] trans.randomOrder;
-    trans.randomOrder = nullptr;
-    trans.active = false;
-  }
-}
-
 void LEDStripController::transitionOffLeftToRight(uint8_t stripIndex) {
   StripState& state = stripStates[stripIndex];
   TransitionState& trans = state.transition;
@@ -703,6 +644,15 @@ void LEDStripController::startTransition(uint8_t stripIndex, bool turningOn) {
   TransitionState& trans = state.transition;
   
   if (trans.active) return;
+
+  // Fireworks: skip wipe transitions — animation loop takes over immediately
+  if (state.effect == STRIP_EFFECT_FIREWORKS) {
+    trans.active = false;
+    clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
+    showStrip(stripIndex);
+    state.effectFrameTime = 0;
+    return;
+  }
   
   trans.active = true;
   trans.startTime = millis();
@@ -711,16 +661,22 @@ void LEDStripController::startTransition(uint8_t stripIndex, bool turningOn) {
   trans.randomIndex = 0;
   
   if (turningOn) {
-    // Avoid TRANSITION_NONE: if we pick 0 here, updateTransition() can end up
-    // with state.on=true but no transition function calling showStrip().
-    // With the current enum layout, valid "turning on" transition types for the
-    // ON-side switch are 1..(NUM_ON_TRANSITIONS-1).
-    int index = random(1, NUM_ON_TRANSITIONS);
-    trans.type = (TransitionType)index;
+    static const TransitionType onChoices[] = {
+      TRANSITION_ON_CENTER_TO_EDGES,
+      TRANSITION_ON_LEFT_TO_RIGHT,
+      TRANSITION_ON_EDGES_TO_CENTER,
+    };
+    int index = random(0, NUM_ON_TRANSITIONS);
+    trans.type = onChoices[index];
     Serial.println("✨ Strip " + String(stripIndex) + " ON transition " + String(index));
   } else {
+    static const TransitionType offChoices[] = {
+      TRANSITION_OFF_EDGES_TO_CENTER,
+      TRANSITION_OFF_LEFT_TO_RIGHT,
+      TRANSITION_OFF_CENTER_TO_EDGES,
+    };
     int index = random(0, NUM_OFF_TRANSITIONS);
-    trans.type = (TransitionType)(NUM_ON_TRANSITIONS + index);
+    trans.type = offChoices[index];
     Serial.println("✨ Strip " + String(stripIndex) + " OFF transition " + String(index));
   }
 }
@@ -733,41 +689,28 @@ void LEDStripController::stepTransition(uint8_t stripIndex) {
 
   if (!trans.active) return;
 
-  if (trans.type < NUM_ON_TRANSITIONS) {
-    switch (trans.type) {
-      case TRANSITION_ON_CENTER_TO_EDGES:
-        transitionOnCenterToEdges(stripIndex);
-        break;
-      case TRANSITION_ON_RANDOM_LEDS:
-        transitionOnRandomLeds(stripIndex);
-        break;
-      case TRANSITION_ON_LEFT_TO_RIGHT:
-        transitionOnLeftToRight(stripIndex);
-        break;
-      case TRANSITION_ON_EDGES_TO_CENTER:
-        transitionOnEdgesToCenter(stripIndex);
-        break;
-      default:
-        break;
-    }
-  } else {
-    int offIndex = trans.type - NUM_ON_TRANSITIONS;
-    switch (offIndex) {
-      case 0:
-        transitionOffEdgesToCenter(stripIndex);
-        break;
-      case 1:
-        transitionOffRandomLeds(stripIndex);
-        break;
-      case 2:
-        transitionOffLeftToRight(stripIndex);
-        break;
-      case 3:
-        transitionOffCenterToEdges(stripIndex);
-        break;
-      default:
-        break;
-    }
+  switch (trans.type) {
+    case TRANSITION_ON_CENTER_TO_EDGES:
+      transitionOnCenterToEdges(stripIndex);
+      break;
+    case TRANSITION_ON_LEFT_TO_RIGHT:
+      transitionOnLeftToRight(stripIndex);
+      break;
+    case TRANSITION_ON_EDGES_TO_CENTER:
+      transitionOnEdgesToCenter(stripIndex);
+      break;
+    case TRANSITION_OFF_EDGES_TO_CENTER:
+      transitionOffEdgesToCenter(stripIndex);
+      break;
+    case TRANSITION_OFF_LEFT_TO_RIGHT:
+      transitionOffLeftToRight(stripIndex);
+      break;
+    case TRANSITION_OFF_CENTER_TO_EDGES:
+      transitionOffCenterToEdges(stripIndex);
+      break;
+    default:
+      trans.active = false;
+      break;
   }
 }
 
@@ -787,7 +730,11 @@ void LEDStripController::updateTransition(uint8_t stripIndex) {
   }
   
   if (!trans.active) {
-    if (trans.type < NUM_ON_TRANSITIONS) {
+    bool wasOnTransition =
+        trans.type == TRANSITION_ON_CENTER_TO_EDGES ||
+        trans.type == TRANSITION_ON_LEFT_TO_RIGHT ||
+        trans.type == TRANSITION_ON_EDGES_TO_CENTER;
+    if (wasOnTransition) {
       updateStrip(stripIndex);
       Serial.println("✅ Strip " + String(stripIndex) + " ON transition completed");
     } else {
@@ -799,8 +746,58 @@ void LEDStripController::updateTransition(uint8_t stripIndex) {
 }
 
 // ============================================================================
-// BLINKING AT MIN/MAX
+// ANIMATED EFFECTS (classic WLED fireworks — adapted from mode_fireworks)
 // ============================================================================
+
+void LEDStripController::updateFireworks(uint8_t stripIndex) {
+  if (stripIndex >= NUM_STRIPS) return;
+
+  StripState& state = stripStates[stripIndex];
+  if (!state.on || state.effect != STRIP_EFFECT_FIREWORKS) return;
+
+  unsigned long now = millis();
+  if (state.effectFrameTime != 0 && (now - state.effectFrameTime) < FIREWORKS_FRAME_MS) {
+    return;
+  }
+  state.effectFrameTime = now;
+
+  uint16_t ledCount = stripConfigs[stripIndex].ledCount;
+  if (ledCount == 0) return;
+
+  // Fade trails (WLED fade_out style)
+  for (uint16_t i = 0; i < ledCount; i++) {
+    RgbwColor c = getRawPixelColor(stripIndex, i);
+    c.R = (uint8_t)((uint16_t)c.R * FIREWORKS_FADE_KEEP / 256);
+    c.G = (uint8_t)((uint16_t)c.G * FIREWORKS_FADE_KEEP / 256);
+    c.B = (uint8_t)((uint16_t)c.B * FIREWORKS_FADE_KEEP / 256);
+    c.W = (uint8_t)((uint16_t)c.W * FIREWORKS_FADE_KEEP / 256);
+    setPixelColor(stripIndex, i, c);
+  }
+
+  // Spawn sparks (WLED: max(1, width/20) attempts, intensity ~brightness)
+  uint8_t intensity = state.brightness;
+  if (intensity < 64) intensity = 64;
+  int attempts = (int)ledCount / 20;
+  if (attempts < 1) attempts = 1;
+  uint8_t spawnGate = 129 - (intensity >> 1);
+  if (spawnGate < 8) spawnGate = 8;
+
+  for (int a = 0; a < attempts; a++) {
+    if ((uint8_t)random(0, spawnGate) != 0) continue;
+    uint16_t index = (uint16_t)random(0, ledCount);
+    uint8_t rr, gg, bb;
+    hueToRgb((uint16_t)random(0, 360), rr, gg, bb);
+    uint8_t br = state.brightness;
+    setPixelColor(stripIndex, index, fixColorForStrip(
+        stripIndex,
+        (uint8_t)((uint16_t)rr * br / 255),
+        (uint8_t)((uint16_t)gg * br / 255),
+        (uint8_t)((uint16_t)bb * br / 255),
+        0));
+  }
+
+  showStrip(stripIndex);
+}
 
 void LEDStripController::updateBlink(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
@@ -953,6 +950,11 @@ void LEDStripController::loop() {
       // still uses updateDimming — it was incorrectly skipped here, so bathroom never dimmed from app.
       updateDimming(i);
       updateBlink(i);
+      if (stripStates[i].on &&
+          stripStates[i].effect == STRIP_EFFECT_FIREWORKS &&
+          !stripStates[i].blinkActive) {
+        updateFireworks(i);
+      }
     }
   }
 }
@@ -1308,9 +1310,23 @@ void LEDStripController::turnOnStripAfterDelay(uint8_t stripIndex) {
 
 void LEDStripController::requestStripRedraw(uint8_t stripIndex) {
   if (stripIndex >= NUM_STRIPS) return;
-  if (stripStates[stripIndex].on) {
-    updateStrip(stripIndex);
+  if (!stripStates[stripIndex].on) return;
+
+  if (stripStates[stripIndex].effect == STRIP_EFFECT_FIREWORKS) {
+    clearStrip(stripIndex, RgbwColor(0, 0, 0, 0));
+    showStrip(stripIndex);
+    stripStates[stripIndex].effectFrameTime = 0;
+    int8_t extIndex = extensionStripForMain(stripIndex);
+    if (extIndex >= 0 && stripStates[extIndex].on &&
+        stripStates[extIndex].effect == STRIP_EFFECT_FIREWORKS) {
+      clearStrip((uint8_t)extIndex, RgbwColor(0, 0, 0, 0));
+      showStrip((uint8_t)extIndex);
+      stripStates[extIndex].effectFrameTime = 0;
+    }
+    return;
   }
+
+  updateStrip(stripIndex);
 }
 
 // ============================================================================

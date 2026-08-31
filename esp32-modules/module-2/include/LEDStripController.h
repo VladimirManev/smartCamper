@@ -55,11 +55,9 @@ private:
   
   // Transition functions
   void transitionOnCenterToEdges(uint8_t stripIndex);
-  void transitionOnRandomLeds(uint8_t stripIndex);
   void transitionOnLeftToRight(uint8_t stripIndex);
   void transitionOnEdgesToCenter(uint8_t stripIndex);
   void transitionOffEdgesToCenter(uint8_t stripIndex);
-  void transitionOffRandomLeds(uint8_t stripIndex);
   void transitionOffLeftToRight(uint8_t stripIndex);
   void transitionOffCenterToEdges(uint8_t stripIndex);
   
@@ -71,6 +69,10 @@ private:
   
   // Blinking functions
   void updateBlink(uint8_t stripIndex);
+
+  // Animated effects (e.g. classic WLED fireworks)
+  void updateFireworks(uint8_t stripIndex);
+  RgbwColor getRawPixelColor(uint8_t stripIndex, int pixelIndex) const;
   
   void stepTransition(uint8_t stripIndex);
   void syncExtensionStrip(uint8_t mainStripIndex);

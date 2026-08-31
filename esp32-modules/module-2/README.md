@@ -97,9 +97,15 @@ The module includes a power relay (GPIO 32 — see `Config.h`) that physically c
 - This ensures relay never stays ON unnecessarily
 
 ### Transitions
-- 8 different transition effects (4 for ON, 4 for OFF)
-- Randomly selected on each toggle
+- 6 transition effects (3 ON, 3 OFF): center↔edges, left→right
+- Randomly selected on each toggle (no random-LED wipe)
 - Duration: 1 second
+- With effect `fireworks`, wipe transitions are skipped — animation starts immediately
+
+### Effects (light mode)
+- `normal` — solid RGBW mix from channels
+- `rainbow_static` — static rainbow along the strip
+- `fireworks` — classic WLED-inspired fireworks (fade + random sparks), animated in loop
 
 ### Dimming
 - **Button hold** (strips 0, 1, 4 only): Hold >250ms to start; speed ~50 brightness units/s; alternates up/down; blink at max. Strip 3 has **no** dimmer button.

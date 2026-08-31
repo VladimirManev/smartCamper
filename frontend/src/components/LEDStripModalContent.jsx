@@ -32,6 +32,7 @@ const LIGHT_MODE = {
   COOL: "cool_white",
   RGB: "rgb",
   RAINBOW: "rainbow",
+  FIREWORKS: "fireworks",
 };
 
 const LIGHT_MODE_OPTIONS = [
@@ -40,6 +41,7 @@ const LIGHT_MODE_OPTIONS = [
   { value: LIGHT_MODE.COOL, label: "Cool white" },
   { value: LIGHT_MODE.RGB, label: "RGB" },
   { value: LIGHT_MODE.RAINBOW, label: "Rainbow (static)" },
+  { value: LIGHT_MODE.FIREWORKS, label: "Fireworks" },
 ];
 
 function clamp255(n) {
@@ -121,6 +123,7 @@ function channelsMatchPreset(c, preset, tol) {
 function inferLightMode(strip) {
   if (!strip) return LIGHT_MODE.NEUTRAL;
   if (strip.effect === "rainbow_static") return LIGHT_MODE.RAINBOW;
+  if (strip.effect === "fireworks") return LIGHT_MODE.FIREWORKS;
   const c = strip.channels || {};
   if (channelsMatchPreset(c, LED_WHITE_PRESETS.warm, 30)) return LIGHT_MODE.WARM;
   if (channelsMatchPreset(c, LED_WHITE_PRESETS.neutral, 30)) return LIGHT_MODE.NEUTRAL;
@@ -242,6 +245,10 @@ export function LEDStripModalContent({
 
       if (v === LIGHT_MODE.RAINBOW) {
         sendStripApply({ ...base, effect: "rainbow_static" });
+        return;
+      }
+      if (v === LIGHT_MODE.FIREWORKS) {
+        sendStripApply({ ...base, effect: "fireworks" });
         return;
       }
       if (v === LIGHT_MODE.WARM) {

@@ -309,7 +309,13 @@ void LEDManager::processLEDCommand(char* topic, byte* payload, unsigned int leng
       if (adoc.containsKey("effect")) {
         String ef = adoc["effect"].as<String>();
         ef.toLowerCase();
-        st.effect = (ef == "rainbow_static") ? STRIP_EFFECT_RAINBOW_STATIC : STRIP_EFFECT_NORMAL;
+        if (ef == "rainbow_static") {
+          st.effect = STRIP_EFFECT_RAINBOW_STATIC;
+        } else if (ef == "fireworks") {
+          st.effect = STRIP_EFFECT_FIREWORKS;
+        } else {
+          st.effect = STRIP_EFFECT_NORMAL;
+        }
         needRedraw = true;
       }
       
@@ -389,7 +395,13 @@ void LEDManager::publishFullStatus() {
     ch["g"] = state.chG;
     ch["b"] = state.chB;
     ch["w"] = state.chW;
-    strip["effect"] = (state.effect == STRIP_EFFECT_RAINBOW_STATIC) ? "rainbow_static" : "normal";
+    const char* effectJson = "normal";
+    if (state.effect == STRIP_EFFECT_RAINBOW_STATIC) {
+      effectJson = "rainbow_static";
+    } else if (state.effect == STRIP_EFFECT_FIREWORKS) {
+      effectJson = "fireworks";
+    }
+    strip["effect"] = effectJson;
   }
   
   // Add data for all relays

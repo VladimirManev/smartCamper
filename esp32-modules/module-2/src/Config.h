@@ -84,8 +84,12 @@
 
 // Transition settings
 #define TRANSITION_DURATION 1000 // 1 second for transitions
-#define NUM_ON_TRANSITIONS 4     // Number of transitions for turning on
-#define NUM_OFF_TRANSITIONS 4    // Number of transitions for turning off
+#define NUM_ON_TRANSITIONS 3     // center↔edges, left→right, edges→center
+#define NUM_OFF_TRANSITIONS 3    // edges→center, left→right, center→edges
+
+// Fireworks effect (classic WLED-inspired); ESP32: one Show() per strip per frame
+#define FIREWORKS_FRAME_MS 40
+#define FIREWORKS_FADE_KEEP 128  // retain ~50% brightness each frame (fade trail)
 
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output
