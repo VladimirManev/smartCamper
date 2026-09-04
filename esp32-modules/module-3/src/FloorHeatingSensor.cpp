@@ -34,10 +34,8 @@ FloorHeatingSensor::FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, u
   this->lastPublishedTemperature = NAN;  // Initialize as NAN to force first publish
   this->forceUpdateRequested = false;
   this->lastMQTTState = false;  // Initialize as disconnected
-  
-  // Initialize async reading state
-  this->conversionStarted = false;
-  this->conversionStartTime = 0;
+  this->lastKnownMode = CIRCLE_MODE_OFF;
+  this->circleJustTurnedOnFlag = false;
   
   // Initialize async reading state
   this->conversionStarted = false;
@@ -112,8 +110,6 @@ void FloorHeatingSensor::loop() {
   }
   
   // Track if circle was just turned on (to start reading immediately)
-  static CircleMode lastKnownMode = CIRCLE_MODE_OFF;
-  static bool circleJustTurnedOnFlag = false;
   bool circleJustTurnedOn = false;
   
   if (controller != nullptr) {
@@ -127,9 +123,7 @@ void FloorHeatingSensor::loop() {
       // Reset lastSensorRead to force immediate start
       lastSensorRead = 0;
     } else {
-      // Circle is not just turned on - reset flag
       circleJustTurnedOn = false;
-      circleJustTurnedOnFlag = false;  // Always reset flag if not just turned on
     }
     lastKnownMode = currentMode;
     

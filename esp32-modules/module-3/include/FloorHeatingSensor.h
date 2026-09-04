@@ -29,6 +29,8 @@ private:
   float lastPublishedTemperature;  // Last temperature value that was published to backend
   bool forceUpdateRequested;
   bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
+  CircleMode lastKnownMode;        // Per-circle mode tracking (must not be static — shared static broke 2nd circle)
+  bool circleJustTurnedOnFlag;     // Per-circle: first reading after OFF -> TEMP_CONTROL
   
   // Async temperature reading state machine
   bool conversionStarted;  // True if we've started a temperature conversion

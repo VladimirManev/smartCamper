@@ -81,6 +81,16 @@ void FloorHeatingController::loop() {
       // Check temperature every HEATING_MEASURE_INTERVAL (30 seconds)
       // OR immediately if lastControlCheck is 0 (reset by sensor when new reading is available)
       if (lastControlCheck[i] == 0 || (currentTime - lastControlCheck[i] >= HEATING_MEASURE_INTERVAL)) {
+        // Need a valid temperature before consuming this check slot
+        if (sensors[i] == nullptr) {
+          continue;
+        }
+        float currentTemp = sensors[i]->getLastTemperature();
+        if (isnan(currentTemp) || currentTemp == 0.0) {
+          // Keep lastControlCheck at 0 so we retry as soon as sensor has data
+          lastControlCheck[i] = 0;
+          continue;
+        }
         lastControlCheck[i] = currentTime;
         updateCircleControl(i);
       }
@@ -104,9 +114,8 @@ void FloorHeatingController::updateCircleControl(uint8_t circleIndex) {
   // Get current temperature
   float currentTemp = sensors[circleIndex]->getLastTemperature();
   
-  // Check if temperature is valid
+  // Check if temperature is valid (loop() already gates this; keep as safety)
   if (isnan(currentTemp) || currentTemp == 0.0) {
-    // Invalid temperature - don't change state
     if (DEBUG_SERIAL) {
       Serial.println("⚠️ WARNING: Invalid temperature for circle " + String(circleIndex) + ", keeping current state");
     }
