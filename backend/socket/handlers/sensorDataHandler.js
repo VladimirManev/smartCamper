@@ -502,6 +502,65 @@ function handleVictron(io, topicParts, message) {
   return false;
 }
 
+/** Perimeter sensor ids (must match module-8 / frontend) */
+const PERIMETER_SENSOR_IDS = [
+  "front",
+  "rear",
+  "left_front",
+  "left_rear",
+  "right_front",
+  "right_rear",
+];
+
+/** Last known perimeter HIGH/LOW from module-8 (for rising-edge timestamps) */
+let lastPerimeterLevels = Object.fromEntries(
+  PERIMETER_SENSOR_IDS.map((id) => [id, false])
+);
+/** Last motion timestamps (ms) derived for the UI */
+let lastPerimeterMotionTs = Object.fromEntries(
+  PERIMETER_SENSOR_IDS.map((id) => [id, null])
+);
+
+/**
+ * ESP publishes inputs.perimeter bools; the UI expects inputs.perimeterLastMotion.
+ * Stamp Date.now() on rising edges so real hardware matches the mock shape.
+ */
+function enrichPerimeterLastMotion(statusData) {
+  if (!statusData.inputs || typeof statusData.inputs !== "object") {
+    statusData.inputs = {};
+  }
+
+  const perim = statusData.inputs.perimeter || {};
+  const fromEsp = statusData.inputs.perimeterLastMotion;
+  const armed = !!statusData.zone2?.armed;
+  const now = Date.now();
+  const next = {};
+
+  for (const id of PERIMETER_SENSOR_IDS) {
+    const on = !!perim[id];
+    let ts = null;
+
+    if (fromEsp && fromEsp[id] != null) {
+      ts = fromEsp[id];
+    } else if (on && !lastPerimeterLevels[id]) {
+      ts = now;
+    } else if (on) {
+      ts = lastPerimeterMotionTs[id];
+    }
+
+    if (!armed) {
+      ts = null;
+    }
+
+    next[id] = ts;
+    lastPerimeterLevels[id] = on;
+  }
+
+  lastPerimeterMotionTs = next;
+  statusData.inputs.perimeterLastMotion = next;
+  return statusData;
+}
+
 /**
  * Handle security alarm status (module-8)
  * Format: smartcamper/sensors/module-8/status (JSON)
@@ -519,6 +578,8 @@ function handleSecurity(io, topicParts, message) {
         console.log("❌ Invalid security status JSON: expected object");
         return true;
       }
+
+      enrichPerimeterLastMotion(statusData);
 
       io.emit("securityStatusUpdate", {
         type: "full",

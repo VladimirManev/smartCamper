@@ -8,6 +8,50 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const EMPTY_PERIMETER_MOTION = {};
 
 /**
+ * Merge mock/backend timestamps with rising edges from inputs.perimeter bools
+ * (ESP publishes bools; mock also sends perimeterLastMotion).
+ */
+function mergePerimeterLastMotion(prev, inputs, armed, prevLevels) {
+  const levels = inputs?.perimeter;
+  if (levels && typeof levels === "object") {
+    // Always track levels so arming with PIR already HIGH is not a fake rising edge
+    for (const [id, on] of Object.entries(levels)) {
+      if (!armed) {
+        prevLevels[id] = !!on;
+      }
+    }
+  }
+
+  if (!armed) {
+    return EMPTY_PERIMETER_MOTION;
+  }
+
+  const next = { ...prev };
+  const now = Date.now();
+  const fromServer = inputs?.perimeterLastMotion;
+
+  if (fromServer && typeof fromServer === "object") {
+    for (const [id, ts] of Object.entries(fromServer)) {
+      if (ts != null) {
+        next[id] = ts;
+      }
+    }
+  }
+
+  if (levels && typeof levels === "object") {
+    for (const [id, on] of Object.entries(levels)) {
+      const active = !!on;
+      if (active && !prevLevels[id]) {
+        next[id] = now;
+      }
+      prevLevels[id] = active;
+    }
+  }
+
+  return next;
+}
+
+/**
  * @param {Object} socket - Socket.io instance
  * @returns {Object}
  */
@@ -29,6 +73,7 @@ export function useSecurityController(socket) {
   });
 
   const zone1PhaseRef = useRef("idle");
+  const prevPerimeterLevelsRef = useRef({});
 
   const applyZone1Phase = useCallback((phase) => {
     const prevPhase = zone1PhaseRef.current;
@@ -68,11 +113,14 @@ export function useSecurityController(socket) {
       const armed = !!zone2?.armed;
       setZone2ArmedState(armed);
 
-      if (inputs?.perimeterLastMotion) {
-        setPerimeterLastMotion({ ...inputs.perimeterLastMotion });
-      } else if (!armed) {
-        setPerimeterLastMotion(EMPTY_PERIMETER_MOTION);
-      }
+      setPerimeterLastMotion((prev) =>
+        mergePerimeterLastMotion(
+          prev,
+          inputs,
+          armed,
+          prevPerimeterLevelsRef.current
+        )
+      );
 
       if (inputs?.doors) {
         setDoors({
