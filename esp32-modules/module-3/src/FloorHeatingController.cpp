@@ -86,8 +86,8 @@ void FloorHeatingController::loop() {
           continue;
         }
         float currentTemp = sensors[i]->getLastTemperature();
-        if (isnan(currentTemp) || currentTemp == 0.0) {
-          // Keep lastControlCheck at 0 so we retry as soon as sensor has data
+        if (isnan(currentTemp)) {
+          // No valid reading yet — keep retrying; relay stays as-is (OFF until first burst)
           lastControlCheck[i] = 0;
           continue;
         }
@@ -114,10 +114,9 @@ void FloorHeatingController::updateCircleControl(uint8_t circleIndex) {
   // Get current temperature
   float currentTemp = sensors[circleIndex]->getLastTemperature();
   
-  // Check if temperature is valid (loop() already gates this; keep as safety)
-  if (isnan(currentTemp) || currentTemp == 0.0) {
+  if (isnan(currentTemp)) {
     if (DEBUG_SERIAL) {
-      Serial.println("⚠️ WARNING: Invalid temperature for circle " + String(circleIndex) + ", keeping current state");
+      Serial.println("⚠️ WARNING: No temperature for circle " + String(circleIndex) + ", keeping current state");
     }
     return;
   }

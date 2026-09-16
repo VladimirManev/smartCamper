@@ -40,17 +40,19 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 - Temperature range: -55°C to 125°C
 - Accuracy: ±0.5°C
 - Resolution: 12-bit (0.0625°C precision)
-- Update interval: 1 second (5-second average)
+- Measurement: burst of 3 readings (~3s; 12-bit conversion ≈750ms each) → median of valid samples
+- Interval: every 30 seconds while circle is ON; also immediately on circle ON and after relay toggle
+- Valid range for control: 5–50°C (outside = rejected as bad/EMI)
 - OneWire protocol with 4.7kΩ pull-up resistor required
 
 ### Temperature Control Settings
 
 - **Target Temperature**: 33°C (default, configurable in future)
-- **Hysteresis**: 2°C
 - **Turn OFF**: When temperature reaches 33°C
 - **Turn ON**: When temperature drops below 32°C
-- **Measurement Interval**: 30 seconds (automatic control check)
-- **Temperature Reading**: Every 1 second (averaged over 5 seconds)
+- **Measurement Interval**: 30 seconds (burst + median)
+- **Relay settle**: 1 second pause on all sensors after any relay toggle (EMI)
+- **OFF mode**: no measurement; published temperature is `null` (no stale value)
 
 ## Network Configuration
 
@@ -159,23 +161,21 @@ ESP32 module for controlling floor heating system with automatic temperature-bas
 
 **TEMP_CONTROL Mode:**
 - Circle is in temperature-based automatic control
-- Temperature is measured continuously using async non-blocking method (every 1 second, averaged over 5 seconds)
-- Temperature conversion takes ~800ms (non-blocking, doesn't block button handling)
+- Temperature: non-blocking burst of 3 DS18B20 readings → median (needs ≥2 valid samples in 5–50°C)
+- Burst every 30 seconds; also immediately when circle is enabled and after any relay ON/OFF
 - Automatic relay control based on temperature:
   - Relay ON when temperature < 32°C
   - Relay OFF when temperature >= 33°C
-- Relay turns on immediately after first temperature reading (~1 second after enabling circle)
-- Hysteresis prevents rapid cycling (2°C difference)
+- First control decision after the first successful burst (~3s after enabling, plus relay settle if needed)
 - Works completely offline (no network required)
-- Control check every 30 seconds (or immediately when new temperature is available)
 - Button toggles to OFF mode
 
 ### Error Handling
 
-- If sensor fails 3 consecutive readings (3 failed attempts, ~2.4 seconds total), circle is automatically disabled (OFF mode)
-- Error is published to `smartcamper/errors/module-3/circle/{index}` topic (published once when error occurs)
-- If sensor is not found during initialization, error is reported immediately
-- When sensor recovers, normal status is published and circle automatically returns to previous state (TEMP_CONTROL if it was enabled)
+- If 3 consecutive bursts fail (missing sensor, CRC/`-127`, or &lt;2 valid samples), circle is forced OFF (safe-off)
+- Error is published to `smartcamper/errors/module-3/circle/{index}` (once when error occurs)
+- No temperature data while ON is treated as unsafe — circle is disabled after failed bursts
+- When circle is OFF, temperature is cleared (`null` in status) so the UI never shows a stale value
 
 ### Offline Operation
 
@@ -288,14 +288,14 @@ Module operates completely independently:
 - **ModuleManager**: Handles WiFi, MQTT, Heartbeat, Commands
 - **FloorHeatingManager**: Coordinates all floor heating functionality
 - **FloorHeatingController**: Manages relay control and automatic temperature control
-- **FloorHeatingSensor**: Temperature sensor reading and averaging (DS18B20) - uses async non-blocking state machine
+- **FloorHeatingSensor**: DS18B20 burst/median temperature (async state machine)
 - **FloorHeatingButtonHandler**: Processes button inputs (debouncing, toggle) - non-blocking operation
 - **LevelingSensor**: MPU6050 sensor management, angle measurement, zeroing, on-demand data streaming
 
 ### Performance Optimizations
 
-- **Non-blocking temperature reading**: Uses async state machine (conversion starts, then reads after ~800ms)
-- **Immediate relay control**: Relay turns on immediately after first temperature reading (~1 second after enabling circle)
+- **Non-blocking temperature reading**: Burst state machine (3× ~800ms conversions)
+- **Fresh reading on ON / relay change**: No stale temperature after enabling a circle
 - **No blocking delays**: All operations are non-blocking to ensure responsive button handling
 - **Optimized debouncing**: 100ms debounce delay with 300ms minimum interval between presses
 

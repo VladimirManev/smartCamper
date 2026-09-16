@@ -57,18 +57,20 @@
 
 // Temperature control settings
 #define HEATING_TARGET_TEMP 33.0       // Target temperature (default, will be configurable in future)
-#define HEATING_HYSTERESIS 2.0         // Hysteresis: 2°C (turn off at 33°C, turn on at 32°C)
+#define HEATING_HYSTERESIS 2.0         // Documented hysteresis band (live thresholds below are 33/32)
 #define HEATING_TURN_OFF_TEMP 33.0     // Turn off relay when temperature reaches this
 #define HEATING_TURN_ON_TEMP 32.0      // Turn on relay when temperature drops below this
-#define HEATING_MEASURE_INTERVAL 30000 // 30 seconds - temperature measurement interval
+#define HEATING_MEASURE_INTERVAL 30000 // Controller re-check interval (sensor also triggers on new reading)
 
-// Temperature sensor settings (DS18B20)
-#define HEATING_TEMP_READ_INTERVAL 5000    // 5 seconds - measurement interval
-#define HEATING_TEMP_AVERAGE_INTERVAL 30000 // 30 seconds - average calculation interval
-#define HEATING_TEMP_THRESHOLD 0.1         // 0.1°C change threshold for publishing
-#define HEATING_TEMP_AVERAGE_COUNT 6       // Number of measurements to average (6 measurements = 30 seconds)
-#define HEATING_RELAY_SETTLE_MS 1000       // Ignore sensor reads after any relay ON/OFF (global EMI settle)
-#define HEATING_TEMP_MAX_DELTA 1.0         // Reject readings that jump more than this vs last accepted value (°C)
+// Temperature sensor settings (DS18B20) — burst of N readings → median, every interval
+// Hardware: 12-bit conversion ≈750ms, so 3 readings need ≈2.5–3s (not possible in 1s)
+#define HEATING_TEMP_INTERVAL_MS 30000     // 30 seconds between measurement bursts
+#define HEATING_TEMP_BURST_COUNT 3         // Readings per burst
+#define HEATING_TEMP_CONVERSION_MS 800     // Wait after requestTemperatures (12-bit + margin)
+#define HEATING_TEMP_MIN_VALID 5.0         // Reject below this (°C) — EMI / wire fault
+#define HEATING_TEMP_MAX_VALID 50.0        // Reject above this (°C) — typical EMI spikes
+#define HEATING_TEMP_MAX_FAILED_BURSTS 3   // Consecutive failed bursts → safe-off
+#define HEATING_RELAY_SETTLE_MS 1000       // Pause all reads after any relay toggle (EMI settle)
 
 // Leveling Sensor Configuration (Module 3 specific - GY-521 MPU6050)
 #define LEVELING_I2C_SDA 21      // GPIO pin for I²C SDA (Wire interface)

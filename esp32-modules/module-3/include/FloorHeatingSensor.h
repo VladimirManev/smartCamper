@@ -1,101 +1,79 @@
 // Floor Heating Temperature Sensor
-// Specific sensor logic for DS18B20 sensor (OneWire) for each heating circle
-// Handles: Reading, averaging, change detection, publishing
+// DS18B20 per heating circle: burst of readings → median, periodic + on demand
 
 #ifndef FLOOR_HEATING_SENSOR_H
 #define FLOOR_HEATING_SENSOR_H
 
-#include "Config.h"  // For CircleMode enum
+#include "Config.h"
 #include "MQTTManager.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// Forward declaration
 class FloorHeatingController;
 class FloorHeatingManager;
 
 class FloorHeatingSensor {
 private:
-  MQTTManager* mqttManager;  // Reference to MQTT manager (not owned)
-  uint8_t circleIndex;        // Which heating circle this sensor belongs to (0-3)
-  uint8_t pin;                // GPIO pin for the sensor
+  MQTTManager* mqttManager;
+  uint8_t circleIndex;
+  uint8_t pin;
   OneWire oneWire;
   DallasTemperature sensors;
-  
-  unsigned long lastSensorRead;
-  unsigned long lastDataSent;
-  float lastTemperature;
-  float lastAcceptedTemperature;   // Last reading passed spike filter (NAN = no baseline yet)
-  float lastPublishedTemperature;  // Last temperature value that was published to backend
-  bool forceUpdateRequested;
-  bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
-  CircleMode lastKnownMode;        // Per-circle mode tracking (must not be static — shared static broke 2nd circle)
-  bool circleJustTurnedOnFlag;     // Per-circle: first reading after OFF -> TEMP_CONTROL
-  
-  // Async temperature reading state machine
-  bool conversionStarted;  // True if we've started a temperature conversion
-  unsigned long conversionStartTime;  // When we started the conversion
-  
-  // Error handling
-  int failedReadCount;  // Counter for failed readings (3 failures = error)
-  bool hasError;  // True if sensor has error (3 consecutive failures)
-  
-  // Temperature averaging
-  float temperatureReadings[HEATING_TEMP_AVERAGE_COUNT];
-  int temperatureIndex;
-  int temperatureCount;
-  unsigned long lastAverageTime;
-  
-  FloorHeatingController* controller;  // Reference to controller to check mode
-  FloorHeatingManager* manager;  // Reference to manager for publishing status
 
-  static unsigned long globalRelaySettleUntil;  // Shared across all circles after any relay change
+  float lastTemperature;             // Last accepted burst result (NAN = no data)
+  float lastPublishedTemperature;    // Last value published to backend (NAN = none)
+  bool forceUpdateRequested;
+  bool immediateBurstRequested;      // Run a burst ASAP (ON, relay change, force)
+  bool lastMQTTState;
+  CircleMode lastKnownMode;
+
+  // Burst state machine (non-blocking)
+  bool burstInProgress;
+  bool conversionStarted;
+  unsigned long conversionStartTime;
+  unsigned long lastBurstTime;       // When last burst finished (0 = never)
+  uint8_t burstIndex;                // 0 .. HEATING_TEMP_BURST_COUNT-1
+  float burstSamples[HEATING_TEMP_BURST_COUNT];
+
+  int failedBurstCount;
+  bool hasError;
+
+  FloorHeatingController* controller;
+  FloorHeatingManager* manager;
+
+  static unsigned long globalRelaySettleUntil;
   static bool isGlobalRelaySettling();
-  
-  // Sensor reading functions
-  float readTemperature();
-  
-  // Averaging functions
-  float calculateAverageTemperature();
-  
-  // Publishing logic
-  void publishIfNeeded(float temperature, unsigned long currentTime, bool forcePublish = false);
+
+  float readRawTemperature();
+  bool isValidTemperature(float temp) const;
+  float computeBurstResult() const;
+  void clearMeasurementState();
+  void abortBurst();
+  void startBurst(unsigned long now);
+  void startConversion(unsigned long now);
+  void finishBurst(unsigned long now);
+  void publishSensorError(const char* message);
+  void publishIfNeeded(float temperature, bool forcePublish);
 
 public:
   FloorHeatingSensor(MQTTManager* mqtt, uint8_t circleIndex, uint8_t pin);
-  
-  // Initialization
+
   void begin();
-  
-  // Main loop - call this in your main loop()
   void loop();
-  
-  // Force update
   void forceUpdate();
-
-  // Called when any heating relay toggles — reset local read state for EMI recovery
   void onRelayChanged();
-
   static void beginGlobalRelaySettle();
-  
-  // Set controller reference (to check if circle is in TEMP_CONTROL mode)
+
   void setController(FloorHeatingController* ctrl);
-  
-  // Set manager reference (for publishing status)
   void setManager(FloorHeatingManager* mgr);
-  
-  // Status (const methods)
+
   float getLastTemperature() const { return lastTemperature; }
   float getLastPublishedTemperature() const { return lastPublishedTemperature; }
-  unsigned long getLastDataSent() const { return lastDataSent; }
-  bool isForceUpdateRequested() const { return forceUpdateRequested; }
   bool hasSensorError() const { return hasError; }
   uint8_t getCircleIndex() const { return circleIndex; }
   void printStatus() const;
-  
-  // Update last published temperature (called by FloorHeatingManager after publishing)
+
   void setLastPublishedTemperature(float temp) { lastPublishedTemperature = temp; }
 };
 
 #endif
-
