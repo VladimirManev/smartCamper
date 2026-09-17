@@ -44,9 +44,9 @@ While zone 1 is armed or arming, the cat sequence beeps error — disarm with **
 ## Zone 1 behaviour
 
 1. Confirmation beeps → 30 s exit delay (sensors ignored; escalated buzzer 20 s @ 1/s → 5 s @ 2/s → 5 s @ 6/s) → ARMED  
-2. Trip (CAN door open edge / spare open edge / interior PIR if not cat) → 30 s entry delay (same buzzer) → siren 2 min  
-3. Smoke starts 10 s after siren, runs 1 min  
-4. After 2 min: outputs off, stays ARMED; new motion or new door/spare edge → new entry delay  
+2. Trip (CAN door open edge / spare open edge / interior PIR if not cat) → 30 s entry delay (same buzzer) → siren 1 min + buzzer 10 Hz  
+3. Smoke starts 10 s after siren, runs 10 s  
+4. After 1 min: outputs off, stays ARMED; new motion or new door/spare edge → new entry delay  
 5. Already-open door or spare after an alarm cycle is ignored until it closes, then reopens  
 6. If a door or spare is still open when exit delay ends → immediate entry delay
 

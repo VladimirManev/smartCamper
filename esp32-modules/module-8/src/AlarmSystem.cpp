@@ -256,7 +256,7 @@ void AlarmSystem::startAlarm() {
   sirenStartMs = millis();
   smokeStartMs = 0;
   if (buzzer) {
-    buzzer->stop();
+    buzzer->playAlarm();
   }
   alarmLog("Zone1 ALARM");
   setSiren(true);
@@ -482,8 +482,9 @@ void AlarmSystem::processPerimeter() {
     return;
   }
 
-  // Suppress while delay / active perimeter pattern is playing
-  if (buzzer && (buzzer->isPlayingDelay() || buzzer->isPlayingPerimeter())) {
+  // Suppress while delay / alarm / active perimeter pattern is playing
+  if (buzzer && (buzzer->isPlayingDelay() || buzzer->isPlayingAlarm() ||
+                 buzzer->isPlayingPerimeter())) {
     return;
   }
 
@@ -574,6 +575,9 @@ void AlarmSystem::updateAlarmPhase() {
 
   if (sinceSiren >= SIREN_DURATION_MS) {
     stopAlarmOutputs();
+    if (buzzer) {
+      buzzer->stop();
+    }
     zone1Phase = Z1_ARMED;
     statusDirty = true;
     alarmLog("Zone1 alarm ended, re-armed");

@@ -75,15 +75,19 @@
 // --- Alarm timing ---
 #define EXIT_DELAY_MS 30000
 #define ENTRY_DELAY_MS 30000
-#define SIREN_DURATION_MS 120000
+#define SIREN_DURATION_MS 60000
 #define SMOKE_START_AFTER_SIREN_MS 10000
-#define SMOKE_DURATION_MS 60000
+#define SMOKE_DURATION_MS 10000
 
 // Delay buzzer phases (exit + entry) — totals EXIT/ENTRY delay (30 s)
 #define DELAY_PHASE1_MS 20000  // 1 beep / s
 #define DELAY_PHASE2_MS 5000   // 2 beeps / s
 #define DELAY_PHASE3_MS 5000   // 6 beeps / s
 #define DELAY_PHASE3_PERIOD_MS 167  // ~1000/6
+
+// Alarm-phase buzzer (runs with siren until stopped)
+#define ALARM_BUZZ_HZ 10
+#define ALARM_BUZZ_HALF_PERIOD_MS (1000 / (ALARM_BUZZ_HZ * 2))  // 50 ms → 10 Hz square
 
 // Perimeter alert
 #define PERIMETER_BEEP_COUNT 5

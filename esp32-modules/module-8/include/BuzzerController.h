@@ -15,7 +15,8 @@ enum BuzzerPattern {
   BUZZ_CONFIRM_CAT_ON,
   BUZZ_CONFIRM_CAT_OFF,
   BUZZ_DELAY_ESCALATION,  // 20s 1/s, 5s 2/s, 5s 6/s
-  BUZZ_PERIMETER_ALERT    // 5 short beeps
+  BUZZ_PERIMETER_ALERT,   // 5 short beeps
+  BUZZ_ALARM              // 10 Hz while siren runs
 };
 
 class BuzzerController {
@@ -35,6 +36,7 @@ private:
                      bool afterIsLong);
   void updateDelayEscalation(unsigned long now);
   void updatePerimeter(unsigned long now);
+  void updateAlarm(unsigned long now);
 
 public:
   BuzzerController();
@@ -45,6 +47,7 @@ public:
   bool isBusy() const { return busy; }
   bool isPlayingDelay() const { return pattern == BUZZ_DELAY_ESCALATION; }
   bool isPlayingPerimeter() const { return pattern == BUZZ_PERIMETER_ALERT; }
+  bool isPlayingAlarm() const { return pattern == BUZZ_ALARM; }
 
   void playError();
   void playConfirmZone1On();
@@ -55,6 +58,7 @@ public:
   void playConfirmCatOff();
   void playDelayEscalation();
   void playPerimeterAlert();
+  void playAlarm();
   void stop();
 };
 

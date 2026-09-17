@@ -60,6 +60,9 @@ void BuzzerController::playPerimeterAlert() {
   if (busy && pattern == BUZZ_DELAY_ESCALATION) {
     return;  // suppressed while delay indication runs
   }
+  if (busy && pattern == BUZZ_ALARM) {
+    return;  // suppressed while zone 1 alarm buzz runs
+  }
   if (busy && pattern == BUZZ_PERIMETER_ALERT) {
     return;  // do not restart mid-alert (noisy pins)
   }
@@ -67,6 +70,12 @@ void BuzzerController::playPerimeterAlert() {
   shortBeepRemaining = PERIMETER_BEEP_COUNT;
   setPin(true);
   nextToggleAt = millis() + BEEP_SHORT_MS;
+}
+
+void BuzzerController::playAlarm() {
+  startPattern(BUZZ_ALARM);
+  setPin(true);
+  nextToggleAt = millis() + ALARM_BUZZ_HALF_PERIOD_MS;
 }
 
 void BuzzerController::loop() {
@@ -103,6 +112,9 @@ void BuzzerController::loop() {
       break;
     case BUZZ_PERIMETER_ALERT:
       updatePerimeter(now);
+      break;
+    case BUZZ_ALARM:
+      updateAlarm(now);
       break;
     default:
       stop();
@@ -235,4 +247,12 @@ void BuzzerController::updatePerimeter(unsigned long now) {
     setPin(true);
     nextToggleAt = now + BEEP_SHORT_MS;
   }
+}
+
+void BuzzerController::updateAlarm(unsigned long now) {
+  if (now < nextToggleAt) {
+    return;
+  }
+  setPin(!pinHigh);
+  nextToggleAt = now + ALARM_BUZZ_HALF_PERIOD_MS;
 }
