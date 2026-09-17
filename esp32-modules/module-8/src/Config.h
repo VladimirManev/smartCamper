@@ -79,10 +79,10 @@
 #define SMOKE_START_AFTER_SIREN_MS 10000
 #define SMOKE_DURATION_MS 60000
 
-// Delay buzzer phases (exit + entry) — totals EXIT/ENTRY delay
-#define DELAY_PHASE1_MS 3000  // 1 beep / s
-#define DELAY_PHASE2_MS 3000  // 2 beeps / s
-#define DELAY_PHASE3_MS 3000  // 6 beeps / s
+// Delay buzzer phases (exit + entry) — totals EXIT/ENTRY delay (30 s)
+#define DELAY_PHASE1_MS 20000  // 1 beep / s
+#define DELAY_PHASE2_MS 5000   // 2 beeps / s
+#define DELAY_PHASE3_MS 5000   // 6 beeps / s
 #define DELAY_PHASE3_PERIOD_MS 167  // ~1000/6
 
 // Perimeter alert

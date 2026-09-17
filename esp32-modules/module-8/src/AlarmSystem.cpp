@@ -37,6 +37,9 @@ AlarmSystem::AlarmSystem(BuzzerController* buzzerCtrl)
     spareOpen(false),
     lastSpareOpen(false),
     spareLatchedOpen(false),
+    doorsOpen(false),
+    lastDoorsOpen(false),
+    doorsLatchedOpen(false),
     interiorPir(false),
     statusDirty(true),
     waitingConfirmThenExit(false),
@@ -72,6 +75,10 @@ void AlarmSystem::begin() {
   lastSpareOpen = spareOpen;
   if (spareOpen) {
     spareLatchedOpen = true;  // boot with open: ignore until closed then reopened
+  }
+  lastDoorsOpen = doorsOpen;
+  if (doorsOpen) {
+    doorsLatchedOpen = true;
   }
   for (int i = 0; i < NUM_PERIMETER_PIRS; i++) {
     lastPerimeterPir[i] = perimeterPir[i];
@@ -124,6 +131,15 @@ bool AlarmSystem::consumeStatusDirty() {
   }
   statusDirty = false;
   return true;
+}
+
+void AlarmSystem::updateDoorState(bool anyDoorOpen) {
+  if (doorsOpen == anyDoorOpen) {
+    return;
+  }
+  doorsOpen = anyDoorOpen;
+  statusDirty = true;
+  alarmLog(doorsOpen ? "Doors: open" : "Doors: closed");
 }
 
 void AlarmSystem::setSiren(bool on) {
@@ -263,9 +279,12 @@ void AlarmSystem::disarmZone1() {
       buzzer->playConfirmZone1Off();
     }
   }
-  // latch spare if still open so re-arm doesn't instantly trip
+  // latch spare/doors if still open so armed-phase edge does not re-trip forever
   if (spareOpen) {
     spareLatchedOpen = true;
+  }
+  if (doorsOpen) {
+    doorsLatchedOpen = true;
   }
   statusDirty = true;
   alarmLog(wasCat ? "Zone1 disarmed (cat)" : "Zone1 disarmed");
@@ -400,21 +419,30 @@ void AlarmSystem::handleButtonAction(AlarmButtonAction action) {
 void AlarmSystem::processZone1Sensors() {
   if (zone1Phase != Z1_ARMED) {
     lastSpareOpen = spareOpen;
+    lastDoorsOpen = doorsOpen;
     return;
   }
 
-  // Clear latch when spare closes
+  // Clear latches when contacts close
   if (!spareOpen) {
     spareLatchedOpen = false;
   }
+  if (!doorsOpen) {
+    doorsLatchedOpen = false;
+  }
 
   bool spareEdge = spareOpen && !lastSpareOpen && !spareLatchedOpen;
+  bool doorEdge = doorsOpen && !lastDoorsOpen && !doorsLatchedOpen;
   bool pirTrip = !zone1IgnoreInteriorPir && interiorPir;
 
-  if (spareEdge || pirTrip) {
+  if (spareEdge || doorEdge || pirTrip) {
     if (spareEdge) {
       spareLatchedOpen = true;
       alarmLog("Zone1 trip: spare open");
+    }
+    if (doorEdge) {
+      doorsLatchedOpen = true;
+      alarmLog("Zone1 trip: door open");
     }
     if (pirTrip) {
       alarmLog("Zone1 trip: interior PIR");
@@ -423,6 +451,7 @@ void AlarmSystem::processZone1Sensors() {
   }
 
   lastSpareOpen = spareOpen;
+  lastDoorsOpen = doorsOpen;
 }
 
 void AlarmSystem::processPerimeter() {
@@ -492,12 +521,17 @@ void AlarmSystem::updateExitEntryDelay() {
     statusDirty = true;
     alarmLog(zone1IgnoreInteriorPir ? "Zone1 armed (cat)" : "Zone1 armed");
 
-    // Spec: open spare or interior motion after exit -> immediate entry delay
+    // Spec: open spare/door or interior motion after exit -> immediate entry delay
     bool trip = false;
     if (spareOpen) {
       trip = true;
       spareLatchedOpen = true;
       alarmLog("Zone1 trip after exit: spare open");
+    }
+    if (doorsOpen) {
+      trip = true;
+      doorsLatchedOpen = true;
+      alarmLog("Zone1 trip after exit: door open");
     }
     if (!zone1IgnoreInteriorPir && interiorPir) {
       trip = true;
@@ -507,6 +541,7 @@ void AlarmSystem::updateExitEntryDelay() {
       startEntryDelay();
     }
     lastSpareOpen = spareOpen;
+    lastDoorsOpen = doorsOpen;
     return;
   }
 
@@ -542,11 +577,15 @@ void AlarmSystem::updateAlarmPhase() {
     zone1Phase = Z1_ARMED;
     statusDirty = true;
     alarmLog("Zone1 alarm ended, re-armed");
-    // Keep spare latched if still open
+    // Keep spare/doors latched if still open
     if (spareOpen) {
       spareLatchedOpen = true;
     }
+    if (doorsOpen) {
+      doorsLatchedOpen = true;
+    }
     lastSpareOpen = spareOpen;
+    lastDoorsOpen = doorsOpen;
   }
 }
 
@@ -573,6 +612,7 @@ void AlarmSystem::loop() {
   // After boot, ignore sensor edges until pins settle (avoids false PIR trips/logs)
   if (millis() < inputsReadyAt) {
     lastSpareOpen = spareOpen;
+    lastDoorsOpen = doorsOpen;
     for (int i = 0; i < NUM_PERIMETER_PIRS; i++) {
       lastPerimeterPir[i] = perimeterPir[i];
     }
@@ -593,6 +633,7 @@ void AlarmSystem::loop() {
     alarmLog("Sensors ready");
     // Re-baseline so the first post-settle sample is not a false edge
     lastSpareOpen = spareOpen;
+    lastDoorsOpen = doorsOpen;
     for (int i = 0; i < NUM_PERIMETER_PIRS; i++) {
       lastPerimeterPir[i] = perimeterPir[i];
     }

@@ -14,7 +14,7 @@ enum BuzzerPattern {
   BUZZ_CONFIRM_Z2_OFF,
   BUZZ_CONFIRM_CAT_ON,
   BUZZ_CONFIRM_CAT_OFF,
-  BUZZ_DELAY_ESCALATION,  // 3s 1/s, 3s 2/s, 3s 6/s
+  BUZZ_DELAY_ESCALATION,  // 20s 1/s, 5s 2/s, 5s 6/s
   BUZZ_PERIMETER_ALERT    // 5 short beeps
 };
 

@@ -39,6 +39,9 @@ private:
   bool spareOpen;
   bool lastSpareOpen;
   bool spareLatchedOpen;  // ignore until closed after alarm cycle
+  bool doorsOpen;         // any CAN door open (driver/passenger/sliding/rear)
+  bool lastDoorsOpen;
+  bool doorsLatchedOpen;  // ignore until all closed after alarm cycle
   bool interiorPir;
   bool perimeterRaw[NUM_PERIMETER_PIRS];
   bool perimeterPir[NUM_PERIMETER_PIRS];  // debounced
@@ -85,6 +88,9 @@ public:
   void markStatusDirty() { statusDirty = true; }
   bool consumeStatusDirty();
 
+  /** Feed aggregated CAN door open state (any of the four doors). */
+  void updateDoorState(bool anyDoorOpen);
+
   // Status getters for MQTT
   Zone1Phase getZone1Phase() const { return zone1Phase; }
   bool isZone1Armed() const { return zone1Phase != Z1_IDLE; }
@@ -93,6 +99,7 @@ public:
   bool isSirenOn() const { return sirenOn; }
   bool isSmokeOn() const { return smokeOn; }
   bool isSpareOpen() const { return spareOpen; }
+  bool isDoorsOpen() const { return doorsOpen; }
   bool isInteriorPir() const { return interiorPir; }
   bool getPerimeterPir(uint8_t i) const;
   const char* getPhaseString() const { return phaseToString(); }

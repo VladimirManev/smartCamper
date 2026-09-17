@@ -26,12 +26,19 @@ void AlarmManager::begin() {
 
 void AlarmManager::loop() {
   buzzer.loop();
-  alarmSystem.loop();
   canDoors.loop();
 
+  CanDoorState d = canDoors.getState();
+  bool anyDoorOpen = d.driver || d.passenger || d.sliding || d.rear;
+  alarmSystem.updateDoorState(anyDoorOpen);
+
+  // consumeChanged still useful if state bits flip without aggregate change
+  // (e.g. driver closes while passenger opens) — status JSON lists each door
   if (canDoors.consumeChanged()) {
     alarmSystem.markStatusDirty();
   }
+
+  alarmSystem.loop();
 
   if (alarmSystem.consumeStatusDirty()) {
     publishStatus();

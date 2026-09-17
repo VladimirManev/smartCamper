@@ -26,7 +26,7 @@ Works offline (button + local logic). WiFi/MQTT follow the same pattern as other
 
 Adjust pins in `src/Config.h` if your board wiring differs.
 
-Door open/closed comes from CAN ID `0x06214000` (see `esp32-modules/test/CAN_SIGNALS.md`). MQTT `inputs.doors.*` updates when bits change; last known state is kept while the bus sleeps.
+Door open/closed comes from CAN ID `0x06214000` (see `esp32-modules/test/CAN_SIGNALS.md`). Any open door (driver / passenger / sliding / rear) trips Zone 1 the same way as the spare contact. MQTT `inputs.doors.*` updates when bits change; last known state is kept while the bus sleeps.
 
 ## Button sequences
 
@@ -43,11 +43,12 @@ While zone 1 is armed or arming, the cat sequence beeps error — disarm with **
 
 ## Zone 1 behaviour
 
-1. Confirmation beeps → 30 s exit delay (sensors ignored; escalated buzzer) → ARMED  
-2. Trip (spare open edge / interior PIR if not cat) → 30 s entry delay → siren 2 min  
+1. Confirmation beeps → 30 s exit delay (sensors ignored; escalated buzzer 20 s @ 1/s → 5 s @ 2/s → 5 s @ 6/s) → ARMED  
+2. Trip (CAN door open edge / spare open edge / interior PIR if not cat) → 30 s entry delay (same buzzer) → siren 2 min  
 3. Smoke starts 10 s after siren, runs 1 min  
-4. After 2 min: outputs off, stays ARMED; new motion or new spare edge → new entry delay  
-5. Already-open spare after an alarm cycle is ignored until it closes
+4. After 2 min: outputs off, stays ARMED; new motion or new door/spare edge → new entry delay  
+5. Already-open door or spare after an alarm cycle is ignored until it closes, then reopens  
+6. If a door or spare is still open when exit delay ends → immediate entry delay
 
 ## Zone 2 behaviour
 
@@ -69,10 +70,9 @@ Arms immediately after confirmation. Motion → 5 short beeps; repeats every 8 s
 | `smartcamper/heartbeat/module-8` | Every 10 s |
 | `smartcamper/sensors/module-8/status` | On any change + `force_update` |
 
-Status JSON includes `zone1` (armed, phase, ignoreInteriorPir, siren, smoke), `zone2`, `inputs` (spareOpen, interiorPir, doors stub, perimeter).
+Status JSON includes `zone1` (armed, phase, ignoreInteriorPir, siren, smoke), `zone2`, `inputs` (spareOpen, interiorPir, doors, perimeter).
 
-`phase`: `idle` | `exit_delay` | `armed` | `entry_delay` | `alarm`  
-Doors are stubbed `false` until CAN integration.
+`phase`: `idle` | `exit_delay` | `armed` | `entry_delay` | `alarm`
 
 ### Subscribe
 
@@ -91,8 +91,3 @@ cd esp32-modules/module-8
 pio run -t upload
 pio device monitor
 ```
-
-## Out of scope (later)
-
-- Fiat Ducato B-CAN door parsing (SN65HVD230)
-- Frontend / backend Socket.io handlers
