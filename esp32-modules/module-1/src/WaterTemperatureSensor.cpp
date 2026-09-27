@@ -1,240 +1,249 @@
 // Water Temperature Sensor Implementation
-// Specific logic for DS18B20 sensor (OneWire)
+// Burst of DS18B20 readings → median every DS18B20_TEMP_INTERVAL_MS
 
 #include "WaterTemperatureSensor.h"
 #include <Arduino.h>
+#include <math.h>
 
-WaterTemperatureSensor::WaterTemperatureSensor(MQTTManager* mqtt) 
+WaterTemperatureSensor::WaterTemperatureSensor(MQTTManager* mqtt)
   : oneWire(WATER_TEMP_PIN), sensors(&oneWire) {
-  // Validate input parameters
-  if (mqtt == nullptr) {
-    if (DEBUG_SERIAL) {
-      Serial.println("❌ ERROR: WaterTemperatureSensor: mqttManager cannot be nullptr!");
-    }
+  if (mqtt == nullptr && DEBUG_SERIAL) {
+    Serial.println("❌ ERROR: WaterTemperatureSensor: mqttManager cannot be nullptr!");
   }
-  
-  this->mqttManager = mqtt;
-  this->lastSensorRead = 0;
-  this->lastDataSent = 0;
-  this->lastTemperature = 0.0;
-  this->forceUpdateRequested = false;
-  this->lastMQTTState = false;  // Initialize as disconnected
-  
-  // Initialize async reading state
-  this->conversionStarted = false;
-  this->conversionStartTime = 0;
-  
-  // Initialize temperature averaging
-  this->temperatureIndex = 0;
-  this->temperatureCount = 0;
-  this->lastAverageTime = 0;
-  for (int i = 0; i < WATER_TEMP_AVERAGE_COUNT; i++) {
-    this->temperatureReadings[i] = 0.0;
+
+  mqttManager = mqtt;
+  lastTemperature = NAN;
+  lastPublishedTemperature = NAN;
+  lastDataSent = 0;
+  forceUpdateRequested = false;
+  immediateBurstRequested = true;  // First burst ASAP after boot
+  lastMQTTState = false;
+  burstInProgress = false;
+  conversionStarted = false;
+  conversionStartTime = 0;
+  lastBurstTime = 0;
+  burstIndex = 0;
+  failedBurstCount = 0;
+
+  for (int i = 0; i < DS18B20_TEMP_BURST_COUNT; i++) {
+    burstSamples[i] = NAN;
   }
 }
 
 void WaterTemperatureSensor::begin() {
   sensors.begin();
-  
-  // Set resolution to 12 bits (0.0625°C precision, default)
-  // This gives us 0.1°C accuracy which is sufficient
   sensors.setResolution(12);
-  
-  // CRITICAL: Disable blocking wait for conversion
-  // This allows requestTemperatures() to return immediately and conversion happens in background
-  // We must wait for conversion to complete before reading (handled in loop with async state machine)
   sensors.setWaitForConversion(false);
-  
+
   if (DEBUG_SERIAL) {
     Serial.println("🌡️ DS18B20 Water Temperature Sensor initialized");
     Serial.println("   GPIO pin: " + String(WATER_TEMP_PIN));
-    
-    // Count sensors
     int deviceCount = sensors.getDeviceCount();
     Serial.println("   Found " + String(deviceCount) + " DS18B20 device(s)");
-    
     if (deviceCount == 0) {
       Serial.println("⚠️ WARNING: No DS18B20 sensors found on pin " + String(WATER_TEMP_PIN));
     }
   }
 }
 
-void WaterTemperatureSensor::loop() {
-  // Validate mqttManager pointer
-  if (mqttManager == nullptr) {
-    return;  // Cannot proceed without MQTT manager
-  }
-  
-  bool mqttConnected = mqttManager->isMQTTConnected();
-  
-  // Detect MQTT reconnection (transition from disconnected to connected)
-  if (mqttConnected && !lastMQTTState) {
-    // MQTT just connected/reconnected - send sensor data immediately
-    if (DEBUG_SERIAL) {
-      Serial.println("🔄 MQTT reconnected - will send water temperature data immediately");
-    }
-    // Force a sensor read and publish on next iteration
-    forceUpdateRequested = true;
-  }
-  
-  // Update last known MQTT state
-  lastMQTTState = mqttConnected;
-  
-  // Check if MQTT is connected
-  if (!mqttConnected) {
-    return;
-  }
-  
-  // Async temperature reading state machine (non-blocking)
-  unsigned long currentTime = millis();
-  bool isForceUpdate = forceUpdateRequested;
-  
-  // Check if sensor is available before attempting to read
-  int deviceCount = sensors.getDeviceCount();
-  if (deviceCount == 0) {
-    // No sensor found - reset state and exit
-    if (conversionStarted) {
-      conversionStarted = false;
-    }
-    return;
-  }
-  
-  if (!conversionStarted) {
-    // Start a new conversion if interval has passed or force update requested
-    if (currentTime - lastSensorRead > WATER_TEMP_READ_INTERVAL || isForceUpdate) {
-      sensors.requestTemperatures();  // Start conversion (non-blocking)
-      conversionStarted = true;
-      conversionStartTime = currentTime;
-    }
-  } else {
-    // Check if conversion is complete (non-blocking check)
-    // For 12-bit resolution, conversion takes ~750ms
-    // Wait at least 800ms to ensure conversion is complete (safety margin)
-    unsigned long elapsed = currentTime - conversionStartTime;
-    if (elapsed >= 800) {  // Minimum time for 12-bit conversion + safety margin
-      // Conversion should be complete - read temperature
-      lastSensorRead = currentTime;
-      conversionStarted = false;
-      
-      // Read data from sensor
-      float temperature = readTemperature();
-      
-      // Process if valid
-      if (!isnan(temperature) && temperature != -127.0) {  // -127.0 is DallasTemperature error value
-        // Store temperature reading for averaging
-        temperatureReadings[temperatureIndex] = temperature;
-        temperatureIndex = (temperatureIndex + 1) % WATER_TEMP_AVERAGE_COUNT;
-        if (temperatureCount < WATER_TEMP_AVERAGE_COUNT) {
-          temperatureCount++;
-        }
-        
-        // Calculate average temperature every 5 seconds OR on force update
-        if (temperatureCount >= WATER_TEMP_AVERAGE_COUNT && 
-            (currentTime - lastAverageTime >= WATER_TEMP_AVERAGE_INTERVAL || isForceUpdate)) {
-          float averageTemperature = calculateAverageTemperature();
-          publishIfNeeded(averageTemperature, currentTime, isForceUpdate);
-          lastAverageTime = currentTime;
-          forceUpdateRequested = false;
-        } else if (isForceUpdate) {
-          // If we don't have enough measurements yet, just publish current value
-          publishIfNeeded(temperature, currentTime, true);
-          forceUpdateRequested = false;
-        }
-        
-        // Update last temperature even if not publishing
-        lastTemperature = temperature;
-      } else {
-        if (DEBUG_SERIAL) {
-          Serial.println("❌ Invalid water temperature reading!");
-        }
-        forceUpdateRequested = false;
-      }
-    }
+void WaterTemperatureSensor::forceUpdate() {
+  forceUpdateRequested = true;
+  immediateBurstRequested = true;
+}
+
+void WaterTemperatureSensor::abortBurst() {
+  burstInProgress = false;
+  conversionStarted = false;
+  burstIndex = 0;
+  for (int i = 0; i < DS18B20_TEMP_BURST_COUNT; i++) {
+    burstSamples[i] = NAN;
   }
 }
 
-float WaterTemperatureSensor::readTemperature() {
-  // Read temperature from first sensor (index 0)
-  // Conversion should already be complete when this is called
+void WaterTemperatureSensor::startConversion(unsigned long now) {
+  sensors.requestTemperatures();
+  conversionStarted = true;
+  conversionStartTime = now;
+}
+
+void WaterTemperatureSensor::startBurst(unsigned long now) {
+  if (sensors.getDeviceCount() == 0) {
+    failedBurstCount++;
+    lastBurstTime = now;
+    immediateBurstRequested = false;
+    forceUpdateRequested = false;
+    if (DEBUG_SERIAL) {
+      Serial.println("❌ Water temp: sensor not found (failed " +
+                     String(failedBurstCount) + "/" + String(DS18B20_TEMP_MAX_FAILED_BURSTS) + ")");
+    }
+    return;
+  }
+
+  burstInProgress = true;
+  burstIndex = 0;
+  for (int i = 0; i < DS18B20_TEMP_BURST_COUNT; i++) {
+    burstSamples[i] = NAN;
+  }
+  startConversion(now);
+
+  if (DEBUG_SERIAL) {
+    Serial.println("🌡️ Water temp burst started");
+  }
+}
+
+float WaterTemperatureSensor::readRawTemperature() {
   float temp = sensors.getTempCByIndex(0);
-  
-  // Check for errors (DallasTemperature returns -127.0 on error)
   if (temp == -127.0 || isnan(temp)) {
     if (DEBUG_SERIAL) {
-      Serial.println("❌ Failed to read temperature from DS18B20");
+      Serial.println("❌ Failed to read water DS18B20");
     }
     return NAN;
   }
-  
   return temp;
 }
 
-float WaterTemperatureSensor::calculateAverageTemperature() {
-  float sum = 0.0;
-  for (int i = 0; i < WATER_TEMP_AVERAGE_COUNT; i++) {
-    sum += temperatureReadings[i];
+bool WaterTemperatureSensor::isValidTemperature(float temp) const {
+  if (isnan(temp) || temp == -127.0) {
+    return false;
   }
-  return sum / WATER_TEMP_AVERAGE_COUNT;
+  return temp >= WATER_TEMP_MIN_VALID && temp <= WATER_TEMP_MAX_VALID;
 }
 
-void WaterTemperatureSensor::publishIfNeeded(float temperature, unsigned long currentTime, bool forcePublish) {
-  // Validate mqttManager pointer
+float WaterTemperatureSensor::computeBurstResult() const {
+  float valid[DS18B20_TEMP_BURST_COUNT];
+  int count = 0;
+  for (int i = 0; i < DS18B20_TEMP_BURST_COUNT; i++) {
+    if (isValidTemperature(burstSamples[i])) {
+      valid[count++] = burstSamples[i];
+    }
+  }
+
+  if (count < 2) {
+    return NAN;
+  }
+  if (count == 2) {
+    return (valid[0] + valid[1]) / 2.0f;
+  }
+
+  if (valid[0] > valid[1]) {
+    float t = valid[0]; valid[0] = valid[1]; valid[1] = t;
+  }
+  if (valid[1] > valid[2]) {
+    float t = valid[1]; valid[1] = valid[2]; valid[2] = t;
+  }
+  if (valid[0] > valid[1]) {
+    float t = valid[0]; valid[0] = valid[1]; valid[1] = t;
+  }
+  return valid[1];
+}
+
+void WaterTemperatureSensor::finishBurst(unsigned long now) {
+  burstInProgress = false;
+  conversionStarted = false;
+  lastBurstTime = now;
+  immediateBurstRequested = false;
+
+  bool forcePublish = forceUpdateRequested;
+  forceUpdateRequested = false;
+
+  float result = computeBurstResult();
+  if (isnan(result)) {
+    failedBurstCount++;
+    if (DEBUG_SERIAL) {
+      Serial.println("❌ Water temp burst failed (" +
+                     String(failedBurstCount) + "/" + String(DS18B20_TEMP_MAX_FAILED_BURSTS) + ")");
+    }
+    return;
+  }
+
+  failedBurstCount = 0;
+  lastTemperature = result;
+
+  if (DEBUG_SERIAL) {
+    Serial.println("✅ Water temp burst OK: " + String(result, 1) + "°C (median)");
+  }
+
+  publishIfNeeded(result, now, forcePublish);
+}
+
+void WaterTemperatureSensor::publishIfNeeded(float temperature, unsigned long now, bool forcePublish) {
+  if (mqttManager == nullptr || !mqttManager->isMQTTConnected()) {
+    return;
+  }
+
+  float rounded = round(temperature * 10.0f) / 10.0f;
+
+  if (!forcePublish && !isnan(lastPublishedTemperature) &&
+      abs(rounded - lastPublishedTemperature) < WATER_TEMP_THRESHOLD) {
+    return;
+  }
+
+  mqttManager->publishSensorData("gray-water-temperature", rounded);
+  lastPublishedTemperature = rounded;
+  lastDataSent = now;
+
+  if (DEBUG_SERIAL) {
+    Serial.println("Published: smartcamper/sensors/gray-water-temperature = " + String(rounded, 1));
+  }
+}
+
+void WaterTemperatureSensor::loop() {
   if (mqttManager == nullptr) {
-    if (DEBUG_SERIAL) {
-      Serial.println("❌ ERROR: Cannot publish - mqttManager is nullptr");
-    }
     return;
   }
-  
-  // Validate sensor reading (reasonable range for water temperature)
-  // DS18B20 range: -55 to 125°C, but for water we expect 0-50°C
-  if (temperature < -10.0 || temperature > 60.0) {
-    if (DEBUG_SERIAL) {
-      Serial.println("⚠️ WARNING: Water temperature out of expected range: " + String(temperature) + "°C");
-    }
-    // Still publish but log warning
-  }
-  
-  // Round to 1 decimal place (0.1°C precision)
-  temperature = round(temperature * 10) / 10;
-  
-  // If force publish is requested, always publish
-  if (forcePublish) {
-    mqttManager->publishSensorData("gray-water-temperature", temperature);
-    
-    // Save for comparison
-    lastTemperature = temperature;
-    lastDataSent = currentTime;
-    return;
-  }
-  
-  // Normal publishing logic - only publish on change or first read
-  bool tempChanged = (abs(temperature - lastTemperature) >= WATER_TEMP_THRESHOLD);
-  
-  // Publish if there's a change OR first read
-  if (tempChanged || lastTemperature == 0.0) {
-    mqttManager->publishSensorData("gray-water-temperature", temperature);
-    if (DEBUG_SERIAL) {
-      Serial.println("Published: smartcamper/sensors/gray-water-temperature = " + String(temperature, 1));
-    }
-    
-    // Save for comparison
-    lastTemperature = temperature;
-    lastDataSent = currentTime;
-  }
-}
 
-void WaterTemperatureSensor::forceUpdate() {
-  forceUpdateRequested = true;
+  unsigned long now = millis();
+  bool mqttConnected = mqttManager->isMQTTConnected();
+
+  if (mqttConnected && !lastMQTTState) {
+    if (DEBUG_SERIAL) {
+      Serial.println("🔄 MQTT reconnected - water temperature force update");
+    }
+    forceUpdateRequested = true;
+    immediateBurstRequested = true;
+  }
+  lastMQTTState = mqttConnected;
+
+  // Always measure (offline OK); publish only when connected (in publishIfNeeded)
+
+  if (!burstInProgress) {
+    bool intervalDue = (lastBurstTime == 0) || (now - lastBurstTime >= DS18B20_TEMP_INTERVAL_MS);
+    if (immediateBurstRequested || forceUpdateRequested || intervalDue) {
+      startBurst(now);
+    }
+    return;
+  }
+
+  if (!conversionStarted) {
+    startConversion(now);
+    return;
+  }
+
+  if (now - conversionStartTime < DS18B20_TEMP_CONVERSION_MS) {
+    return;
+  }
+
+  conversionStarted = false;
+  burstSamples[burstIndex] = readRawTemperature();
+  burstIndex++;
+
+  if (burstIndex < DS18B20_TEMP_BURST_COUNT) {
+    startConversion(now);
+    return;
+  }
+
+  finishBurst(now);
 }
 
 void WaterTemperatureSensor::printStatus() const {
   if (DEBUG_SERIAL) {
     Serial.println("📊 Water Temperature Sensor Status:");
-    Serial.println("  Last Temperature: " + String(lastTemperature) + "°C");
-    Serial.println("  Last Data Sent: " + String((millis() - lastDataSent) / 1000) + " seconds ago");
-    Serial.println("  Force Update Requested: " + String(forceUpdateRequested ? "Yes" : "No"));
-    Serial.println("  Measurement Count: " + String(temperatureCount) + "/" + String(WATER_TEMP_AVERAGE_COUNT));
+    if (isnan(lastTemperature)) {
+      Serial.println("  Last Temperature: (none)");
+    } else {
+      Serial.println("  Last Temperature: " + String(lastTemperature) + "°C");
+    }
+    Serial.println("  Burst in progress: " + String(burstInProgress ? "Yes" : "No"));
+    Serial.println("  Failed bursts: " + String(failedBurstCount) + "/" + String(DS18B20_TEMP_MAX_FAILED_BURSTS));
   }
 }
-

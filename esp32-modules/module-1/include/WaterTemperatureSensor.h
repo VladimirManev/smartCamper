@@ -1,6 +1,5 @@
 // Water Temperature Sensor
-// Specific sensor logic for DS18B20 sensor (OneWire)
-// Handles: Reading, averaging, change detection, publishing
+// DS18B20: burst of readings → median, every DS18B20_TEMP_INTERVAL_MS
 
 #ifndef WATER_TEMPERATURE_SENSOR_H
 #define WATER_TEMPERATURE_SENSOR_H
@@ -12,48 +11,41 @@
 
 class WaterTemperatureSensor {
 private:
-  MQTTManager* mqttManager;  // Reference to MQTT manager (not owned)
+  MQTTManager* mqttManager;
   OneWire oneWire;
   DallasTemperature sensors;
-  
-  unsigned long lastSensorRead;
+
+  float lastTemperature;           // Last accepted burst result (NAN = none)
+  float lastPublishedTemperature;  // Last value sent to MQTT (NAN = none)
   unsigned long lastDataSent;
-  float lastTemperature;
   bool forceUpdateRequested;
-  bool lastMQTTState;  // Previous MQTT connection state (for detecting reconnects)
-  
-  // Async temperature reading state machine
-  bool conversionStarted;  // True if we've started a temperature conversion
-  unsigned long conversionStartTime;  // When we started the conversion
-  
-  // Temperature averaging
-  float temperatureReadings[WATER_TEMP_AVERAGE_COUNT];
-  int temperatureIndex;
-  int temperatureCount;
-  unsigned long lastAverageTime;
-  
-  // Sensor reading functions
-  float readTemperature();
-  
-  // Averaging functions
-  float calculateAverageTemperature();
-  
-  // Publishing logic
-  void publishIfNeeded(float temperature, unsigned long currentTime, bool forcePublish = false);
+  bool immediateBurstRequested;
+  bool lastMQTTState;
+
+  bool burstInProgress;
+  bool conversionStarted;
+  unsigned long conversionStartTime;
+  unsigned long lastBurstTime;
+  uint8_t burstIndex;
+  float burstSamples[DS18B20_TEMP_BURST_COUNT];
+  int failedBurstCount;
+
+  float readRawTemperature();
+  bool isValidTemperature(float temp) const;
+  float computeBurstResult() const;
+  void abortBurst();
+  void startBurst(unsigned long now);
+  void startConversion(unsigned long now);
+  void finishBurst(unsigned long now);
+  void publishIfNeeded(float temperature, unsigned long now, bool forcePublish);
 
 public:
   WaterTemperatureSensor(MQTTManager* mqtt);
-  
-  // Initialization
+
   void begin();
-  
-  // Main loop - call this in your main loop()
   void loop();
-  
-  // Force update
   void forceUpdate();
-  
-  // Status (const methods)
+
   float getLastTemperature() const { return lastTemperature; }
   unsigned long getLastDataSent() const { return lastDataSent; }
   bool isForceUpdateRequested() const { return forceUpdateRequested; }
@@ -61,4 +53,3 @@ public:
 };
 
 #endif
-

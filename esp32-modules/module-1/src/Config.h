@@ -62,19 +62,24 @@
 #define WATER_LEVEL_MODE_SAMPLE_COUNT 10  // rolling window: 10 x 30s ~= 5 min; mode of these samples
 #define WATER_LEVEL_THRESHOLD 1.0         // 1% change threshold for publishing
 
+// DS18B20 shared burst settings (water + outdoor)
+// Hardware: 12-bit conversion ≈750ms, so 3 readings need ≈2.5–3s
+#define DS18B20_TEMP_INTERVAL_MS 30000      // 30 seconds between measurement bursts
+#define DS18B20_TEMP_BURST_COUNT 3          // Readings per burst
+#define DS18B20_TEMP_CONVERSION_MS 800      // Wait after requestTemperatures (12-bit + margin)
+#define DS18B20_TEMP_MAX_FAILED_BURSTS 3    // Consecutive failed bursts → log / skip publish
+
 // Water Temperature Sensor Configuration (DS18B20 - Module 1 specific)
-#define WATER_TEMP_PIN 26            // GPIO pin for DS18B20 sensor (OneWire)
-#define WATER_TEMP_READ_INTERVAL 1000   // 1 second - measurement interval
-#define WATER_TEMP_AVERAGE_INTERVAL 5000 // 5 seconds - average calculation interval
-#define WATER_TEMP_THRESHOLD 0.1        // 0.1°C change threshold for publishing
-#define WATER_TEMP_AVERAGE_COUNT 5      // Number of measurements to average
+#define WATER_TEMP_PIN 26
+#define WATER_TEMP_MIN_VALID -5.0           // Reject below this (°C)
+#define WATER_TEMP_MAX_VALID 50.0           // Reject above this (°C)
+#define WATER_TEMP_THRESHOLD 0.1            // Publish when rounded value changes by ≥0.1°C
 
 // Outdoor Temperature Sensor Configuration (DS18B20 - Module 1 specific)
-#define OUTDOOR_TEMP_PIN 27            // GPIO pin for DS18B20 sensor (OneWire)
-#define OUTDOOR_TEMP_READ_INTERVAL 1000   // 1 second - measurement interval
-#define OUTDOOR_TEMP_AVERAGE_INTERVAL 5000 // 5 seconds - average calculation interval
-#define OUTDOOR_TEMP_THRESHOLD 0.1        // 0.1°C change threshold for publishing
-#define OUTDOOR_TEMP_AVERAGE_COUNT 5      // Number of measurements to average
+#define OUTDOOR_TEMP_PIN 27
+#define OUTDOOR_TEMP_MIN_VALID -40.0        // Reject below this (°C)
+#define OUTDOOR_TEMP_MAX_VALID 55.0         // Reject above this (°C) — filters EMI spikes
+#define OUTDOOR_TEMP_THRESHOLD 0.1          // Publish when rounded value changes by ≥0.1°C
 
 // Debug settings
 #define DEBUG_SERIAL true   // Enable serial debug output

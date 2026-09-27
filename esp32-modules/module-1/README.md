@@ -28,14 +28,16 @@ ESP32 module for monitoring indoor temperature, indoor humidity, outdoor tempera
 - Update interval: 1 second
 
 **DS18B20 (Gray Water):**
-- Temperature range: -55°C to 125°C
+- Temperature range: -55°C to 125°C (accepted for control/publish: -5°C to 50°C)
 - Accuracy: ±0.5°C
-- Update interval: 1 second (5-second average)
+- Measurement: burst of 3 readings (~3s) → median (≥2 valid); every 30 seconds
+- MQTT: publish on change (≥0.1°C) or `force_update` / MQTT reconnect
 
 **DS18B20 (Outdoor):**
-- Temperature range: -55°C to 125°C
+- Temperature range: -55°C to 125°C (accepted for control/publish: -40°C to 55°C)
 - Accuracy: ±0.5°C
-- Update interval: 1 second (5-second average)
+- Measurement: burst of 3 readings (~3s) → median (≥2 valid); every 30 seconds
+- MQTT: publish on change (≥0.1°C) or `force_update` / MQTT reconnect
 
 **Water Level Sensor:**
 - 7-level detection (15%, 30%, 45%, 60%, 75%, 90%, 100%)
