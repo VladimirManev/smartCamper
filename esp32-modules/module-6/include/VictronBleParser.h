@@ -16,6 +16,9 @@ static const uint8_t RECORD_DCDC_CONVERTER = 0x04;
 static const uint8_t RECORD_ORION_XS = 0x0F;
 static const uint8_t RECORD_AC_CHARGER = 0x08;
 
+// Aux input mode bitfield (2 bits after the 16-bit aux value): 0=starter V, 1=midpoint, 2=temp, 3=disabled
+static const uint8_t AUX_MODE_TEMPERATURE = 2;
+
 struct SmartShuntReading {
   bool voltageValid;
   float voltage;
@@ -27,6 +30,8 @@ struct SmartShuntReading {
   float consumedAh;
   bool timeToGoValid;
   int timeToGoMin;
+  bool temperatureValid;
+  float temperature;  // °C, only when aux mode is temperature
   uint16_t alarmReason;
 };
 

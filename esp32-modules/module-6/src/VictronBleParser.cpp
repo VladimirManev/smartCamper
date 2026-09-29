@@ -97,9 +97,8 @@ bool parseBatteryMonitor(const uint8_t *payload, size_t payloadLen, SmartShuntRe
   int16_t voltageRaw = (int16_t)reader.readSigned(16);
   uint16_t alarmReason = (uint16_t)reader.readUnsigned(16);
 
-  reader.skip(16);
-
-  reader.readUnsigned(2);
+  uint16_t auxRaw = (uint16_t)reader.readUnsigned(16);
+  uint8_t auxMode = (uint8_t)reader.readUnsigned(2);
   uint32_t currentRawU = reader.readUnsigned(22);
   uint32_t consumedRaw = reader.readUnsigned(20);
   uint16_t socRaw = (uint16_t)reader.readUnsigned(10);
@@ -111,6 +110,14 @@ bool parseBatteryMonitor(const uint8_t *payload, size_t payloadLen, SmartShuntRe
   out.voltage = roundTo1Decimal(voltageRaw * 0.01f);
 
   out.alarmReason = alarmReason;
+
+  // Aux: temperature in 0.01 K when mode == TEMPERATURE; invalid = 0xFFFF
+  out.temperatureValid = auxMode == AUX_MODE_TEMPERATURE && auxRaw != 0xFFFF;
+  if (out.temperatureValid) {
+    out.temperature = roundTo1Decimal(auxRaw * 0.01f - 273.15f);
+  } else {
+    out.temperature = 0.0f;
+  }
 
   out.currentValid = currentRawU != 0x3FFFFF;
   if (out.currentValid) {

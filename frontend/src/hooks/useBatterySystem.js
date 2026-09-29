@@ -29,8 +29,10 @@ const EMPTY_OFFLINE_BY_NODE = Object.fromEntries(
  *   batteryLevel: number|null,
  *   batteryFlow: Object,
  *   batteryVoltage: number|null,
+ *   batteryTemperature: number|null,
  *   offlineByNode: Record<string, boolean>,
  *   offlineByWire: Record<string, boolean>,
+ *   phaseByNode: Record<string, string|null>,
  *   smartShuntOffline: boolean,
  * }}
  */
@@ -40,8 +42,10 @@ export function useBatterySystem(socket, moduleStatuses) {
   const [batteryLevel, setBatteryLevel] = useState(null);
   const [batteryFlow, setBatteryFlow] = useState(IDLE_BATTERY_FLOW);
   const [batteryVoltage, setBatteryVoltage] = useState(null);
+  const [batteryTemperature, setBatteryTemperature] = useState(null);
   const [offlineByNode, setOfflineByNode] = useState(EMPTY_OFFLINE_BY_NODE);
   const [offlineByWire, setOfflineByWire] = useState({});
+  const [phaseByNode, setPhaseByNode] = useState({});
   const [smartShuntOffline, setSmartShuntOffline] = useState(true);
 
   const moduleStatusesRef = useRef(moduleStatuses);
@@ -56,8 +60,10 @@ export function useBatterySystem(socket, moduleStatuses) {
       setBatteryLevel(null);
       setBatteryFlow(IDLE_BATTERY_FLOW);
       setBatteryVoltage(null);
+      setBatteryTemperature(null);
       setOfflineByNode(EMPTY_OFFLINE_BY_NODE);
       setOfflineByWire({});
+      setPhaseByNode({});
       setSmartShuntOffline(true);
     };
 
@@ -86,8 +92,10 @@ export function useBatterySystem(socket, moduleStatuses) {
       setBatteryLevel(mapped.batteryLevel);
       setBatteryFlow(mapped.batteryFlow);
       setBatteryVoltage(mapped.batteryVoltage);
+      setBatteryTemperature(mapped.batteryTemperature);
       setOfflineByNode(mapped.offlineByNode);
       setOfflineByWire(mapped.offlineByWire);
+      setPhaseByNode(mapped.phaseByNode);
       setSmartShuntOffline(mapped.smartShuntOffline);
     };
 
@@ -112,8 +120,10 @@ export function useBatterySystem(socket, moduleStatuses) {
       setBatteryLevel(null);
       setBatteryFlow(IDLE_BATTERY_FLOW);
       setBatteryVoltage(null);
+      setBatteryTemperature(null);
       setOfflineByNode(EMPTY_OFFLINE_BY_NODE);
       setOfflineByWire({});
+      setPhaseByNode({});
       setSmartShuntOffline(true);
     }
   }, [moduleStatuses]);
@@ -124,8 +134,10 @@ export function useBatterySystem(socket, moduleStatuses) {
     batteryLevel,
     batteryFlow,
     batteryVoltage,
+    batteryTemperature,
     offlineByNode,
     offlineByWire,
+    phaseByNode,
     smartShuntOffline,
   };
 }

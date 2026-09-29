@@ -77,6 +77,7 @@ Full snapshot on every publish. Devices without data yet are `null`. After the f
     "soc": 99,
     "consumedAh": -2.4,
     "timeToGoMin": null,
+    "temperature": 24.5,
     "alarmReason": 0,
     "updatedAt": 45100
   },
@@ -115,6 +116,7 @@ Full snapshot on every publish. Devices without data yet are `null`. After the f
 | `yieldTodayKwh` | kWh | 2 decimals |
 | `consumedAh` | Ah | 1 decimal |
 | `timeToGoMin` | minutes | integer, or `null` if unavailable |
+| `temperature` | °C | 1 decimal, or `null` if aux is not temperature / unavailable |
 | `offReason` | hex bitmask | integer (e.g. `129` = `0x81`, normal when engine off) |
 | `updatedAt` | ms since ESP boot | set when a new BLE packet is received |
 | `publishedAt` | ms since ESP boot | set at MQTT publish time |
@@ -135,7 +137,7 @@ Module offline when heartbeat stops (standard module heartbeat logic).
 
 - **Solar panels (group 1 / 2)**: show `mppt1.pvPower` / `mppt2.pvPower` in watts.
 - **MPPT → battery wire**: `batteryCurrent` in amps.
-- **Battery center**: SmartShunt `voltage`, `current`, `soc`.
+- **Battery center**: SmartShunt `voltage`, `current`, `soc`, `temperature`.
 - **DC loads** (calculated on frontend):
 
   `I_dcLoads = mppt1.batteryCurrent + mppt2.batteryCurrent + orion.outputCurrent + acCharger.current − smartshunt.current`

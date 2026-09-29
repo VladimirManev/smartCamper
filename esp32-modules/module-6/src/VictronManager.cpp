@@ -341,6 +341,11 @@ static void appendSmartShuntJson(JsonDocument &doc) {
   } else {
     obj["timeToGoMin"] = nullptr;
   }
+  if (r.temperatureValid) {
+    obj["temperature"] = roundTo1Decimal(r.temperature);
+  } else {
+    obj["temperature"] = nullptr;
+  }
   obj["alarmReason"] = r.alarmReason;
   obj["updatedAt"] = smartShuntCache.updatedAt;
 }

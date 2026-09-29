@@ -132,6 +132,13 @@ function isMockAcChargerLive() {
   return Math.floor(Date.now() / AC_CHARGER_CYCLE_MS) % 2 === 0;
 }
 
+/** Victron charger phases: Bulk → Absorption → Float while active. */
+function mockChargerDeviceState(isActive, t, offset = 0) {
+  if (!isActive) return 0;
+  const phases = [3, 4, 5];
+  return phases[Math.floor(t / 14 + offset) % phases.length];
+}
+
 function isVictronDeviceStale(publishedAt, updatedAt) {
   if (publishedAt == null || updatedAt == null) return true;
   return publishedAt - updatedAt > VICTRON_STALE_MS;
@@ -281,6 +288,7 @@ const STATIC = {
         soc: 99,
         consumedAh: -2.4,
         timeToGoMin: null,
+        temperature: 24.5,
         alarmReason: 0,
         updatedAt: 45100,
       },
@@ -294,7 +302,7 @@ const STATIC = {
         updatedAt: 45080,
       },
       mppt2: {
-        deviceState: 3,
+        deviceState: 4,
         errorCode: 0,
         batteryVoltage: 13.9,
         batteryCurrent: 3.85,
@@ -312,7 +320,14 @@ const STATIC = {
         offReason: 129,
         updatedAt: 45120,
       },
-      acCharger: null,
+      acCharger: {
+        deviceState: 5,
+        errorCode: 0,
+        current: 8.2,
+        voltage: 13.9,
+        acCurrent: 2.1,
+        updatedAt: 45140,
+      },
     },
     timestamp: ts(),
   },
@@ -436,11 +451,12 @@ function randomVictronPayload() {
       soc,
       consumedAh: round1(-2.4 + Math.sin(Date.now() / 50000)),
       timeToGoMin: null,
+      temperature: round1(24.5 + Math.sin(Date.now() / 120000) * 1.5),
       alarmReason: 0,
       updatedAt: baseUpdatedAt,
     },
     mppt1: {
-      deviceState: solar1Power > 0 ? 3 : 0,
+      deviceState: mockChargerDeviceState(solar1Power > 0, t, 0),
       errorCode: 0,
       batteryVoltage,
       batteryCurrent: mppt1BatteryCurrent,
@@ -449,7 +465,7 @@ function randomVictronPayload() {
       updatedAt: baseUpdatedAt + 20,
     },
     mppt2: {
-      deviceState: solar2Power > 0 ? 3 : 0,
+      deviceState: mockChargerDeviceState(solar2Power > 0, t, 1),
       errorCode: 0,
       batteryVoltage,
       batteryCurrent: mppt2BatteryCurrent,
@@ -458,7 +474,11 @@ function randomVictronPayload() {
       updatedAt: baseUpdatedAt + 35,
     },
     orion: {
-      deviceState: orionOutputCurrent > 0 || alternatorCurrent > 0 ? 3 : 0,
+      deviceState: mockChargerDeviceState(
+        orionOutputCurrent > 0 || alternatorCurrent > 0,
+        t,
+        2
+      ),
       errorCode: 0,
       outputVoltage: orionOutputVoltage,
       outputCurrent: orionOutputCurrent,
@@ -468,10 +488,13 @@ function randomVictronPayload() {
       updatedAt: baseUpdatedAt + 50,
     },
     acCharger: {
-      deviceState: 3,
+      deviceState: acChargerLive
+        ? mockChargerDeviceState(true, t, 3)
+        : 0,
       errorCode: 0,
       current: mockAcChargerCurrent,
       voltage: batteryVoltage,
+      acCurrent: acChargerLive ? round2(2.4 + Math.sin(t / 5) * 0.6) : 0,
       updatedAt: acChargerUpdatedAt,
     },
   };
@@ -492,7 +515,7 @@ function emitVictronStatus(socket, data) {
   if (process.env.DEBUG_MOCK_VICTRON) {
     const shunt = data?.smartshunt;
     console.log(
-      `[mock] victron smartshunt ${shunt?.voltage ?? "—"}V ${shunt?.current ?? "—"}A ${shunt?.soc ?? "—"}%`
+      `[mock] victron smartshunt ${shunt?.voltage ?? "—"}V ${shunt?.current ?? "—"}A ${shunt?.soc ?? "—"}% ${shunt?.temperature ?? "—"}°C`
     );
   }
   socket.emit("victronStatusUpdate", {

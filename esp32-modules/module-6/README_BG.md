@@ -77,6 +77,7 @@ BLE + WiFi изискват по-голяма flash partition (~1.5 MB firmware)
     "soc": 99,
     "consumedAh": -2.4,
     "timeToGoMin": null,
+    "temperature": 24.5,
     "alarmReason": 0,
     "updatedAt": 45100
   },
@@ -94,6 +95,7 @@ BLE + WiFi изискват по-голяма flash partition (~1.5 MB firmware)
 | Напрежения (V) | V | 1 десетичен |
 | Токове (A) | A | 2 десетични |
 | SOC | % | цяло число |
+| `temperature` | °C | 1 десетичен, или `null` ако aux не е температура |
 | PV мощност | W | цяло число |
 | yieldTodayKwh | kWh | 2 десетични |
 
@@ -111,7 +113,7 @@ ESP32 **не** нулира кеша. Frontend/backend маркира stale ус
 
 - **Соларни панели 1/2**: `mppt1.pvPower` / `mppt2.pvPower` (W)
 - **MPPT → батерия**: `batteryCurrent` (A)
-- **Център батерия**: SmartShunt `voltage`, `current`, `soc`
+- **Център батерия**: SmartShunt `voltage`, `current`, `soc`, `temperature`
 - **DC натоварвания** (frontend):
 
   `I_dcLoads = mppt1.batteryCurrent + mppt2.batteryCurrent + orion.outputCurrent + acCharger.current − smartshunt.current`

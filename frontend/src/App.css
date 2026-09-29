@@ -2149,6 +2149,11 @@ body {
   user-select: none;
 }
 
+.battery-node-card__off-badge--phase {
+  color: var(--color-accent-blue);
+  opacity: 0.92;
+}
+
 .battery-node-card--offline:not(.battery-node-card--disabled) {
   opacity: 0.88;
 }
@@ -3445,6 +3450,14 @@ body {
   color: var(--color-text-primary);
   margin: 0;
   text-shadow: 0 1px 2px var(--color-black-30);
+}
+
+.modal-title__meta {
+  margin-left: 0.35rem;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+  text-shadow: none;
 }
 
 .modal-close-button {

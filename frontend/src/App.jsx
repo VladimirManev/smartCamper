@@ -165,8 +165,10 @@ function App() {
     batteryLevel,
     batteryFlow: batterySystemFlow,
     batteryVoltage,
+    batteryTemperature,
     offlineByNode: batteryOfflineByNode,
     offlineByWire: batteryOfflineByWire,
+    phaseByNode: batteryPhaseByNode,
     smartShuntOffline,
   } = useBatterySystem(socket, moduleStatuses);
 
@@ -444,8 +446,35 @@ function App() {
 
   // Get current (top) modal
   const currentModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
-  const tabletPanelTitle =
+  const rawPanelTitle =
     currentModal?.cardType === "status" ? statusSlideTitle : currentModal?.cardName;
+  const tabletPanelTitle =
+    rawPanelTitle === "Battery" &&
+    batteryVoltage != null &&
+    !Number.isNaN(Number(batteryVoltage))
+      ? (
+          <>
+            Battery{" "}
+            <span className="modal-title__meta">{Number(batteryVoltage).toFixed(1)}V</span>
+          </>
+        )
+      : rawPanelTitle;
+
+  const formatModalTitle = (modal) => {
+    if (
+      modal?.cardType === "battery" &&
+      batteryVoltage != null &&
+      !Number.isNaN(Number(batteryVoltage))
+    ) {
+      return (
+        <>
+          Battery{" "}
+          <span className="modal-title__meta">{Number(batteryVoltage).toFixed(1)}V</span>
+        </>
+      );
+    }
+    return modal?.cardName;
+  };
 
   const handleStatusSlideChange = useCallback((title) => {
     setStatusSlideTitle(title);
@@ -843,8 +872,10 @@ function App() {
           wireAmps={batteryWireAmps}
           batteryFlow={batterySystemFlow}
           batteryVoltage={batteryVoltage}
+          batteryTemperature={batteryTemperature}
           offlineByNode={batteryOfflineByNode}
           offlineByWire={batteryOfflineByWire}
+          phaseByNode={batteryPhaseByNode}
           smartShuntOffline={smartShuntOffline}
           disabled={!isModule6Online}
           onOpenHistory={() => openModal("soc-history", "SOC · 24h")}
@@ -928,8 +959,10 @@ function App() {
           wireAmps={batteryWireAmps}
           batteryFlow={batterySystemFlow}
           batteryVoltage={batteryVoltage}
+          batteryTemperature={batteryTemperature}
           offlineByNode={batteryOfflineByNode}
           offlineByWire={batteryOfflineByWire}
+          phaseByNode={batteryPhaseByNode}
           smartShuntOffline={smartShuntOffline}
           batteryDisabled={!isModule6Online}
           onOpenBatteryHistory={() => openModal("soc-history", "SOC · 24h")}
@@ -1860,7 +1893,7 @@ function App() {
               key={index}
               isOpen={true}
               onClose={isTopModal ? closeModal : null}
-              title={modal.cardName}
+              title={formatModalTitle(modal)}
               isNested={!isTopModal}
               zIndex={1000 + index}
             >

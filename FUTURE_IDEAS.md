@@ -18,3 +18,11 @@ Ideas for later — not scheduled. Keep entries short; expand when starting work
 - Whitelist by MAC / manufacturer data so random BLE devices do not trip.
 
 **Status:** Idea only — implement later.
+
+---
+
+## Tasks
+
+- [ ] Промяна в алгоритъма за измерване на външна температура
+- [x] Температура на батерията
+- [ ] Настройка на градусите на подовото

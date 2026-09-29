@@ -13,6 +13,7 @@ import { buildWireShape } from "../utils/batteryWireGeometry";
 import {
   deriveWireAmpsFromNodes,
   formatWireLabel,
+  formatWireAmps,
   formatWirePower,
   getTotalSolarPower,
   hasWireLabelValue,
@@ -55,8 +56,10 @@ function getWireElementProps(wire, value, isOffline) {
  * @param {Object} props.wireAmps - wire id -> amps
  * @param {Object} [props.batteryFlow] - net flow from SmartShunt (preferred)
  * @param {number|null} [props.batteryVoltage]
+ * @param {number|null} [props.batteryTemperature]
  * @param {Record<string, boolean>} [props.offlineByNode]
  * @param {Record<string, boolean>} [props.offlineByWire]
+ * @param {Record<string, string|null>} [props.phaseByNode]
  * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.disabled
  * @param {Function} [props.onOpenHistory]
@@ -67,8 +70,10 @@ export function BatteryEnergyDiagram({
   wireAmps = {},
   batteryFlow: batteryFlowProp,
   batteryVoltage = null,
+  batteryTemperature = null,
   offlineByNode = {},
   offlineByWire = {},
+  phaseByNode = {},
   smartShuntOffline = false,
   disabled = false,
   onOpenHistory,
@@ -174,6 +179,13 @@ export function BatteryEnergyDiagram({
             }
             const isSolarWire = BATTERY_WIRE_POWER_LABELS.has(wire.id);
             const showSolarTotal = isSolarWire && totalSolarPower > 0;
+            const isLoadsWire = wire.id === "loads-battery";
+            const loadsVoltage =
+              batteryVoltage ?? batteryFlow?.voltage ?? null;
+            const loadsWatts =
+              isLoadsWire && loadsVoltage != null
+                ? Math.round(Number(amps) * Number(loadsVoltage))
+                : null;
 
             return (
               <text
@@ -196,6 +208,15 @@ export function BatteryEnergyDiagram({
                         ({totalSolarPower}W)
                       </tspan>
                     )}
+                  </>
+                ) : isLoadsWire && loadsWatts != null && loadsWatts > 0 ? (
+                  <>
+                    <tspan x={wire.labelX} dy="-0.45em">
+                      {formatWireAmps(amps)}
+                    </tspan>
+                    <tspan x={wire.labelX} dy="1.05em">
+                      ({formatWirePower(loadsWatts)})
+                    </tspan>
                   </>
                 ) : (
                   formatWireLabel(wire.id, amps)
@@ -226,6 +247,11 @@ export function BatteryEnergyDiagram({
                   offlineByNode[node.id] === true &&
                   !BATTERY_NODES_WITHOUT_OFF_BADGE.has(node.id)
                 }
+                statusLabel={
+                  BATTERY_NODES_WITHOUT_OFF_BADGE.has(node.id)
+                    ? null
+                    : phaseByNode[node.id] ?? null
+                }
                 disabled={disabled}
               />
             </div>
@@ -238,7 +264,7 @@ export function BatteryEnergyDiagram({
           <BatteryDiagramCenter
             charge={batteryLevel}
             flow={batteryFlow}
-            voltage={batteryVoltage ?? batteryFlow?.voltage}
+            temperature={batteryTemperature}
             dataOffline={smartShuntOffline}
             disabled={disabled}
             onOpenHistory={onOpenHistory}

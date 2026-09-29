@@ -191,6 +191,7 @@ function BatteryNodeDevice({ label }) {
  * @param {'solar' | 'alternator' | 'dc-loads'} [props.iconKind]
  * @param {'outline'} [props.iconStyle]
  * @param {boolean} [props.dataOffline] - no fresh Victron signal (stale or never seen)
+ * @param {string|null} [props.statusLabel] - badge text (OFF / BULK / ABS / FLOAT / …)
  * @param {boolean} props.disabled
  */
 export function BatteryNodeCard({
@@ -202,6 +203,7 @@ export function BatteryNodeCard({
   largeIcon = false,
   iconStyle,
   dataOffline = false,
+  statusLabel = null,
   disabled = false,
 }) {
   const hasDiagramIcon = iconKind === "solar" || iconKind === "alternator" || iconKind === "dc-loads";
@@ -215,6 +217,14 @@ export function BatteryNodeCard({
     .filter(Boolean)
     .join(" ");
 
+  const badgeText = statusLabel || (dataOffline ? "OFF" : null);
+  const badgeIsOff =
+    !badgeText ||
+    badgeText === "OFF" ||
+    badgeText === "FAULT" ||
+    badgeText === "LOW" ||
+    dataOffline;
+
   return (
     <div
       className={[
@@ -225,9 +235,17 @@ export function BatteryNodeCard({
         .filter(Boolean)
         .join(" ")}
     >
-      {dataOffline && !disabled && (
-        <span className="battery-node-card__off-badge" aria-label={`${label} no live data`}>
-          OFF
+      {badgeText && !disabled && (
+        <span
+          className={[
+            "battery-node-card__off-badge",
+            !badgeIsOff && "battery-node-card__off-badge--phase",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          aria-label={`${label} ${badgeText}`}
+        >
+          {badgeText}
         </span>
       )}
       <div className={iconClass} aria-hidden="true">

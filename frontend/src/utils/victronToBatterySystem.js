@@ -7,6 +7,10 @@ import {
   BATTERY_NODE_VICTRON_SOURCE,
   BATTERY_WIRE_VICTRON_SOURCE,
 } from "../config/batterySystemNodes";
+import {
+  BATTERY_CHARGER_PHASE_NODES,
+  formatVictronDeviceState,
+} from "./victronDeviceState";
 
 export const VICTRON_STALE_MS = 6000;
 
@@ -104,6 +108,27 @@ function buildOfflineByWire(offlineBySource) {
 }
 
 /**
+ * Phase badge text per charger node (null when unknown / not a charger).
+ * Offline → OFF; live → mapped `deviceState`.
+ * @param {Record<string, { device: Object|null, isOffline: boolean }>} victronSources
+ */
+function buildPhaseByNode(victronSources) {
+  /** @type {Record<string, string|null>} */
+  const phaseByNode = {};
+  for (const nodeId of BATTERY_CHARGER_PHASE_NODES) {
+    const sourceKey = BATTERY_NODE_VICTRON_SOURCE[nodeId];
+    const source = victronSources[sourceKey];
+    if (!source || source.isOffline || !source.device) {
+      phaseByNode[nodeId] = "OFF";
+      continue;
+    }
+    phaseByNode[nodeId] =
+      formatVictronDeviceState(source.device.deviceState) ?? "OFF";
+  }
+  return phaseByNode;
+}
+
+/**
  * @param {Object|null|undefined} victronData
  * @returns {{
  *   nodes: Object,
@@ -111,8 +136,10 @@ function buildOfflineByWire(offlineBySource) {
  *   batteryLevel: number|null,
  *   batteryFlow: Object,
  *   batteryVoltage: number|null,
+ *   batteryTemperature: number|null,
  *   offlineByNode: Record<string, boolean>,
  *   offlineByWire: Record<string, boolean>,
+ *   phaseByNode: Record<string, string|null>,
  *   smartShuntOffline: boolean,
  * }}
  */
@@ -123,6 +150,9 @@ export function mapVictronToBatterySystem(victronData) {
   const emptyOfflineWires = Object.fromEntries(
     Object.keys(BATTERY_WIRE_VICTRON_SOURCE).map((id) => [id, true])
   );
+  const emptyPhaseByNode = Object.fromEntries(
+    BATTERY_CHARGER_PHASE_NODES.map((id) => [id, "OFF"])
+  );
 
   if (!victronData || typeof victronData !== "object") {
     return {
@@ -131,8 +161,10 @@ export function mapVictronToBatterySystem(victronData) {
       batteryLevel: null,
       batteryFlow: computeFlowFromSmartShunt(null),
       batteryVoltage: null,
+      batteryTemperature: null,
       offlineByNode: emptyOfflineNodes,
       offlineByWire: emptyOfflineWires,
+      phaseByNode: emptyPhaseByNode,
       smartShuntOffline: true,
     };
   }
@@ -157,6 +189,7 @@ export function mapVictronToBatterySystem(victronData) {
   const offlineBySource = buildOfflineBySource(victronSources);
   const offlineByNode = buildOfflineByNode(offlineBySource);
   const offlineByWire = buildOfflineByWire(offlineBySource);
+  const phaseByNode = buildPhaseByNode(victronSources);
 
   const batteryVoltage =
     shunt?.voltage != null
@@ -166,6 +199,11 @@ export function mapVictronToBatterySystem(victronData) {
         : mppt2?.batteryVoltage != null
           ? round2(mppt2.batteryVoltage)
           : null;
+
+  const batteryTemperature =
+    shunt?.temperature != null && !Number.isNaN(Number(shunt.temperature))
+      ? round2(shunt.temperature)
+      : null;
 
   const mppt1BatteryCurrent = Number(mppt1?.batteryCurrent) || 0;
   const mppt2BatteryCurrent = Number(mppt2?.batteryCurrent) || 0;
@@ -239,8 +277,10 @@ export function mapVictronToBatterySystem(victronData) {
     batteryLevel: shunt?.soc ?? null,
     batteryFlow: computeFlowFromSmartShunt(shunt, batteryVoltage),
     batteryVoltage,
+    batteryTemperature,
     offlineByNode,
     offlineByWire,
+    phaseByNode,
     smartShuntOffline: offlineBySource.smartshunt,
   };
 }

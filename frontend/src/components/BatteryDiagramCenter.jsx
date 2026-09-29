@@ -8,8 +8,8 @@ import { getBatteryFillColor } from "../utils/batteryFillColor";
 /**
  * @param {Object} props
  * @param {number|null} props.charge - 0–100
- * @param {{ direction?: 'charge' | 'discharge' | 'idle', amps?: number, watts?: number, voltage?: number|null }} [props.flow]
- * @param {number|null} [props.voltage]
+ * @param {{ direction?: 'charge' | 'discharge' | 'idle', amps?: number, watts?: number, voltage?: number|null, netAmps?: number }} [props.flow]
+ * @param {number|null} [props.temperature] - battery temperature °C
  * @param {boolean} [props.dataOffline]
  * @param {boolean} props.disabled
  * @param {Function} [props.onOpenHistory] - open nested SOC history modal
@@ -17,7 +17,7 @@ import { getBatteryFillColor } from "../utils/batteryFillColor";
 export function BatteryDiagramCenter({
   charge,
   flow,
-  voltage: voltageProp,
+  temperature = null,
   dataOffline = false,
   disabled = false,
   onOpenHistory,
@@ -36,35 +36,26 @@ export function BatteryDiagramCenter({
 
   const netAmps = Number(flow?.netAmps) || 0;
   const showFlow = hasCharge && Math.abs(netAmps) > 0.05;
-
-  const voltage = voltageProp ?? flow?.voltage;
-  const showVoltage =
-    hasCharge && voltage != null && !Number.isNaN(Number(voltage));
-  const voltageText = showVoltage ? `${Number(voltage).toFixed(1)}V` : "";
-
   const ampsText = showFlow ? `${netAmps.toFixed(1)}A` : "";
-  const wattsText = showFlow ? `${Math.round(flow?.watts ?? 0)}W` : "";
 
-  const textLines = [{ text: `${pct}%`, className: "battery-diagram-center__pct" }];
-  if (showVoltage) {
-    textLines.push({ text: voltageText, className: "battery-diagram-center__flow-metric" });
-  }
-  if (showFlow) {
-    textLines.push({ text: ampsText, className: "battery-diagram-center__flow-metric" });
-    textLines.push({ text: wattsText, className: "battery-diagram-center__flow-metric" });
-  }
+  const showTemperature =
+    hasCharge && temperature != null && !Number.isNaN(Number(temperature));
+  const temperatureText = showTemperature
+    ? `${Math.round(Number(temperature))}°C`
+    : "";
 
-  const TEXT_LINE_GAP = 10;
-  const INNER_TEXT_CENTER_Y = 39;
-  const textStartY =
-    INNER_TEXT_CENTER_Y - ((textLines.length - 1) * TEXT_LINE_GAP) / 2;
+  // Fixed slots inside the battery body (viewBox inner ~y 13–65) so missing
+  // rows do not shift the others.
+  const TEMP_Y = 22;
+  const PCT_Y = 39;
+  const AMPS_Y = 56;
 
   const flowAria =
     netAmps > 0.05 ? "charging" : netAmps < -0.05 ? "discharging" : "";
 
   const ariaParts = [`Battery ${pct} percent`];
-  if (showVoltage) ariaParts.push(voltageText);
-  if (showFlow) ariaParts.push(flowAria, ampsText, wattsText);
+  if (showTemperature) ariaParts.push(temperatureText);
+  if (showFlow) ariaParts.push(flowAria, ampsText);
 
   const canOpenHistory = typeof onOpenHistory === "function";
 
@@ -148,18 +139,37 @@ export function BatteryDiagramCenter({
         )}
         {hasCharge && (
           <>
-            {textLines.map((line, index) => (
+            {showTemperature && (
               <text
-                key={line.text}
-                className={line.className}
+                className="battery-diagram-center__flow-metric"
                 x="24"
-                y={textStartY + index * TEXT_LINE_GAP}
+                y={TEMP_Y}
                 textAnchor="middle"
                 dominantBaseline="middle"
               >
-                {line.text}
+                {temperatureText}
               </text>
-            ))}
+            )}
+            <text
+              className="battery-diagram-center__pct"
+              x="24"
+              y={PCT_Y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              {`${pct}%`}
+            </text>
+            {showFlow && (
+              <text
+                className="battery-diagram-center__flow-metric"
+                x="24"
+                y={AMPS_Y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {ampsText}
+              </text>
+            )}
           </>
         )}
       </svg>

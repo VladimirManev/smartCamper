@@ -11,8 +11,10 @@ import { BatteryEnergyDiagram } from "./BatteryEnergyDiagram";
  * @param {Object} props.wireAmps
  * @param {Object} [props.batteryFlow]
  * @param {number|null} [props.batteryVoltage]
+ * @param {number|null} [props.batteryTemperature]
  * @param {Record<string, boolean>} [props.offlineByNode]
  * @param {Record<string, boolean>} [props.offlineByWire]
+ * @param {Record<string, string|null>} [props.phaseByNode]
  * @param {boolean} [props.smartShuntOffline]
  * @param {boolean} props.disabled
  * @param {Function} [props.onOpenHistory]
@@ -23,8 +25,10 @@ export function BatteryModalContent({
   wireAmps,
   batteryFlow,
   batteryVoltage,
+  batteryTemperature,
   offlineByNode,
   offlineByWire,
+  phaseByNode,
   smartShuntOffline,
   disabled = false,
   onOpenHistory,
@@ -37,8 +41,10 @@ export function BatteryModalContent({
         wireAmps={wireAmps}
         batteryFlow={batteryFlow}
         batteryVoltage={batteryVoltage}
+        batteryTemperature={batteryTemperature}
         offlineByNode={offlineByNode}
         offlineByWire={offlineByWire}
+        phaseByNode={phaseByNode}
         smartShuntOffline={smartShuntOffline}
         disabled={disabled}
         onOpenHistory={onOpenHistory}
