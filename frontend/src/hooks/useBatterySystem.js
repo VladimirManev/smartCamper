@@ -34,6 +34,7 @@ const EMPTY_OFFLINE_BY_NODE = Object.fromEntries(
  *   offlineByWire: Record<string, boolean>,
  *   phaseByNode: Record<string, string|null>,
  *   smartShuntOffline: boolean,
+ *   hasVictronSnapshot: boolean,
  * }}
  */
 export function useBatterySystem(socket, moduleStatuses) {
@@ -47,6 +48,7 @@ export function useBatterySystem(socket, moduleStatuses) {
   const [offlineByWire, setOfflineByWire] = useState({});
   const [phaseByNode, setPhaseByNode] = useState({});
   const [smartShuntOffline, setSmartShuntOffline] = useState(true);
+  const [hasVictronSnapshot, setHasVictronSnapshot] = useState(false);
 
   const moduleStatusesRef = useRef(moduleStatuses);
   moduleStatusesRef.current = moduleStatuses;
@@ -65,6 +67,7 @@ export function useBatterySystem(socket, moduleStatuses) {
       setOfflineByWire({});
       setPhaseByNode({});
       setSmartShuntOffline(true);
+      setHasVictronSnapshot(false);
     };
 
     const handleDisconnect = () => clearBatteryState();
@@ -97,6 +100,7 @@ export function useBatterySystem(socket, moduleStatuses) {
       setOfflineByWire(mapped.offlineByWire);
       setPhaseByNode(mapped.phaseByNode);
       setSmartShuntOffline(mapped.smartShuntOffline);
+      setHasVictronSnapshot(true);
     };
 
     socket.on("moduleStatusUpdate", syncModulesFromSocket);
@@ -125,6 +129,7 @@ export function useBatterySystem(socket, moduleStatuses) {
       setOfflineByWire({});
       setPhaseByNode({});
       setSmartShuntOffline(true);
+      setHasVictronSnapshot(false);
     }
   }, [moduleStatuses]);
 
@@ -139,5 +144,6 @@ export function useBatterySystem(socket, moduleStatuses) {
     offlineByWire,
     phaseByNode,
     smartShuntOffline,
+    hasVictronSnapshot,
   };
 }

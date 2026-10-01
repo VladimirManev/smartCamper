@@ -46,9 +46,14 @@ function ensureApplianceOff(appliances, index, sendApplianceCommand) {
   }
 }
 
-/** Inverter OFF always turns boiler OFF first. */
-function ensureInverterOff(appliances, sendApplianceCommand) {
-  ensureApplianceOff(appliances, APPLIANCE_INDEX.boiler, sendApplianceCommand);
+/**
+ * Inverter OFF; also turns boiler OFF first unless shore AC (AC charger) is live.
+ * @param {boolean} [isAcChargerLive]
+ */
+function ensureInverterOff(appliances, sendApplianceCommand, isAcChargerLive = false) {
+  if (!isAcChargerLive) {
+    ensureApplianceOff(appliances, APPLIANCE_INDEX.boiler, sendApplianceCommand);
+  }
   ensureApplianceOff(appliances, APPLIANCE_INDEX.inverter, sendApplianceCommand);
 }
 
@@ -201,6 +206,7 @@ export function applyDriveScene(
     relays,
     appliances,
     circles,
+    isAcChargerLive = false,
   },
   options
 ) {
@@ -234,7 +240,7 @@ export function applyDriveScene(
   }
 
   if (options.inverterOff) {
-    ensureInverterOff(appliances, sendApplianceCommand);
+    ensureInverterOff(appliances, sendApplianceCommand, isAcChargerLive);
   }
 }
 
@@ -277,6 +283,7 @@ export function applyAllOffScene(
     relays,
     appliances,
     circles,
+    isAcChargerLive = false,
   },
   options
 ) {
@@ -318,7 +325,7 @@ export function applyAllOffScene(
   }
 
   if (options.inverterOff) {
-    ensureInverterOff(appliances, sendApplianceCommand);
+    ensureInverterOff(appliances, sendApplianceCommand, isAcChargerLive);
   }
 }
 
@@ -362,6 +369,7 @@ export function applySleepScene(
     ledStrips,
     relays,
     appliances,
+    isAcChargerLive = false,
   },
   options
 ) {
@@ -378,7 +386,7 @@ export function applySleepScene(
   }
 
   if (options.inverterOff) {
-    ensureInverterOff(appliances, sendApplianceCommand);
+    ensureInverterOff(appliances, sendApplianceCommand, isAcChargerLive);
   }
 
   if (options.lightsOffExceptBedroom) {

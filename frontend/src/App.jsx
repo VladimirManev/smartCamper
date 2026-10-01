@@ -67,6 +67,7 @@ import {
   APPLIANCE_INDEX,
   getApplianceToggleCommands,
   isBoilerControlEnabled,
+  shouldAutoOffBoiler,
 } from "./constants/appliances";
 import { CardModal } from "./components/CardModal";
 import { EmbeddedModalPanel } from "./components/EmbeddedModalPanel";
@@ -182,6 +183,7 @@ function App() {
     offlineByWire: batteryOfflineByWire,
     phaseByNode: batteryPhaseByNode,
     smartShuntOffline,
+    hasVictronSnapshot,
   } = useBatterySystem(socket, moduleStatuses);
 
   // Check if module-1 is online (provides temperature and humidity)
@@ -201,6 +203,12 @@ function App() {
 
   // Check if module-6 is online (Victron BLE energy monitor)
   const isModule6Online = isModuleOnline("module-6");
+
+  // Shore 230 V: live AC charger BLE (module-6). Wait for first snapshot before treating as absent.
+  const isAcChargerLive =
+    isModule6Online &&
+    hasVictronSnapshot &&
+    batteryOfflineByNode.charger230v === false;
 
   // Check if module-7 is online (fresh water level)
   const isModule7Online = isModuleOnline("module-7");
@@ -1179,7 +1187,11 @@ function App() {
             disabled={
               !isModule5Online ||
               (data.index === APPLIANCE_INDEX.boiler &&
-                !isBoilerControlEnabled(appliances, isModule5Online))
+                !isBoilerControlEnabled(
+                  appliances,
+                  isModule5Online,
+                  isAcChargerLive
+                ))
             }
             icon={getApplianceModalIcon(modal.cardName)}
           />
@@ -1270,10 +1282,42 @@ function App() {
       return;
     }
 
-    for (const command of getApplianceToggleCommands(appliances, index)) {
+    for (const command of getApplianceToggleCommands(
+      appliances,
+      index,
+      isAcChargerLive
+    )) {
       sendApplianceCommand(command);
     }
   };
+
+  // Boiler OFF when both inverter and shore AC are gone (wait for Victron snapshot if module-6 online)
+  const boilerAutoOffSentRef = useRef(false);
+  useEffect(() => {
+    if (!isModule5Online) return;
+    if (isModule6Online && !hasVictronSnapshot) return;
+
+    const shouldOff = shouldAutoOffBoiler(appliances, isAcChargerLive);
+    if (!shouldOff) {
+      boilerAutoOffSentRef.current = false;
+      return;
+    }
+    if (boilerAutoOffSentRef.current) return;
+    boilerAutoOffSentRef.current = true;
+
+    sendApplianceCommand({
+      type: "relay",
+      index: APPLIANCE_INDEX.boiler,
+      action: "off",
+    });
+  }, [
+    appliances,
+    isAcChargerLive,
+    isModule5Online,
+    isModule6Online,
+    hasVictronSnapshot,
+    sendApplianceCommand,
+  ]);
 
   const handleSceneSelect = useCallback(
     (sceneId) => {
@@ -1281,9 +1325,10 @@ function App() {
         sendLEDCommand,
         sendApplianceCommand,
         appliances,
+        isAcChargerLive,
       });
     },
-    [sendLEDCommand, sendApplianceCommand, appliances],
+    [sendLEDCommand, sendApplianceCommand, appliances, isAcChargerLive],
   );
 
   const driveSceneContextRef = useRef({
@@ -1294,6 +1339,7 @@ function App() {
     relays,
     appliances,
     circles,
+    isAcChargerLive,
   });
   driveSceneContextRef.current = {
     sendLEDCommand,
@@ -1303,6 +1349,7 @@ function App() {
     relays,
     appliances,
     circles,
+    isAcChargerLive,
   };
 
   const handleApplyDrive = useCallback((options) => {
@@ -1923,7 +1970,13 @@ function App() {
               }
               type="relay"
               icon="boiler"
-              disabled={!isBoilerControlEnabled(appliances, isModule5Online)}
+              disabled={
+                !isBoilerControlEnabled(
+                  appliances,
+                  isModule5Online,
+                  isAcChargerLive
+                )
+              }
             />
             <p className="card-label">Boiler</p>
           </div>
