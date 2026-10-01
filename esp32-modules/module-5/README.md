@@ -132,6 +132,18 @@ Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
 - **Status panel** (tablet) — included in rotating slides
 - **Tablet display backlight** (tablet landscape only): long-press clock → off; tap overlay → on; Settings auto-off; wake when a light zone turns on (module-2). Relay index **6** in `applianceStatusUpdate`, no dedicated appliance card.
 
+### Boiler ↔ 230 V (frontend rules)
+
+Logic is in the frontend only (`frontend/src/constants/appliances.js`) — module-5 does not enforce it. Physical boiler button still toggles freely.
+
+- **Enable turn-ON** when module-5 is online **and** at least one 230 V source is available:
+  - inverter relay **ON**, or
+  - live Victron **AC charger** BLE from module-6 (shore power; not stale / not `null`)
+- **Always allow turn-OFF** when the boiler is already ON (even if both sources are gone)
+- **Auto OFF** when both inverter and shore AC are absent (after a Victron snapshot if module-6 is online)
+- Turning the **inverter OFF** auto-turns the boiler OFF **only if** shore AC is also absent
+- Scenes that turn the inverter OFF follow the same rule (explicit `boilerOff` still forces OFF)
+
 ## Installation and Setup
 
 1. **Upload firmware:**

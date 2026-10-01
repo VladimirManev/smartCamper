@@ -28,6 +28,16 @@ React приложение за управление и мониторинг н�
 - **useSensorData** - Получаване и управление на сензорни данни
 - **useLEDController** - Управление на LED ленти и релета
 - **useFloorHeating** - Управление на подово отопление
+- **useBatterySystem** - Victron snapshot → energy diagram (вкл. AC charger live/stale)
+- **useApplianceController** - Релета на module-5 (уреди)
+
+### Boiler / 230 V
+
+Бойлерът (relay 4) се управлява с правила в `src/constants/appliances.js`:
+
+- Включване само при **инвертор ON** или **живо AC зарядно** (shore power от module-6)
+- Гаси се автоматично само когато **и двата** 230 V източника липсват
+- Подробности: `esp32-modules/module-5/README.md` → Boiler ↔ 230 V
 
 ## WiFi Сигнал Индикатор
 

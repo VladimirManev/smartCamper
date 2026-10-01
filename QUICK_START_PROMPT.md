@@ -24,7 +24,7 @@ Act as a senior developer. This is the SmartCamper project - an IoT system for c
 - Suggest code reuse, refactoring, and helper functions when appropriate
 - Suggest splitting files when they grow large
 - Always explain ESP32/hardware constraints when writing embedded code
-- Suggest README/documentation updates when adding features
+- Always update README/documentation (EN + BG where both exist) when adding or changing features
 - Do NOT suggest testing approaches (not a priority currently)
 - Do NOT add excessive logging/monitoring
 - Do NOT explain data structures, naming choices, or async concepts unless asked

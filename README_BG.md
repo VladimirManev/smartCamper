@@ -96,6 +96,7 @@ pio run --target upload
 
 - Real-time сензори, осветление, климат, уреди
 - Victron енергия (солар, shunt, Orion, **AC зарядно**)
+- Бойлер активен при инвертор **или** живо shore AC зарядно; auto-off само когато и двете липсват
 - Хладилник: захранване (module-5) + BLE режим/температури (module-6)
 - Аларма (module-8)
 - Офлайн: backend сервира frontend

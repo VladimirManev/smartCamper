@@ -163,6 +163,7 @@ Mapped in `frontend/src/utils/victronToBatterySystem.js`:
 - **MPPT → battery**: `batteryCurrent` (A)
 - **Battery center**: SmartShunt `voltage`, `current`, `soc`, `temperature`
 - **230 V charger**: `acCharger` → UI `charger230v` (`current`, `acCurrent`)
+- **Boiler UI**: a **live** (non-stale) `acCharger` also counts as shore 230 V, so the frontend can enable the boiler without the inverter (see module-5 README → Boiler ↔ 230 V)
 - **DC loads** (calculated on frontend):
 
   `I_dcLoads = mppt1.batteryCurrent + mppt2.batteryCurrent + orion.outputCurrent + acCharger.current − smartshunt.current`

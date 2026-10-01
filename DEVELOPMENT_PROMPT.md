@@ -121,7 +121,7 @@ Act as a senior developer and follow best practices and design patterns when wri
 
 **Documentation:**
 - Write self-documenting code through clear naming
-- **Suggest updating README files or adding comments when adding new features or making architectural changes**
+- **Always update README files (EN + BG where both exist) when adding or changing features or making architectural changes** — do not only suggest updates; include them in the same change set
 - Do NOT suggest testing approaches (currently not a priority)
 
 **IoT/Embedded Specific (ESP32):**

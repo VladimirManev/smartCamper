@@ -138,6 +138,7 @@ ESP32 **не** нулира кеша. Frontend/backend маркира stale ус
 - **MPPT → батерия**: `batteryCurrent` (A)
 - **Център батерия**: SmartShunt `voltage`, `current`, `soc`, `temperature`
 - **230 V зарядно**: `acCharger` → UI `charger230v` (`current`, `acCurrent`)
+- **Бойлер UI**: живо (не stale) `acCharger` се ползва като индикатор за къмпинг 230 V — frontend може да активира бойлера без инвертор (виж module-5 README_BG → Бойлер ↔ 230 V)
 - **DC натоварвания** (frontend):
 
   `I_dcLoads = mppt1.batteryCurrent + mppt2.batteryCurrent + orion.outputCurrent + acCharger.current − smartshunt.current`

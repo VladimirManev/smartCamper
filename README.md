@@ -102,6 +102,7 @@ Bulgarian overview: `README_BG.md`.
 
 - Real-time sensors, lighting, climate, appliances
 - Victron energy snapshot (solar, shunt, Orion, **AC charger**)
+- Boiler enabled from inverter **or** live shore AC charger; auto-off only when both are gone
 - Fridge power (module-5 relay) + BLE mode/temps (module-6)
 - Security alarm (module-8)
 - Offline: backend serves the built frontend
