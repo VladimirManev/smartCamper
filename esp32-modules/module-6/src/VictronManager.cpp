@@ -555,3 +555,13 @@ void VictronManager::printStatus() const {
   Serial.println("  Orion data: " + String(orionCache.hasData ? "Yes" : "No"));
   Serial.println("  AC Charger data: " + String(acChargerCache.hasData ? "Yes" : "No"));
 }
+
+void VictronManager::pauseScan() {
+  if (bleScan != nullptr) {
+    bleScan->stop();
+    bleScanActive = false;
+    if (DEBUG_SERIAL) {
+      Serial.println("Victron BLE scan paused");
+    }
+  }
+}

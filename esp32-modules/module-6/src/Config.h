@@ -1,5 +1,5 @@
 // ESP32 Module 6 Configuration
-// Victron BLE energy monitoring module
+// Victron BLE energy monitor + AAOBOSI / Alpicool fridge GATT client
 
 #ifndef CONFIG_H
 #define CONFIG_H
@@ -33,6 +33,22 @@
 #define BLE_SCAN_INTERVAL_MS 100
 #define BLE_SCAN_WINDOW_MS 100 // Full window = best capture; BLE starts after WiFi connect
 #define BLE_SCAN_BURST_SEC 5   // Non-blocking scan burst, restarted from loop when idle
+
+// AAOBOSI / Alpicool fridge (GATT client; Victron owns BLEScan callbacks)
+#define FRIDGE_ENABLED true
+#define FRIDGE_BLE_MAC "22:2a:06:a6:f3:48"
+#define FRIDGE_QUERY_INTERVAL_MS 2000
+#define FRIDGE_RECONNECT_INTERVAL_MS 8000
+
+// Optional local GPIO buttons (INPUT_PULLUP, press = pin to GND). Safe if unused.
+#define FRIDGE_BTN_POWER 32
+#define FRIDGE_BTN_Z1_UP 33
+#define FRIDGE_BTN_Z1_DOWN 25
+#define FRIDGE_BTN_Z2_UP 26
+#define FRIDGE_BTN_Z2_DOWN 27
+#define FRIDGE_BTN_DEBOUNCE_MS 40
+#define FRIDGE_TEMP_MIN_C (-20)
+#define FRIDGE_TEMP_MAX_C 20
 
 // AC charger (Blue Smart / Phoenix)
 #define AC_CHARGER_ENABLED true

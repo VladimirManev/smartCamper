@@ -1,17 +1,21 @@
 /**
  * @file main.cpp
- * @brief Module 6 - Victron BLE Energy Monitor
+ * @brief Module 6 - Victron BLE Energy Monitor + AAOBOSI fridge GATT
  *
- * Reads Victron Instant Readout BLE advertisements and publishes
- * a full energy snapshot to MQTT every 2 seconds.
+ * Victron Instant Readout ads → MQTT status every 2s.
+ * Fridge Alpicool GATT → MQTT fridge status + mode/zone commands.
+ * Keep ESP32 within 1–3 m of Victron devices and the fridge.
+ * Close the phone fridge app (one BLE client only).
  */
 
 #include "Config.h"
 #include "ModuleManager.h"
 #include "VictronManager.h"
+#include "FridgeManager.h"
 
 ModuleManager moduleManager;
 VictronManager victronManager(&moduleManager);
+FridgeManager fridgeManager(&moduleManager, &victronManager);
 
 void setup() {
   moduleManager.begin(&victronManager.getCommandHandler());
@@ -24,14 +28,17 @@ void setup() {
   }
 
   victronManager.begin();
+  fridgeManager.begin();
+  victronManager.getCommandHandler().setFridgeManager(&fridgeManager);
 
   if (DEBUG_SERIAL) {
-    Serial.println("Module 6 ready (BLE deferred until network connect)");
+    Serial.println("Module 6 ready (Victron + fridge BLE)");
   }
 }
 
 void loop() {
   moduleManager.loop();
   victronManager.loop();
+  fridgeManager.loop();
   delay(10);
 }

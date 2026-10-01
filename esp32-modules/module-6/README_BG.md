@@ -1,8 +1,13 @@
-# Module-6: Victron BLE енергиен монитор
+# Module-6: Victron BLE енергиен монитор + хладилник
 
-Отделен ESP32 модул, който чете Victron **Instant Readout via Bluetooth** реклами и публикува пълен енергиен snapshot в MQTT на всеки 2 секунди.
+Отделен ESP32 модул, който:
 
-Не се изисква GPIO — само захранване и WiFi. Дръж ESP32 на 1–3 m от Victron устройствата.
+1. Чете Victron **Instant Readout via Bluetooth** и публикува енергиен snapshot в MQTT на всеки 2 s.
+2. Свързва се към **AAOBOSI / Alpicool** хладилника по BLE GATT (режим + две зони). **Захранването** остава на реле 2 на module-5.
+
+Дръж ESP32 на 1–3 m от Victron устройствата **и** хладилника. Затвори телефонното fridge app докато модулът е свързан.
+
+Подробности: `FRIDGE_BLE.md` и английския `README.md`.
 
 ## Хардуер
 
@@ -56,13 +61,19 @@ BLE + WiFi изискват по-голяма flash partition (~1.5 MB firmware)
 | Topic | Формат | Честота |
 | ----- | ------ | ------- |
 | `smartcamper/sensors/module-6/status` | Victron energy JSON | На всеки 2 s + при reconnect / `force_update` |
+| `smartcamper/sensors/module-6/fridge` | Fridge BLE JSON (виж `FRIDGE_BLE.md`) | При notify / reconnect / `force_update` |
 | `smartcamper/heartbeat/module-6` | Стандартен heartbeat | На всеки 10 s |
 
 ### Абонирани
 
 | Topic | Payload | Действие |
 | ----- | ------- | -------- |
-| `smartcamper/commands/module-6/force_update` | `{}` | Незабавен publish |
+| `smartcamper/commands/module-6/force_update` | `{}` | Незабавен publish на Victron + fridge |
+| `smartcamper/commands/module-6/fridge/mode/eco` | `{}` | ECO режим |
+| `smartcamper/commands/module-6/fridge/mode/max` | `{}` | MAX режим |
+| `smartcamper/commands/module-6/fridge/mode/toggle` | `{}` | Превключи ECO/MAX |
+| `smartcamper/commands/module-6/fridge/zone1/set` | `{"temp":5}` | Дясна камера (°C) |
+| `smartcamper/commands/module-6/fridge/zone2/set` | `{"temp":-18}` | Лява (по-студена) камера (°C) |
 
 ## JSON схема
 

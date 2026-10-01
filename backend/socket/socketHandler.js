@@ -14,6 +14,7 @@ const levelingCommandHandler = require("./handlers/levelingCommandHandler");
 const damperCommandHandler = require("./handlers/damperCommandHandler");
 const tableCommandHandler = require("./handlers/tableCommandHandler");
 const applianceCommandHandler = require("./handlers/applianceCommandHandler");
+const fridgeCommandHandler = require("./handlers/fridgeCommandHandler");
 const securityCommandHandler = require("./handlers/securityCommandHandler");
 const {
   sendForceUpdateToAllOnline,
@@ -28,7 +29,7 @@ const setupSocketIO = (io, aedes) => {
 
   const historyLogger = new HistoryLogger();
   historyLogger.start();
-  
+
   // Callback when module status changes
   const onModuleStatusChange = (allStatuses) => {
     // Broadcast module status update to all connected clients
@@ -37,10 +38,10 @@ const setupSocketIO = (io, aedes) => {
       timestamp: new Date().toISOString(),
     });
   };
-  
+
   // Initialize registry with status change callback
   moduleRegistry.initialize(onModuleStatusChange);
-  
+
   // MQTT ↔ WebSocket Bridge - listen to Aedes broker directly
   aedes.on("publish", (packet, client) => {
     const topic = packet.topic;
@@ -119,6 +120,11 @@ const setupSocketIO = (io, aedes) => {
       applianceCommandHandler(socket, aedes, data);
     });
 
+    // Handle fridge BLE commands (module-6 Alpicool)
+    socket.on("fridgeCommand", (data) => {
+      fridgeCommandHandler(socket, aedes, data);
+    });
+
     // Handle security alarm commands (module-8)
     socket.on("securityCommand", (data) => {
       securityCommandHandler(socket, aedes, data);
@@ -126,7 +132,8 @@ const setupSocketIO = (io, aedes) => {
 
     // Force one module to publish fresh sensor/state data (MQTT force_update)
     socket.on("forceModuleUpdate", (data) => {
-      const raw = data && typeof data.moduleId === "string" ? data.moduleId.trim() : "";
+      const raw =
+        data && typeof data.moduleId === "string" ? data.moduleId.trim() : "";
       if (!FORCE_MODULE_ID_PATTERN.test(raw)) {
         return;
       }

@@ -278,6 +278,17 @@ const STATIC = {
     },
     timestamp: ts(),
   },
+  fridgeStatusUpdate: {
+    type: "full",
+    data: {
+      connected: true,
+      mode: "eco",
+      zone1: { temp: 4, setpoint: 5 },
+      zone2: { temp: -12, setpoint: -18 },
+      updatedAt: 12000,
+    },
+    timestamp: ts(),
+  },
   victronStatusUpdate: {
     type: "full",
     data: {
@@ -918,6 +929,76 @@ function createInitialApplianceState() {
   return JSON.parse(JSON.stringify(STATIC.applianceStatusUpdate.data));
 }
 
+function createInitialFridgeState() {
+  return JSON.parse(JSON.stringify(STATIC.fridgeStatusUpdate.data));
+}
+
+function emitFridgeStatus(socket, fridgeState) {
+  socket.emit("fridgeStatusUpdate", {
+    type: "full",
+    data: {
+      ...fridgeState,
+      updatedAt: Date.now() % 1000000,
+    },
+    timestamp: ts(),
+  });
+}
+
+function clampFridgeTemp(temp) {
+  const n = Math.round(Number(temp));
+  if (Number.isNaN(n)) {
+    return null;
+  }
+  return Math.max(-20, Math.min(20, n));
+}
+
+function handleMockFridgeCommand(socket, fridgeState, payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  if (payload.type === "mode") {
+    if (payload.action === "eco") {
+      fridgeState.mode = "eco";
+    } else if (payload.action === "max") {
+      fridgeState.mode = "max";
+    } else if (payload.action === "toggle") {
+      fridgeState.mode = fridgeState.mode === "eco" ? "max" : "eco";
+    } else {
+      return;
+    }
+    fridgeState.connected = true;
+    emitFridgeStatus(socket, fridgeState);
+    return;
+  }
+
+  if (
+    payload.type === "zone" &&
+    payload.action === "set" &&
+    (payload.index === 1 || payload.index === 2)
+  ) {
+    const temp = clampFridgeTemp(payload.temp);
+    if (temp === null) {
+      return;
+    }
+    const key = payload.index === 1 ? "zone1" : "zone2";
+    if (!fridgeState[key]) {
+      fridgeState[key] = { temp: null, setpoint: null };
+    }
+    fridgeState[key].setpoint = temp;
+    // Nudge displayed temp slightly toward setpoint for nicer mock UX
+    const cur = fridgeState[key].temp;
+    if (typeof cur === "number") {
+      fridgeState[key].temp =
+        cur < temp ? Math.min(temp, cur + 1) : Math.max(temp, cur - 1);
+    } else {
+      fridgeState[key].temp = temp;
+    }
+    fridgeState.connected = true;
+    emitFridgeStatus(socket, fridgeState);
+  }
+}
+
 function emitApplianceStatus(socket, applianceState) {
   socket.emit("applianceStatusUpdate", {
     type: "full",
@@ -956,7 +1037,7 @@ function handleMockApplianceCommand(socket, applianceState, payload) {
   emitApplianceStatus(socket, applianceState);
 }
 
-function sendAll(socket, securityState) {
+function sendAll(socket, securityState, fridgeState) {
   const stamp = ts();
   socket.emit("moduleStatusUpdate", {
     modules: buildModuleStatuses(),
@@ -983,6 +1064,7 @@ function sendAll(socket, securityState) {
     timestamp: stamp,
   });
   emitVictronStatus(socket, buildStaticVictronPayload());
+  emitFridgeStatus(socket, fridgeState);
   emitSecurityStatus(socket, securityState);
 
   // Client hooks may attach after the first burst; resend sensors shortly after connect.
@@ -990,6 +1072,7 @@ function sendAll(socket, securityState) {
     setTimeout(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
       emitVictronStatus(socket, randomVictronPayload());
+      emitFridgeStatus(socket, fridgeState);
     }, ms);
   });
 }
@@ -1010,6 +1093,7 @@ io.on("connection", (socket) => {
   console.log(`[mock] client connected ${socket.id}`);
   const ledState = createInitialLedState();
   const applianceState = createInitialApplianceState();
+  const fridgeState = createInitialFridgeState();
   const securityState = createInitialSecurityState();
   const zone1Ctrl = createZone1DelayController(socket, securityState);
   const motionSim = createRoundMinuteMotionSimulator(
@@ -1023,13 +1107,14 @@ io.on("connection", (socket) => {
   const connectDelayMs = Number(process.env.MOCK_CONNECT_DELAY_MS || 450);
   let sensorTimer = null;
   const connectTimer = setTimeout(() => {
-    sendAll(socket, securityState);
+    sendAll(socket, securityState, fridgeState);
     motionSim.start();
     doorSim.start();
     const sensorIntervalMs = Number(process.env.MOCK_SENSOR_INTERVAL_MS || 4000);
     sensorTimer = setInterval(() => {
       socket.emit("sensorUpdate", randomSensorPayload());
       emitVictronStatus(socket, randomVictronPayload());
+      emitFridgeStatus(socket, fridgeState);
     }, sensorIntervalMs);
   }, connectDelayMs);
 
@@ -1044,6 +1129,13 @@ io.on("connection", (socket) => {
     handleMockApplianceCommand(socket, applianceState, payload);
     if (process.env.DEBUG_MOCK_SOCKET) {
       console.log("[mock] applianceCommand", payload);
+    }
+  });
+
+  socket.on("fridgeCommand", (payload) => {
+    handleMockFridgeCommand(socket, fridgeState, payload);
+    if (process.env.DEBUG_MOCK_SOCKET) {
+      console.log("[mock] fridgeCommand", payload);
     }
   });
 
@@ -1067,6 +1159,7 @@ io.on("connection", (socket) => {
         const moduleId = payload?.moduleId;
         if (moduleId === "module-6") {
           emitVictronStatus(socket, randomVictronPayload());
+          emitFridgeStatus(socket, fridgeState);
         } else if (
           moduleId === "module-1" ||
           moduleId === "module-5" ||

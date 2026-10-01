@@ -6089,3 +6089,207 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   font-size: 1.45rem;
 }
 
+/* Fridge BLE modal (mode + zone setpoints) */
+.fridge-ble-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 22rem;
+  margin: 0 auto;
+  padding: 1.25rem 0.5rem 0.75rem;
+}
+
+.fridge-ble-modal__power {
+  appearance: none;
+  border: none;
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.85rem 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary, rgba(0, 0, 0, 0.05));
+  box-shadow:
+    3px 3px 8px rgba(0, 0, 0, 0.1),
+    -2px -2px 6px rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fridge-ble-modal__power--on {
+  color: #fff;
+  background: var(--color-accent-blue, #3b82f6);
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.fridge-ble-modal__power:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fridge-ble-modal__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fridge-ble-modal__controls--inactive {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.fridge-ble-modal__mode {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.fridge-ble-modal__mode-btn {
+  flex: 1;
+  appearance: none;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary, rgba(0, 0, 0, 0.05));
+  box-shadow:
+    3px 3px 8px rgba(0, 0, 0, 0.1),
+    -2px -2px 6px rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fridge-ble-modal__mode-btn--active {
+  color: #fff;
+  background: var(--color-accent-blue, #3b82f6);
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.fridge-ble-modal__mode-btn:disabled,
+.fridge-ble-modal__step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fridge-ble-modal__zones {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.fridge-ble-modal__zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.2rem;
+  padding: 0.75rem 0.4rem 0.65rem;
+  border-radius: 0.75rem;
+  background: var(--color-bg-secondary, rgba(0, 0, 0, 0.04));
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Left shorter, right taller — tops aligned */
+.fridge-ble-modal__zone:first-child {
+  min-height: 7.25rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.45rem;
+  justify-content: space-between;
+}
+
+.fridge-ble-modal__zone:last-child {
+  min-height: 13rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.75rem;
+  justify-content: space-between;
+}
+
+.fridge-ble-modal__zone-label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fridge-ble-modal__zone-temp {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+
+.fridge-ble-modal__zone-set {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #666);
+  margin-bottom: 0.35rem;
+}
+
+.fridge-ble-modal__zone-btns {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: center;
+}
+
+.fridge-ble-modal__step {
+  appearance: none;
+  border: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary, #fff);
+  box-shadow:
+    3px 3px 8px rgba(0, 0, 0, 0.1),
+    -2px -2px 6px rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fridge-ble-modal__step-glyph {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1;
+  /* Optical vertical center for − / + */
+  transform: translateY(-0.05em);
+}
+
+.fridge-ble-modal__step:active:not(:disabled) {
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 400px) {
+  .fridge-ble-modal {
+    gap: 0.75rem;
+    padding: 1rem 0.25rem 0.5rem;
+  }
+
+  .fridge-ble-modal__zones {
+    gap: 0.5rem;
+  }
+
+  .fridge-ble-modal__zone-temp {
+    font-size: 1.35rem;
+  }
+
+  .fridge-ble-modal__step {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .fridge-ble-modal__step-glyph {
+    font-size: 1.2rem;
+  }
+}
+
+

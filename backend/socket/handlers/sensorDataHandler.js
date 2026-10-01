@@ -31,10 +31,10 @@ const sensorDataHandler = (io, topic, message) => {
 
     case "gray-water-temperature":
       return handleGrayWaterTemperature(io, message);
-    
+
     case "toilet":
       return handleToilet(io, topicParts, message);
-    
+
     case "led-controller":
       return handleLEDController(io, topicParts, message);
 
@@ -63,7 +63,10 @@ const sensorDataHandler = (io, topic, message) => {
       return handleAppliance(io, topicParts, message);
 
     case "module-6":
-      // Module-6 is the Victron BLE energy monitor
+      // Module-6: Victron BLE + fridge BLE
+      if (topicParts.length >= 4 && topicParts[3] === "fridge") {
+        return handleFridge(io, topicParts, message);
+      }
       return handleVictron(io, topicParts, message);
 
     case "module-8":
@@ -196,7 +199,11 @@ function handleCleanWater(io, topicParts, message) {
  * Format: smartcamper/sensors/toilet/urine/level
  */
 function handleToilet(io, topicParts, message) {
-  if (topicParts.length >= 5 && topicParts[3] === "urine" && topicParts[4] === "level") {
+  if (
+    topicParts.length >= 5 &&
+    topicParts[3] === "urine" &&
+    topicParts[4] === "level"
+  ) {
     const value = parseFloat(message);
 
     if (!isNaN(value) && value >= 0 && value <= 100) {
@@ -208,7 +215,9 @@ function handleToilet(io, topicParts, message) {
       return true;
     }
 
-    console.log(`⚠️ Invalid toilet urine level value: ${message} (must be 0-100)`);
+    console.log(
+      `⚠️ Invalid toilet urine level value: ${message} (must be 0-100)`,
+    );
     return true;
   }
 
@@ -488,13 +497,50 @@ function handleVictron(io, topicParts, message) {
       if (process.env.DEBUG_VICTRON_SOCKET) {
         const shunt = statusData.smartshunt;
         console.log(
-          `📤 Victron → socket smartshunt ${shunt?.voltage ?? "—"}V ${shunt?.current ?? "—"}A ${shunt?.soc ?? "—"}%`
+          `📤 Victron → socket smartshunt ${shunt?.voltage ?? "—"}V ${shunt?.current ?? "—"}A ${shunt?.soc ?? "—"}%`,
         );
       }
 
       return true;
     } catch (error) {
       console.log(`❌ Failed to parse Victron status JSON: ${error.message}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Handle Alpicool/AAOBOSI fridge BLE status
+ * Format: smartcamper/sensors/module-6/fridge (JSON)
+ */
+function handleFridge(io, topicParts, message) {
+  // smartcamper/sensors/module-6/fridge  OR  .../fridge/status
+  if (
+    topicParts.length >= 4 &&
+    topicParts[3] === "fridge" &&
+    (topicParts.length === 4 || topicParts[4] === "status")
+  ) {
+    try {
+      const statusData = JSON.parse(message);
+      if (
+        !statusData ||
+        typeof statusData !== "object" ||
+        Array.isArray(statusData)
+      ) {
+        console.log("❌ Invalid fridge status JSON: expected object");
+        return true;
+      }
+
+      io.emit("fridgeStatusUpdate", {
+        type: "full",
+        data: statusData,
+        timestamp: new Date().toISOString(),
+      });
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse fridge status JSON: ${error.message}`);
       return true;
     }
   }
@@ -514,11 +560,11 @@ const PERIMETER_SENSOR_IDS = [
 
 /** Last known perimeter HIGH/LOW from module-8 (for rising-edge timestamps) */
 let lastPerimeterLevels = Object.fromEntries(
-  PERIMETER_SENSOR_IDS.map((id) => [id, false])
+  PERIMETER_SENSOR_IDS.map((id) => [id, false]),
 );
 /** Last motion timestamps (ms) derived for the UI */
 let lastPerimeterMotionTs = Object.fromEntries(
-  PERIMETER_SENSOR_IDS.map((id) => [id, null])
+  PERIMETER_SENSOR_IDS.map((id) => [id, null]),
 );
 
 /**

@@ -8,19 +8,25 @@
 #include "MQTTManager.h"
 
 class VictronManager;
+class FridgeManager;
 
 class CommandHandler {
  private:
   MQTTManager *mqttManager;
   VictronManager *victronManager;
+  FridgeManager *fridgeManager;
   String moduleId;
   unsigned long lastForceUpdate;
   bool isSubscribed;
 
   static CommandHandler *currentInstance;
 
+  void handleFridgeCommand(const String &topicStr, const String &message);
+
  public:
   CommandHandler(MQTTManager *mqtt, VictronManager *victronMgr, String moduleId);
+
+  void setFridgeManager(FridgeManager *fridgeMgr) { fridgeManager = fridgeMgr; }
 
   void begin();
   void loop();

@@ -1,8 +1,13 @@
-# Module-6: Victron BLE Energy Monitor
+# Module-6: Victron BLE Energy Monitor + Fridge
 
-Dedicated ESP32 module that reads Victron **Instant Readout via Bluetooth** advertisements and publishes a full energy snapshot to MQTT every 2 seconds.
+Dedicated ESP32 module that:
 
-No GPIO wiring is required — only power and WiFi. Keep the ESP32 within 1–3 m of the Victron devices.
+1. Reads Victron **Instant Readout via Bluetooth** advertisements and publishes a full energy snapshot to MQTT every 2 seconds.
+2. Connects to the **AAOBOSI / Alpicool** compressor fridge over BLE GATT (mode + dual-zone setpoints). Fridge **power** stays on module-5 relay 2.
+
+Keep the ESP32 within 1–3 m of the Victron devices **and** the fridge. Close the phone fridge app while this module is connected (one BLE client only).
+
+See `FRIDGE_BLE.md` for fridge protocol details and MQTT command topics.
 
 ## Hardware
 
@@ -10,9 +15,9 @@ No GPIO wiring is required — only power and WiFi. Keep the ESP32 within 1–3 
 | --------- | ----------- |
 | **ESP32** | Any ESP32 dev board with **4 MB flash** (WiFi + BLE) |
 | **Power** | 5 V USB or 3.3 V regulated supply |
-| **GPIO** | None — BLE-only module |
+| **GPIO** | Optional fridge test buttons (see `Config.h`); not required for normal use |
 
-This module is separate from modules 1–5 so BLE scanning does not interfere with time-critical relay/lighting logic.
+This module is separate from modules 1–5 so BLE does not interfere with time-critical relay/lighting logic.
 
 BLE + WiFi need a larger flash partition than other modules (~1.5 MB firmware). `platformio.ini` uses `huge_app.csv` (3 MB app slot on 4 MB flash).
 
@@ -56,13 +61,19 @@ Set `AC_CHARGER_ENABLED` to `true` and fill `AC_CHARGER_MAC` / `AC_CHARGER_KEY` 
 | Topic | Format | Frequency |
 | ----- | ------ | --------- |
 | `smartcamper/sensors/module-6/status` | Victron energy JSON (see below) | Every 2 seconds + on reconnect / `force_update` |
+| `smartcamper/sensors/module-6/fridge` | Fridge BLE JSON (see `FRIDGE_BLE.md`) | On status notify / reconnect / `force_update` |
 | `smartcamper/heartbeat/module-6` | Standard heartbeat JSON | Every 10 seconds |
 
 ### Subscribed
 
 | Topic | Payload | Action |
 | ----- | ------- | ------ |
-| `smartcamper/commands/module-6/force_update` | `{}` | Publish status immediately |
+| `smartcamper/commands/module-6/force_update` | `{}` | Publish Victron + fridge status immediately |
+| `smartcamper/commands/module-6/fridge/mode/eco` | `{}` | Set ECO mode |
+| `smartcamper/commands/module-6/fridge/mode/max` | `{}` | Set MAX mode |
+| `smartcamper/commands/module-6/fridge/mode/toggle` | `{}` | Toggle ECO/MAX |
+| `smartcamper/commands/module-6/fridge/zone1/set` | `{"temp":5}` | Set right compartment setpoint (°C) |
+| `smartcamper/commands/module-6/fridge/zone2/set` | `{"temp":-18}` | Set left (colder) compartment setpoint (°C) |
 
 ## Status Payload Schema
 
@@ -189,9 +200,10 @@ mosquitto_pub -h 192.168.4.1 -t 'smartcamper/commands/module-6/force_update' -m 
 ## Architecture
 
 - **ModuleManager**: WiFi, MQTT, heartbeat, commands
-- **VictronManager**: BLE scan, per-device cache, JSON publish timer
+- **VictronManager**: BLE scan, per-device cache, JSON publish timer (`pauseScan` during fridge GATT connect)
 - **VictronBleParser**: AES-128-CTR decrypt + Victron record parsers
-- **CommandHandler**: `force_update` command
+- **FridgeManager**: Alpicool GATT client (service `1234`), status publish, mode/zone commands
+- **CommandHandler**: `force_update` + fridge MQTT commands
 
 ## Debug Flags (`src/Config.h`)
 

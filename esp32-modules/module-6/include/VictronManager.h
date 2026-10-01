@@ -40,6 +40,9 @@ class VictronManager {
 
   void publishFullStatus();
   void printStatus() const;
+
+  bool isBleReady() const { return bleInitialized; }
+  void pauseScan(); // stop scan before fridge GATT connect
 };
 
 #endif
