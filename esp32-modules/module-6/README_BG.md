@@ -15,7 +15,7 @@
 | --------- | -------- |
 | **ESP32** | ESP32 dev платка с **4 MB flash** (WiFi + BLE) |
 | **Захранване** | 5 V USB или 3.3 V стабилизирано |
-| **GPIO** | Няма — само BLE модул |
+| **GPIO** | Опционални бутони за fridge тест (виж `Config.h`); не са нужни за нормална работа |
 
 Модулът е отделен от модулите 1–5, за да не се пречи BLE сканирането на релета/осветление.
 
@@ -23,7 +23,7 @@ BLE + WiFi изискват по-голяма flash partition (~1.5 MB firmware)
 
 ## Настройка на Victron
 
-За всяко устройство (SmartShunt, MPPT, Orion XS, AC зарядно по-късно):
+За всяко устройство (SmartShunt, MPPT, Orion XS, AC зарядно):
 
 1. Отвори **VictronConnect** на телефона.
 2. **Settings → Product Info → Instant Readout via Bluetooth**.
@@ -41,9 +41,9 @@ BLE + WiFi изискват по-голяма flash partition (~1.5 MB firmware)
 | `orion` | Orion XS | `0x0F` Orion XS | `E8:42:AE:38:C1:C6` |
 | `mppt1` | MPPT (група панели 1) | `0x01` Solar Charger | `D3:AD:2A:CC:47:8C` |
 | `mppt2` | MPPT (група панели 2) | `0x01` Solar Charger | `DC:41:88:BE:96:18` |
-| `acCharger` | AC зарядно (бъдеще) | TBD | Още не е конфигурирано |
+| `acCharger` | Blue Smart / Phoenix AC зарядно | `0x08` AC Charger | `CF:82:A4:8F:EA:04` |
 
-Когато имаш credentials за AC зарядното: `AC_CHARGER_ENABLED true` + `AC_CHARGER_MAC` / `AC_CHARGER_KEY`.
+`AC_CHARGER_ENABLED` е `true` в `Config.h`. При `false` AC зарядното се маха от BLE списъка и JSON винаги има `"acCharger": null`.
 
 ## Мрежа
 
@@ -95,20 +95,30 @@ BLE + WiFi изискват по-голяма flash partition (~1.5 MB firmware)
   "mppt1": { "...": "..." },
   "mppt2": { "...": "..." },
   "orion": { "...": "..." },
-  "acCharger": null
+  "acCharger": {
+    "deviceState": 3,
+    "errorCode": 0,
+    "voltage": 14.2,
+    "current": 8.50,
+    "acCurrent": 2.40,
+    "updatedAt": 45110
+  }
 }
 ```
+
+`acCharger` е `null` до първия Instant Readout пакет (или докато shore power / зарядът по BLE е изключен).
 
 ### Закръгляне
 
 | Поле | Единица | Точност |
 | ---- | ------- | ------- |
 | Напрежения (V) | V | 1 десетичен |
-| Токове (A) | A | 2 десетични |
+| Токове (A), вкл. `acCurrent` | A | 2 десетични |
 | SOC | % | цяло число |
 | `temperature` | °C | 1 десетичен, или `null` ако aux не е температура |
 | PV мощност | W | цяло число |
 | yieldTodayKwh | kWh | 2 десетични |
+| `acCharger.voltage` / `current` | V / A към батерията | 1 / 2 десетични |
 
 ### Остарели данни
 
@@ -120,11 +130,14 @@ ESP32 **не** нулира кеша. Frontend/backend маркира stale ус
 
 Модул offline → липсва heartbeat.
 
-### Физическо mapping (за frontend по-късно)
+### Физическо mapping (frontend energy diagram)
+
+Мапва се в `frontend/src/utils/victronToBatterySystem.js`:
 
 - **Соларни панели 1/2**: `mppt1.pvPower` / `mppt2.pvPower` (W)
 - **MPPT → батерия**: `batteryCurrent` (A)
 - **Център батерия**: SmartShunt `voltage`, `current`, `soc`, `temperature`
+- **230 V зарядно**: `acCharger` → UI `charger230v` (`current`, `acCurrent`)
 - **DC натоварвания** (frontend):
 
   `I_dcLoads = mppt1.batteryCurrent + mppt2.batteryCurrent + orion.outputCurrent + acCharger.current − smartshunt.current`
@@ -155,9 +168,10 @@ mosquitto_pub -h 192.168.4.1 -t 'smartcamper/commands/module-6/force_update' -m 
 ## Архитектура
 
 - **ModuleManager** — WiFi, MQTT, heartbeat, commands
-- **VictronManager** — BLE scan, cache, publish timer
-- **VictronBleParser** — decrypt + parsers
-- **CommandHandler** — `force_update`
+- **VictronManager** — BLE scan, cache, publish timer (`pauseScan` при fridge GATT connect)
+- **VictronBleParser** — decrypt + parsers (вкл. AC charger `0x08`)
+- **FridgeManager** — Alpicool GATT клиент, status + mode/zone команди
+- **CommandHandler** — `force_update` + fridge MQTT команди
 
 ## Debug (`src/Config.h`)
 

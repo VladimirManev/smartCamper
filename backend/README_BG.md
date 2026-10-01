@@ -21,6 +21,7 @@
 | `damperCommand` | Клапи (module-4) |
 | `tableCommand` | Маса (module-4) |
 | `applianceCommand` | Уреди (module-5) |
+| `fridgeCommand` | Fridge BLE режим / зони (module-6) |
 | **`forceModuleUpdate`** | Форсирай **един** модул да публикува пресни данни |
 
 ### `forceModuleUpdate`
@@ -38,7 +39,7 @@
 
 ## WebSocket: от сървъра към клиента
 
-Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate`, `victronStatusUpdate` (подробности в английския `README.md`).
+Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate`, `victronStatusUpdate`, `fridgeStatusUpdate` (подробности в английския `README.md`).
 
 ## История (SQLite)
 

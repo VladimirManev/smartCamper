@@ -26,6 +26,7 @@ The frontend emits these events; payloads are validated in each handler.
 | `damperCommand`         | Dampers (module-4)                                         |
 | `tableCommand`          | Table motor (module-4)                                     |
 | `applianceCommand`      | Appliances (module-5)                                      |
+| `fridgeCommand`         | Fridge BLE mode / zone setpoints (module-6)                |
 | **`forceModuleUpdate`** | Request one ESP32 module to publish fresh data (see below) |
 
 ### `forceModuleUpdate`
@@ -56,6 +57,7 @@ Emitted to all clients or to one client as noted in handlers:
 | `tableStatusUpdate`        | Table state (module-4)                          |
 | `applianceStatusUpdate`    | Appliance relays (module-5)                     |
 | `victronStatusUpdate`      | Victron energy snapshot (module-6)              |
+| `fridgeStatusUpdate`       | Fridge BLE status (module-6 Alpicool)           |
 
 ## MQTT ↔ WebSocket
 
@@ -63,7 +65,7 @@ Emitted to all clients or to one client as noted in handlers:
 
 ## History logging (SQLite)
 
-Phase 1 test scope: write-only history for charts. Inspect with `sqlite3` / DB Browser until HTTP API exists.
+Phase 1 history logger for charts. Prefer the HTTP API below; `sqlite3` / DB Browser still work for raw inspection.
 
 | What | Rule |
 | ---- | ---- |

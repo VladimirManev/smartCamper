@@ -1,4 +1,4 @@
-// Fridge BLE GATT client (Alpicool / AAOBOSI) for combined Victron+fridge test
+// Fridge BLE GATT client (Alpicool / AAOBOSI) — module-6 with Victron Instant Readout
 
 #ifndef FRIDGE_MANAGER_H
 #define FRIDGE_MANAGER_H

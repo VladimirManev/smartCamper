@@ -23,7 +23,7 @@ BLE + WiFi need a larger flash partition than other modules (~1.5 MB firmware). 
 
 ## Victron Setup
 
-For each device (SmartShunt, MPPT, Orion XS, AC charger later):
+For each device (SmartShunt, MPPT, Orion XS, AC charger):
 
 1. Open **VictronConnect** on your phone.
 2. Go to **Settings → Product Info → Instant Readout via Bluetooth**.
@@ -41,9 +41,9 @@ Devices advertise roughly every **200 ms** when Instant Readout is enabled.
 | `orion` | Orion XS | `0x0F` Orion XS | `E8:42:AE:38:C1:C6` |
 | `mppt1` | MPPT (panel group 1) | `0x01` Solar Charger | `D3:AD:2A:CC:47:8C` |
 | `mppt2` | MPPT (panel group 2) | `0x01` Solar Charger | `DC:41:88:BE:96:18` |
-| `acCharger` | AC charger (future) | TBD | Not configured yet |
+| `acCharger` | Blue Smart / Phoenix AC charger | `0x08` AC Charger | `CF:82:A4:8F:EA:04` |
 
-Set `AC_CHARGER_ENABLED` to `true` and fill `AC_CHARGER_MAC` / `AC_CHARGER_KEY` when credentials are available.
+`AC_CHARGER_ENABLED` is `true` in `Config.h`. Set it to `false` to drop the AC charger from the BLE device list (JSON then always has `"acCharger": null`).
 
 ## Network Configuration
 
@@ -112,16 +112,25 @@ Full snapshot on every publish. Devices without data yet are `null`. After the f
     "offReason": 129,
     "updatedAt": 45120
   },
-  "acCharger": null
+  "acCharger": {
+    "deviceState": 3,
+    "errorCode": 0,
+    "voltage": 14.2,
+    "current": 8.50,
+    "acCurrent": 2.40,
+    "updatedAt": 45110
+  }
 }
 ```
+
+`acCharger` is `null` until the first Instant Readout packet (or while shore power / charger BLE is off).
 
 ### Field Notes
 
 | Field | Unit | Rounding |
 | ----- | ---- | -------- |
 | `voltage`, `batteryVoltage`, `outputVoltage`, `inputVoltage` | V | 1 decimal |
-| `current`, `batteryCurrent`, `outputCurrent`, `inputCurrent` | A | 2 decimals |
+| `current`, `batteryCurrent`, `outputCurrent`, `inputCurrent`, `acCurrent` | A | 2 decimals |
 | `soc` | % | integer |
 | `pvPower` | W | integer |
 | `yieldTodayKwh` | kWh | 2 decimals |
@@ -129,6 +138,8 @@ Full snapshot on every publish. Devices without data yet are `null`. After the f
 | `timeToGoMin` | minutes | integer, or `null` if unavailable |
 | `temperature` | °C | 1 decimal, or `null` if aux is not temperature / unavailable |
 | `offReason` | hex bitmask | integer (e.g. `129` = `0x81`, normal when engine off) |
+| `acCharger.voltage` / `current` | battery-side V / A from charger | 1 / 2 decimals |
+| `acCharger.acCurrent` | AC input current (A) | 2 decimals |
 | `updatedAt` | ms since ESP boot | set when a new BLE packet is received |
 | `publishedAt` | ms since ESP boot | set at MQTT publish time |
 
@@ -144,11 +155,14 @@ Consumers should mark a device stale when:
 
 Module offline when heartbeat stops (standard module heartbeat logic).
 
-### Physical Mapping (for future frontend)
+### Physical Mapping (frontend energy diagram)
 
-- **Solar panels (group 1 / 2)**: show `mppt1.pvPower` / `mppt2.pvPower` in watts.
-- **MPPT → battery wire**: `batteryCurrent` in amps.
-- **Battery center**: SmartShunt `voltage`, `current`, `soc`, `temperature`.
+Mapped in `frontend/src/utils/victronToBatterySystem.js`:
+
+- **Solar panels (group 1 / 2)**: `mppt1.pvPower` / `mppt2.pvPower` (W)
+- **MPPT → battery**: `batteryCurrent` (A)
+- **Battery center**: SmartShunt `voltage`, `current`, `soc`, `temperature`
+- **230 V charger**: `acCharger` → UI `charger230v` (`current`, `acCurrent`)
 - **DC loads** (calculated on frontend):
 
   `I_dcLoads = mppt1.batteryCurrent + mppt2.batteryCurrent + orion.outputCurrent + acCharger.current − smartshunt.current`
@@ -167,6 +181,7 @@ On the Pi or any machine on the camper network:
 
 ```bash
 mosquitto_sub -h 192.168.4.1 -t 'smartcamper/sensors/module-6/status' -v
+mosquitto_sub -h 192.168.4.1 -t 'smartcamper/sensors/module-6/fridge' -v
 mosquitto_sub -h 192.168.4.1 -t 'smartcamper/heartbeat/module-6' -v
 ```
 

@@ -2,7 +2,7 @@
 
 Intelligent system for managing the electrical system of a camper with three main components:
 
-## 🏗️ Architecture
+## Architecture
 
 ### 1. **Backend (Brain)**
 
@@ -10,45 +10,42 @@ Intelligent system for managing the electrical system of a camper with three mai
 - **MQTT Broker (Aedes)** for module communication
 - **Socket.io** for real-time WebSocket communication
 - **MQTT ↔ WebSocket Bridge** for synchronization between ESP32 modules and frontend
+- **SQLite history** for energy/climate charts (`GET /api/history/readings`)
 
 ### 2. **Frontend (Dashboard)**
 
 - **React** web application with Vite
 - **Socket.io Client** for real-time updates
-- **Responsive** design for mobile devices
-- **Real-time** monitoring of sensors and LED controls
+- Responsive UI (phone + tablet landscape)
+- Energy diagram, appliances, lighting, climate, security, fridge BLE controls
 
 ### 3. **ESP32 Modules**
 
-- **PlatformIO** project structure
-- **Arduino C++** code
-- **MQTT** clients for communication
+- **PlatformIO** + Arduino C++
+- **MQTT** clients with heartbeat + `force_update`
 - **Modules**:
-  - Temperature Sensor (DHT22/AM2301) - temperature and humidity
-  - LED Controller - LED strip control with buttons, motion sensor and dimming
+  - **module-1** — indoor/outdoor temp, humidity, gray water level + temp
+  - **module-2** — LED strips, motion, ambient relay
+  - **module-3** — floor heating + leveling
+  - **module-4** — dampers + table motor
+  - **module-5** — appliance relays (fridge power, pump, inverter, …) + urine level + tablet backlight
+  - **module-6** — Victron Instant Readout (SmartShunt, MPPTs, Orion, AC charger) + AAOBOSI fridge BLE
+  - **module-7** — clean water level
+  - **module-8** — security alarm (zones, siren, CAN doors)
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 smartCamper/
-├── backend/              # Express.js server + Socket.io + MQTT
-│   ├── server.js         # Main server file
-│   ├── middleware/       # CORS, Logger, Static
-│   ├── routes/           # API routes
-│   ├── socket/           # Socket.io handler
-│   └── mqtt/            # MQTT broker (Aedes)
-├── frontend/             # React application (Vite)
-│   ├── src/
-│   │   ├── App.jsx      # Main component
-│   │   └── App.css      # Styles
-│   └── package.json
-├── esp32-modules/        # ESP32 modules (PlatformIO)
-│   ├── temperature-sensor/  # Temperature sensor
-│   └── led-controller/      # LED controller
-└── update-from-git.sh   # Script for updating on Raspberry Pi
+├── backend/              # Express + Socket.io + Aedes MQTT + history
+├── frontend/             # React (Vite) dashboard
+├── esp32-modules/        # module-1 … module-8 (+ test scratch)
+├── CAN_SIGNALS.md        # Ducato B-CAN notes
+├── FUTURE_IDEAS.md       # Unscheduled ideas
+└── update-from-git.sh    # Pi update helper
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Backend
 
@@ -56,16 +53,10 @@ smartCamper/
 cd backend
 npm install
 npm start
-# or for development:
-npm run dev
+# or: npm run dev
 ```
 
-Backend runs on port **3000**:
-
-- `http://localhost:3000` - main page
-- `http://localhost:3000/health` - health check
-- `ws://localhost:3000` - WebSocket server
-- `mqtt://localhost:1883` - MQTT broker
+Backend on port **3000** (HTTP + WebSocket). MQTT usually **1883**.
 
 ### Frontend
 
@@ -75,61 +66,43 @@ npm install
 npm run dev
 ```
 
-Frontend runs on port **5174** (Vite dev server):
-
-- `http://localhost:5174` - React dashboard
+Dev server: **5174**. Production build is served by the backend on the Pi.
 
 ### ESP32 Modules
 
-Use **PlatformIO** for compilation and upload:
-
 ```bash
-cd esp32-modules/temperature-sensor
-pio run --target upload
-
-cd esp32-modules/led-controller
+cd esp32-modules/module-6   # example
 pio run --target upload
 ```
 
-## 📡 Communication
+See each module’s `README.md` / `README_BG.md` for wiring, MQTT topics, and config.
 
-- **MQTT**: ESP32 ↔ Backend (Aedes broker)
+## Communication
+
+- **MQTT**: ESP32 ↔ Backend (Aedes)
 - **WebSocket**: Frontend ↔ Backend (Socket.io)
-- **MQTT ↔ WebSocket Bridge**: Automatic data synchronization
+- Bridge: MQTT publishes → Socket.io events (`sensorUpdate`, `victronStatusUpdate`, `fridgeStatusUpdate`, …)
 
-### MQTT Topics
+Typical topics use `smartcamper/sensors/<moduleId>/…` and `smartcamper/commands/<moduleId>/…`.
 
-**Sensors:**
+## Documentation
 
-- `smartcamper/sensors/temperature` - temperature
-- `smartcamper/sensors/humidity` - humidity
-- `smartcamper/sensors/led-controller/status` - LED controller status
+| Doc | Contents |
+| --- | -------- |
+| `backend/README.md` | WebSocket events, MQTT bridge, history API |
+| `esp32-modules/module-*/README.md` | Per-module hardware + MQTT |
+| `esp32-modules/module-6/FRIDGE_BLE.md` | Fridge BLE protocol + topics |
+| `RASPBERRY_PI_COMMANDS.md` | Pi management |
+| `FUTURE_IDEAS.md` | Ideas not yet scheduled |
+| `DEVELOPMENT_PROMPT.md` / `QUICK_START_PROMPT.md` | Dev collaboration rules |
 
-**Commands:**
+Bulgarian overview: `README_BG.md`.
 
-- `smartcamper/commands/led-controller/strip/{index}/on` - turn on strip
-- `smartcamper/commands/led-controller/strip/{index}/off` - turn off strip
-- `smartcamper/commands/led-controller/strip/{index}/brightness` - brightness
+## Features
 
-## 🔧 Technologies
-
-- **Backend**: Node.js, Express.js, Socket.io, Aedes (MQTT)
-- **Frontend**: React, Vite, Socket.io-client, Font Awesome
-- **ESP32**: Arduino C++, PlatformIO, PubSubClient (MQTT), NeoPixelBus (LED)
-- **DevOps**: PM2, systemd services
-
-## 📚 Documentation
-
-- `backend/README.md` - Backend: WebSocket events, MQTT bridge, `forceModuleUpdate`
-- `LED_CONTROLLER_DOCUMENTATION.md` - Complete LED controller documentation
-- `RASPBERRY_PI_COMMANDS.md` - Raspberry Pi management commands
-- `update-from-git.sh` - Script for updating project on Raspberry Pi
-
-## 🎯 Features
-
-- ✅ Real-time sensor monitoring
-- ✅ LED control with buttons, dimming and transitions
-- ✅ Motion sensor activation for bathroom
-- ✅ Offline operation - backend serves frontend
-- ✅ Automatic WiFi and MQTT reconnection
-- ✅ Modular architecture for easy expansion
+- Real-time sensors, lighting, climate, appliances
+- Victron energy snapshot (solar, shunt, Orion, **AC charger**)
+- Fridge power (module-5 relay) + BLE mode/temps (module-6)
+- Security alarm (module-8)
+- Offline: backend serves the built frontend
+- Auto WiFi / MQTT reconnect on ESP32 modules

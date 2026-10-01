@@ -2,140 +2,101 @@
 
 Интелигентна система за управление на електрическата система на кемпера с три основни компонента:
 
-## 🏗️ Архитектура
+## Архитектура
 
 ### 1. **Backend (Мозък)**
 
 - **Raspberry Pi 4** с Express.js сървър
 - **MQTT Broker (Aedes)** за комуникация с модулите
-- **Socket.io** за real-time WebSocket комуникация
-- **MQTT ↔ WebSocket Bridge** за синхронизация между ESP32 модули и frontend
+- **Socket.io** за real-time WebSocket
+- **MQTT ↔ WebSocket Bridge** между ESP32 и frontend
+- **SQLite история** за графики (`GET /api/history/readings`)
 
 ### 2. **Frontend (Дашборд)**
 
-- **React** уеб приложение с Vite
-- **Socket.io Client** за real-time обновления
-- **Responsive** дизайн за мобилни устройства
-- **Real-time** мониторинг на сензори и LED контроли
+- **React** (Vite) + Socket.io
+- Responsive UI (телефон + tablet landscape)
+- Енергийна диаграма, уреди, осветление, климат, охрана, fridge BLE контрол
 
 ### 3. **ESP32 Модули**
 
-- **PlatformIO** проектна структура
-- **Arduino C++** код
-- **MQTT** клиенти за комуникация
+- **PlatformIO** + Arduino C++
+- **MQTT** с heartbeat и `force_update`
 - **Модули**:
-  - Temperature Sensor (DHT22/AM2301) - температура и влажност
-  - LED Controller - управление на LED ленти с бутони, motion sensor и dimming
+  - **module-1** — вътрешна/външна температура, влажност, сива вода
+  - **module-2** — LED ленти, motion, ambient реле
+  - **module-3** — подово отопление + нивелиране
+  - **module-4** — клапи + маса
+  - **module-5** — релета за уреди (захранване хладилник, помпа, инвертор, …) + урина + tablet backlight
+  - **module-6** — Victron Instant Readout (SmartShunt, MPPT, Orion, AC зарядно) + AAOBOSI fridge BLE
+  - **module-7** — чиста вода
+  - **module-8** — аларма (зони, сирена, CAN врати)
 
-## 📁 Структура на проекта
+## Структура
 
 ```
 smartCamper/
-├── backend/              # Express.js сървър + Socket.io + MQTT
-│   ├── server.js         # Главен сървър файл
-│   ├── middleware/       # CORS, Logger, Static
-│   ├── routes/           # API routes
-│   ├── socket/           # Socket.io handler
-│   └── mqtt/            # MQTT broker (Aedes)
-├── frontend/             # React приложение (Vite)
-│   ├── src/
-│   │   ├── App.jsx      # Главен компонент
-│   │   └── App.css      # Стилове
-│   └── package.json
-├── esp32-modules/        # ESP32 модули (PlatformIO)
-│   ├── module-1/           # Module-1 (Температурен сензор, Water level)
-│   ├── module-2/           # Module-2 (LED контролер)
-│   └── module-3/           # Module-3 (Подово отопление контролер)
-└── update-from-git.sh   # Скрипт за обновяване на Raspberry Pi
+├── backend/
+├── frontend/
+├── esp32-modules/        # module-1 … module-8 (+ test)
+├── CAN_SIGNALS.md
+├── FUTURE_IDEAS.md
+└── update-from-git.sh
 ```
 
-## 🚀 Стартиране
+## Стартиране
 
 ### Backend
 
 ```bash
-cd backend
-npm install
-npm start
-# или за development:
-npm run dev
+cd backend && npm install && npm start
 ```
 
-Backend стартира на порт **3000**:
-
-- `http://localhost:3000` - главна страница
-- `http://localhost:3000/health` - health check
-- `ws://localhost:3000` - WebSocket сървър
-- `mqtt://localhost:1883` - MQTT broker
+Порт **3000** (HTTP + WebSocket). MQTT обикновено **1883**.
 
 ### Frontend
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd frontend && npm install && npm run dev
 ```
 
-Frontend стартира на порт **5174** (Vite dev server):
+Dev: **5174**. На Pi production build се сервира от backend.
 
-- `http://localhost:5174` - React dashboard
-
-### ESP32 Модули
-
-Използва се **PlatformIO** за компилация и качване:
+### ESP32
 
 ```bash
-cd esp32-modules/module-1
-pio run --target upload
-
-cd esp32-modules/module-2
-pio run --target upload
-
-cd esp32-modules/module-3
+cd esp32-modules/module-6   # пример
 pio run --target upload
 ```
 
-## 📡 Комуникация
+Подробности: `README.md` / `README_BG.md` във всеки модул.
 
-- **MQTT**: ESP32 ↔ Backend (Aedes broker)
-- **WebSocket**: Frontend ↔ Backend (Socket.io)
-- **MQTT ↔ WebSocket Bridge**: Автоматична синхронизация на данни
+## Комуникация
 
-### MQTT Topics
+- **MQTT**: ESP32 ↔ Backend
+- **WebSocket**: Frontend ↔ Backend
+- Мост: MQTT → Socket.io (`sensorUpdate`, `victronStatusUpdate`, `fridgeStatusUpdate`, …)
 
-**Сензори:**
+Теми: `smartcamper/sensors/<moduleId>/…` и `smartcamper/commands/<moduleId>/…`.
 
-- `smartcamper/sensors/temperature` - температура
-- `smartcamper/sensors/humidity` - влажност
-- `smartcamper/sensors/module-2/status` - Module-2 (LED контролер) статус
+## Документация
 
-**Команди:**
+| Документ | Съдържание |
+| -------- | ---------- |
+| `backend/README.md` / `README_BG.md` | WebSocket, MQTT мост, history API |
+| `esp32-modules/module-*/README*.md` | Хардуер и MQTT по модул |
+| `esp32-modules/module-6/FRIDGE_BLE.md` | Fridge BLE протокол |
+| `RASPBERRY_PI_COMMANDS.md` | Управление на Pi |
+| `FUTURE_IDEAS.md` | Идеи за по-късно |
+| `QUICK_START_PROMPT.md` | Правила за работа с AI |
 
-- `smartcamper/commands/module-2/strip/{index}/on` - включване на лента
-- `smartcamper/commands/module-2/strip/{index}/off` - изключване на лента
-- `smartcamper/commands/module-2/strip/{index}/brightness` - яркост
+Английски overview: `README.md`.
 
-## 🔧 Технологии
+## Особености
 
-- **Backend**: Node.js, Express.js, Socket.io, Aedes (MQTT)
-- **Frontend**: React, Vite, Socket.io-client, Font Awesome
-- **ESP32**: Arduino C++, PlatformIO, PubSubClient (MQTT), NeoPixelBus (LED)
-- **DevOps**: PM2, systemd services
-
-## 📚 Документация
-
-- `backend/README.md` / `backend/README_BG.md` - Backend: WebSocket, MQTT мост, `forceModuleUpdate`
-- `LED_CONTROLLER_DOCUMENTATION.md` - Пълна документация за LED контролера
-- `RASPBERRY_PI_COMMANDS.md` - Команди за Raspberry Pi управление
-- `update-from-git.sh` - Скрипт за обновяване на проекта на Raspberry Pi
-
-## 🎯 Особености
-
-- ✅ Real-time мониторинг на сензори
-- ✅ LED контрол с бутони, dimming и transitions
-- ✅ Motion sensor активация за баня
-- ✅ Подово отопление с автоматичен температурен контрол (4 независими кръга)
-- ✅ WiFi сигнал индикатор за всеки модул (подобен на мобилен телефон)
-- ✅ Офлайн работа - backend сервира frontend
-- ✅ Автоматично преподключване на WiFi и MQTT
-- ✅ Модулна архитектура за лесно разширяване
+- Real-time сензори, осветление, климат, уреди
+- Victron енергия (солар, shunt, Orion, **AC зарядно**)
+- Хладилник: захранване (module-5) + BLE режим/температури (module-6)
+- Аларма (module-8)
+- Офлайн: backend сервира frontend
+- Автоматично WiFi / MQTT reconnect
