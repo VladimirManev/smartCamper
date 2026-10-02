@@ -1,13 +1,14 @@
 /**
- * Tablet Status panel — rotates battery, water tanks, and overview every 4s.
+ * Tablet Status panel — rotates battery, tanks, fridge, and doors every 4s.
+ * Swipe left/right to change slides manually (resets auto-rotate timer).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BatteryModalContent } from "./BatteryModalContent";
 import { GrayWaterModalContent } from "./GrayWaterModalContent";
 import { FreshWaterModalContent } from "./FreshWaterModalContent";
 import { ToiletUrineModalContent } from "./ToiletUrineModalContent";
-import { ClockDateCard } from "./ClockDateCard";
+import { FridgeModalContent } from "./FridgeModalContent";
 import { CamperDoorsStage, DEFAULT_DOORS } from "./CamperDoorsStage";
 
 const SLIDES = [
@@ -15,15 +16,23 @@ const SLIDES = [
   "gray-water",
   "fresh-water",
   "toilet-urine",
-  "overview",
+  "fridge",
   "doors",
 ];
-const SLIDE_TITLES = ["Battery", "Gray Water", "Fresh Water", "Toilet", "", ""];
+const SLIDE_TITLES = [
+  "Battery",
+  "Gray Water",
+  "Fresh Water",
+  "Toilet",
+  "Fridge",
+  "",
+];
 const ROTATE_MS = 4000;
+const SWIPE_MIN_PX = 45;
 
-function formatSensorValue(value, suffix, decimals = 1) {
-  if (value === null || value === undefined) return "—";
-  return `${Number(value).toFixed(decimals)}${suffix}`;
+function wrapIndex(index) {
+  const n = SLIDES.length;
+  return ((index % n) + n) % n;
 }
 
 /**
@@ -47,10 +56,9 @@ function formatSensorValue(value, suffix, decimals = 1) {
  * @param {boolean} props.cleanWaterDisabled
  * @param {number|null} props.toiletUrineLevel
  * @param {boolean} props.toiletUrineDisabled
- * @param {number|null} props.indoorTemperature
- * @param {number|null} props.indoorHumidity
- * @param {number|null} props.outdoorTemperature
- * @param {boolean} props.sensorsDisabled
+ * @param {Object} [props.fridgeStatus]
+ * @param {boolean} [props.fridgePowerOn]
+ * @param {boolean} [props.fridgeDisabled]
  * @param {Object} [props.doors] - { driver, passenger, sliding, rear }
  * @param {(title: string) => void} [props.onActiveSlideChange]
  */
@@ -74,46 +82,88 @@ export function StatusModalContent({
   cleanWaterDisabled = false,
   toiletUrineLevel,
   toiletUrineDisabled = false,
-  indoorTemperature,
-  indoorHumidity,
-  outdoorTemperature,
-  sensorsDisabled = false,
+  fridgeStatus,
+  fridgePowerOn = false,
+  fridgeDisabled = false,
   doors = DEFAULT_DOORS,
   onActiveSlideChange,
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const rotateTimerRef = useRef(null);
+  const pointerStartRef = useRef(null);
+  const suppressClickUntilRef = useRef(0);
 
+  // Auto-advance; restarts whenever the active slide changes (incl. swipe)
   useEffect(() => {
-    const scheduleNext = () => {
-      rotateTimerRef.current = window.setTimeout(() => {
-        setActiveIndex((index) => (index + 1) % SLIDES.length);
-        scheduleNext();
-      }, ROTATE_MS);
-    };
-
-    scheduleNext();
+    const timerId = window.setTimeout(() => {
+      setActiveIndex((index) => wrapIndex(index + 1));
+    }, ROTATE_MS);
 
     return () => {
-      if (rotateTimerRef.current !== null) {
-        window.clearTimeout(rotateTimerRef.current);
-        rotateTimerRef.current = null;
-      }
+      window.clearTimeout(timerId);
     };
-  }, []);
+  }, [activeIndex]);
 
   useEffect(() => {
     onActiveSlideChange?.(SLIDE_TITLES[activeIndex]);
   }, [activeIndex, onActiveSlideChange]);
+
+  const goRelative = useCallback((delta) => {
+    setActiveIndex((index) => wrapIndex(index + delta));
+  }, []);
+
+  const handlePointerDown = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      id: event.pointerId,
+    };
+  };
+
+  const handlePointerUp = (event) => {
+    const start = pointerStartRef.current;
+    pointerStartRef.current = null;
+    if (!start || start.id !== event.pointerId) {
+      return;
+    }
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy)) {
+      return;
+    }
+    suppressClickUntilRef.current = Date.now() + 450;
+    // Swipe left → next; swipe right → previous
+    goRelative(dx < 0 ? 1 : -1);
+  };
+
+  const handlePointerCancel = () => {
+    pointerStartRef.current = null;
+  };
+
+  const handleClickCapture = (event) => {
+    if (Date.now() < suppressClickUntilRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
 
   const paneClass = (index) =>
     `status-modal__pane${index === activeIndex ? " status-modal__pane--active" : ""}`;
 
   return (
     <div className="status-modal">
-      <div className="status-modal__viewport">
+      <div
+        className="status-modal__viewport"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onClickCapture={handleClickCapture}
+      >
         <div className={paneClass(0)} aria-hidden={activeIndex !== 0}>
           <BatteryModalContent
+            variant="status"
             batteryLevel={batteryLevel}
             nodes={nodes}
             wireAmps={wireAmps}
@@ -150,46 +200,14 @@ export function StatusModalContent({
         <div
           className={paneClass(4)}
           aria-hidden={activeIndex !== 4}
-          aria-label="Time, date, and climate"
+          aria-label="Fridge"
         >
-          <div className="status-modal__overview">
-            <ClockDateCard showCalendar />
-            <div className="status-modal__sensors status-modal__sensors--inline">
-              <div className="status-modal__sensor-item">
-                <i className="fas fa-thermometer-half status-modal__sensor-icon" aria-hidden />
-                <div className="status-modal__sensor-content">
-                  <span className="status-modal__sensor-label">IN</span>
-                  <span className="status-modal__sensor-value">
-                    {sensorsDisabled
-                      ? "—"
-                      : formatSensorValue(indoorTemperature, "°", 1)}
-                  </span>
-                </div>
-              </div>
-              <div className="status-modal__sensor-item">
-                <i className="fas fa-tint status-modal__sensor-icon" aria-hidden />
-                <div className="status-modal__sensor-content">
-                  <span className="status-modal__sensor-label">IN</span>
-                  <span className="status-modal__sensor-value">
-                    {sensorsDisabled
-                      ? "—"
-                      : formatSensorValue(indoorHumidity, "%", 0)}
-                  </span>
-                </div>
-              </div>
-              <div className="status-modal__sensor-item">
-                <i className="fas fa-thermometer-half status-modal__sensor-icon" aria-hidden />
-                <div className="status-modal__sensor-content">
-                  <span className="status-modal__sensor-label">OUT</span>
-                  <span className="status-modal__sensor-value">
-                    {sensorsDisabled
-                      ? "—"
-                      : formatSensorValue(outdoorTemperature, "°", 1)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <FridgeModalContent
+            status={fridgeStatus}
+            powerOn={fridgePowerOn}
+            disabled={fridgeDisabled}
+            readOnly
+          />
         </div>
         <div
           className={paneClass(5)}
@@ -207,14 +225,16 @@ export function StatusModalContent({
       </div>
       <div className="status-modal__dots" role="tablist" aria-label="Status slides">
         {SLIDES.map((slideId, index) => (
-          <span
+          <button
             key={slideId}
+            type="button"
             className={`status-modal__dot${
               index === activeIndex ? " status-modal__dot--active" : ""
             }`}
             role="tab"
             aria-selected={index === activeIndex}
             aria-label={`Slide ${index + 1} of ${SLIDES.length}`}
+            onClick={() => setActiveIndex(index)}
           />
         ))}
       </div>

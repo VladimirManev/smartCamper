@@ -3,6 +3,7 @@
  */
 
 import { WaterTankModalIcon } from "./WaterTankModalIcon";
+import { ModalStatSlots } from "./ModalStatSlots";
 
 /**
  * @param {Object} props
@@ -15,6 +16,11 @@ export function ToiletUrineModalContent({ level, disabled = false }) {
       ? 0
       : Math.min(100, Math.max(0, Number(level)));
 
+  const levelValue =
+    disabled || level === null || level === undefined
+      ? "—"
+      : `${Math.round(level)}%`;
+
   return (
     <div className="gray-water-modal toilet-urine-modal">
       <div className="gray-water-modal-tank-wrap">
@@ -25,16 +31,7 @@ export function ToiletUrineModalContent({ level, disabled = false }) {
           <div className="gray-water-modal-fill" style={{ height: `${pct}%` }} />
         </div>
       </div>
-      <div className="gray-water-modal-stats">
-        <div className="gray-water-modal-stat">
-          <span className="gray-water-modal-stat-label">Level</span>
-          <span className="gray-water-modal-stat-value">
-            {disabled || level === null || level === undefined
-              ? "—"
-              : `${Math.round(level)}%`}
-          </span>
-        </div>
-      </div>
+      <ModalStatSlots items={[{ label: "Level", value: levelValue }]} />
     </div>
   );
 }

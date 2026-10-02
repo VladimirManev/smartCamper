@@ -1081,10 +1081,11 @@ function App() {
           cleanWaterDisabled={!isModule7Online}
           toiletUrineLevel={toiletUrineLevel}
           toiletUrineDisabled={!isModule5Online}
-          indoorTemperature={indoorTemperature}
-          indoorHumidity={indoorHumidity}
-          outdoorTemperature={outdoorTemperature}
-          sensorsDisabled={!isModule1Online}
+          fridgeStatus={fridgeStatus}
+          fridgePowerOn={
+            appliances[APPLIANCE_INDEX.fridge]?.state === "ON"
+          }
+          fridgeDisabled={!isModule6Online}
           doors={doors}
           onActiveSlideChange={handleStatusSlideChange}
         />

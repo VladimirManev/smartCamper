@@ -1,6 +1,6 @@
 /**
- * Icon shown in water tank detail modals (matches main-menu card markers).
- * @param {"gray"|"fresh"|"toilet"} variant
+ * Icon shown in water/battery tank detail modals (matches main-menu card markers).
+ * @param {"gray"|"fresh"|"toilet"|"battery"} variant
  */
 export function WaterTankModalIcon({ variant }) {
   const className = "gray-water-modal-icon water-tank-card-icon";
@@ -11,6 +11,10 @@ export function WaterTankModalIcon({ variant }) {
 
   if (variant === "fresh") {
     return <i className={`fas fa-faucet ${className}`} aria-hidden="true" />;
+  }
+
+  if (variant === "battery") {
+    return <i className={`fas fa-car-battery ${className}`} aria-hidden="true" />;
   }
 
   return (

@@ -1,8 +1,9 @@
 /**
- * Gray water detail inside CardModal: vertical tank fill + large % and temperature.
+ * Gray water detail inside CardModal: vertical tank fill + level and temperature.
  */
 
 import { WaterTankModalIcon } from "./WaterTankModalIcon";
+import { ModalStatSlots } from "./ModalStatSlots";
 
 /**
  * @param {Object} props
@@ -16,6 +17,15 @@ export function GrayWaterModalContent({ level, temperature, disabled = false }) 
       ? 0
       : Math.min(100, Math.max(0, Number(level)));
 
+  const levelValue =
+    disabled || level === null || level === undefined
+      ? "—"
+      : `${Math.round(level)}%`;
+  const tempValue =
+    disabled || temperature === null || temperature === undefined
+      ? "—"
+      : `${Number(temperature).toFixed(1)}°C`;
+
   return (
     <div className="gray-water-modal">
       <div className="gray-water-modal-tank-wrap">
@@ -26,22 +36,12 @@ export function GrayWaterModalContent({ level, temperature, disabled = false }) 
           <div className="gray-water-modal-fill" style={{ height: `${pct}%` }} />
         </div>
       </div>
-      <div className="gray-water-modal-stats">
-        <div className="gray-water-modal-stat">
-          <span className="gray-water-modal-stat-label">Level</span>
-          <span className="gray-water-modal-stat-value">
-            {disabled || level === null || level === undefined ? "—" : `${Math.round(level)}%`}
-          </span>
-        </div>
-        <div className="gray-water-modal-stat">
-          <span className="gray-water-modal-stat-label">Temp</span>
-          <span className="gray-water-modal-stat-value">
-            {disabled || temperature === null || temperature === undefined
-              ? "—"
-              : `${Number(temperature).toFixed(1)}°C`}
-          </span>
-        </div>
-      </div>
+      <ModalStatSlots
+        items={[
+          { label: "Level", value: levelValue },
+          { label: "Temp", value: tempValue },
+        ]}
+      />
     </div>
   );
 }
