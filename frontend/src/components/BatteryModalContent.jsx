@@ -5,7 +5,6 @@
 import { useMemo } from "react";
 import { BatteryEnergyDiagram } from "./BatteryEnergyDiagram";
 import { ModalStatSlots } from "./ModalStatSlots";
-import { WaterTankModalIcon } from "./WaterTankModalIcon";
 import { computeBatteryFlow, getTotalSolarPower } from "../utils/batteryWireAmps";
 
 /**
@@ -62,10 +61,12 @@ export function BatteryModalContent({
 
   if (variant === "status") {
     const showValues = !disabled && !smartShuntOffline;
-    const pct =
-      !showValues || batteryLevel === null || batteryLevel === undefined
-        ? 0
-        : Math.min(100, Math.max(0, Number(batteryLevel)));
+    const hasLevel =
+      showValues && batteryLevel !== null && batteryLevel !== undefined;
+    const pct = hasLevel
+      ? Math.min(100, Math.max(0, Math.round(Number(batteryLevel))))
+      : 0;
+    const levelText = hasLevel ? `${pct}%` : "—";
     const solarText = showValues ? `${totalSolarPower}W` : "—";
     const netAmps = Number(statusFlow?.netAmps) || 0;
     const currentText = showValues ? `${netAmps.toFixed(1)}A` : "—";
@@ -87,7 +88,7 @@ export function BatteryModalContent({
               .join(" ")}
             aria-label={
               showValues
-                ? `Battery ${Math.round(pct)} percent${
+                ? `Battery ${pct} percent, ${currentText}${
                     canOpenHistory ? ". Open SOC history" : ""
                   }`
                 : canOpenHistory
@@ -109,7 +110,12 @@ export function BatteryModalContent({
             }
           >
             <div className="gray-water-modal-overlay">
-              <WaterTankModalIcon variant="battery" />
+              <span
+                className="gray-water-modal-icon gray-water-modal-icon--label battery-modal-status__current"
+                aria-hidden="true"
+              >
+                {currentText}
+              </span>
             </div>
             <div
               className="gray-water-modal-fill"
@@ -121,7 +127,7 @@ export function BatteryModalContent({
         <ModalStatSlots
           ariaLabel="Battery summary"
           items={[
-            { label: "Current", value: currentText },
+            { label: "Level", value: levelText },
             { label: "Solar Power", value: solarText },
           ]}
         />

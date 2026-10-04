@@ -30,6 +30,14 @@ React приложение за управление и мониторинг н�
 - **useFloorHeating** - Управление на подово отопление
 - **useBatterySystem** - Victron snapshot → energy diagram (вкл. AC charger live/stale)
 - **useApplianceController** - Релета на module-5 (уреди)
+- **useFridge** - Fridge BLE status (`fridgeStatusUpdate`) + `fridgeCommand`
+
+### Fridge BLE UI
+
+- `FridgeModalContent` — tap зона → +/− с **1.5 s** debounce; после spinner докато module-6 probe/reconnect-не и статусът потвърди setpoint; при timeout (~8 s) „Connection failed“
+- ECO/MAX със същия pending/confirm поток
+- Status carousel: read-only fridge slide; power OFF → „OFF“ вместо градуси
+- Подробности за BLE стратегията: `esp32-modules/module-6/FRIDGE_BLE.md`
 
 ### Boiler / 230 V
 

@@ -14,9 +14,12 @@ class FridgeManager {
   VictronManager *victronManager;
 
   bool connected;
+  bool everConnected;
   unsigned long lastQueryMs;
   unsigned long lastReconnectAttemptMs;
   unsigned long lastPublishMs;
+  uint32_t statusNotifySeq;
+  uint32_t statusNotifySeqAtQuery;
 
   uint8_t notifyBuf[64];
   size_t notifyLen;
@@ -33,10 +36,14 @@ class FridgeManager {
   bool haveZone2;
 
   bool tryConnect();
+  bool refreshLink(const char *reason);
+  bool ensureWritable();
+  void demoteLink(const char *reason);
   bool enableNotifications();
-  bool writeFridge(const uint8_t *data, size_t len);
+  bool writeFridge(const uint8_t *data, size_t len, bool quietRadio);
   bool sendBind();
-  bool sendQuery();
+  bool sendQuery(bool quietRadio = false);
+  bool sendQueryAndWait(unsigned long waitMs, bool quietRadio);
   bool sendSetTemp(int8_t tempC, uint8_t zoneCmd);
   bool sendSettingsPatch(uint8_t settingsIndex, uint8_t value);
   void parseStatusFrame(const uint8_t *frame, size_t len);

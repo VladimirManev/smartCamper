@@ -434,9 +434,11 @@ static void appendAcChargerJson(JsonDocument &doc) {
 VictronManager::VictronManager(ModuleManager *moduleMgr)
     : commandHandler(&moduleMgr->getMQTTManager(), this, MODULE_ID),
       lastPublishMs(0),
+      scanBlockedUntilMs(0),
       devicesConfigured(false),
       bleInitialized(false),
-      bleScanActive(false) {
+      bleScanActive(false),
+      fridgeGattConnected(false) {
   moduleManager = moduleMgr;
 }
 
@@ -496,7 +498,8 @@ void VictronManager::loop() {
     startBle();
   }
 
-  if (bleInitialized && bleScan != nullptr &&
+  // Honor short quiet windows around fridge commands; otherwise keep normal bursts
+  if (bleInitialized && bleScan != nullptr && nowMs >= scanBlockedUntilMs &&
       nowMs - lastBleScanStartMs >= (BLE_SCAN_BURST_SEC * 1000UL)) {
     // Async burst — start(0, false) blocks forever on ESP32 Arduino BLE 2.x
     if (bleScan->start(BLE_SCAN_BURST_SEC, nullptr, false)) {
@@ -563,5 +566,21 @@ void VictronManager::pauseScan() {
     if (DEBUG_SERIAL) {
       Serial.println("Victron BLE scan paused");
     }
+  }
+}
+
+void VictronManager::blockScanFor(unsigned long durationMs) {
+  pauseScan();
+  const unsigned long until = millis() + durationMs;
+  if (until > scanBlockedUntilMs) {
+    scanBlockedUntilMs = until;
+  }
+}
+
+void VictronManager::setFridgeGattConnected(bool connected) {
+  fridgeGattConnected = connected;
+  if (connected) {
+    // Brief quiet while bind/query settle after connect
+    blockScanFor(FRIDGE_CMD_RADIO_QUIET_MS);
   }
 }

@@ -39,6 +39,9 @@
 #define FRIDGE_BLE_MAC "22:2a:06:a6:f3:48"
 #define FRIDGE_QUERY_INTERVAL_MS 2000
 #define FRIDGE_RECONNECT_INTERVAL_MS 8000
+#define FRIDGE_QUERY_RESPONSE_MS 1800
+// Quiet Victron scan around fridge commands / write-path probe
+#define FRIDGE_CMD_RADIO_QUIET_MS 500
 
 // Optional local GPIO buttons (INPUT_PULLUP, press = pin to GND). Safe if unused.
 #define FRIDGE_BTN_POWER 32

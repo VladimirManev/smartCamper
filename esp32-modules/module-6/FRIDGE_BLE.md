@@ -40,11 +40,31 @@ UI mapping: **Left** = colder = zone2, **Right** = warmer = zone1.
 | MAC | `22:2a:06:a6:f3:48` |
 | Service | `1234` / write `1235` / notify `1236` |
 
+## Link strategy (important)
+
+GATT **connect beeps** on the fridge. Background keep-alive reconnects are therefore forbidden.
+
+| Path | Behavior |
+|------|----------|
+| Status | Long-lived GATT + periodic status query / notify. Readings stay live while notify works. |
+| Commands | On UI/button command, ESP **probes** write path (query must get a notify). If probe fails or there is no GATT → **one** reconnect, then apply setpoint/mode (verify + one retry). |
+| Victron scan | Normal Instant Readout cadence. Paused only around fridge **commands** / write probes (`blockScanFor`), not around every status query. |
+
+`writeValue()` has no success return — a silent write-path death can leave notify working while setpoints/mode no longer stick. On-demand probe + reconnect fixes that without random night-time beeps.
+
+## Frontend UI (`FridgeModalContent`)
+
+- Zone setpoints: tap badge → +/−; **1.5 s** idle debounce (resets on each step) → one absolute `zoneN/set` command.
+- While waiting for BLE probe/reconnect/confirm: **spinner** (“Updating…”).
+- Success when live status matches the pending setpoint/mode; failure after **~8 s** → “Connection failed”, then show current status again.
+- ECO/MAX use the same pending/confirm pattern.
+- Status carousel slide is read-only (temps / OFF when power relay is off).
+
 ## Notes
 
 - One BLE client at a time — close Car Fridge Freezer / nRF Connect.
 - Keep ESP32 within ~1–3 m of the fridge and Victron devices.
-- Optional GPIO test buttons: see `FRIDGE_BTN_*` in `Config.h`.
+- Optional GPIO test buttons: see `FRIDGE_BTN_*` in `Config.h` (also use on-demand `ensureWritable()`).
 
 ## Refs
 

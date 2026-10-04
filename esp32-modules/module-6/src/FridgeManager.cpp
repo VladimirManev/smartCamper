@@ -1,4 +1,8 @@
 // Fridge BLE GATT client — Arduino BLE, shares radio with Victron scan
+//
+// Strategy: keep a long-lived GATT link for status notifies / light queries.
+// Never auto-reconnect in the background (fridge beeps on connect). Before a
+// UI/button command, probe the write path and reconnect only then if needed.
 
 #include "FridgeManager.h"
 
@@ -66,9 +70,12 @@ FridgeManager::FridgeManager(ModuleManager *moduleMgr, VictronManager *victron)
     : moduleManager(moduleMgr),
       victronManager(victron),
       connected(false),
+      everConnected(false),
       lastQueryMs(0),
       lastReconnectAttemptMs(0),
       lastPublishMs(0),
+      statusNotifySeq(0),
+      statusNotifySeqAtQuery(0),
       notifyLen(0),
       lastStatusLen(0),
       haveStatus(false),
@@ -90,6 +97,7 @@ void FridgeManager::begin() {
   if (DEBUG_SERIAL) {
     Serial.println("FridgeManager ready (connects after Victron BLE init)");
     Serial.printf("  MAC %s\n", FRIDGE_BLE_MAC);
+    Serial.println("  Reconnect only on command (no background beeps)");
   }
 }
 
@@ -114,6 +122,8 @@ void FridgeManager::publishStatus() {
   }
 
   StaticJsonDocument<256> doc;
+  // Keep publishing last readings even if write-path probe failed; GATT notify
+  // may still be alive. `connected` means we still have an active client link.
   doc["connected"] = connected && haveStatus;
   doc["mode"] = ecoMode ? "eco" : "max";
   doc["updatedAt"] = millis();
@@ -132,7 +142,7 @@ void FridgeManager::publishStatus() {
     z2["temp"] = temp2C;
     z2["setpoint"] = setpoint2C;
   } else if (haveStatus) {
-    z2["temp"] = setpoint2C; // still publish setpoint if present
+    z2["temp"] = setpoint2C;
     z2["setpoint"] = setpoint2C;
   } else {
     z2["temp"] = nullptr;
@@ -230,36 +240,119 @@ void FridgeManager::parseStatusFrame(const uint8_t *frame, size_t len) {
     haveStatus = true;
   }
 
+  statusNotifySeq++;
   publishStatus();
 }
 
-bool FridgeManager::writeFridge(const uint8_t *data, size_t len) {
-  if (gWriteChar == nullptr || len == 0) {
+void FridgeManager::demoteLink(const char *reason) {
+  Serial.printf("fridge link demoted: %s (no auto-reconnect)\n",
+                reason != nullptr ? reason : "unknown");
+  connected = false;
+  gWriteChar = nullptr;
+  gNotifyChar = nullptr;
+  if (victronManager != nullptr) {
+    victronManager->setFridgeGattConnected(false);
+  }
+  publishStatus();
+}
+
+bool FridgeManager::refreshLink(const char *reason) {
+  Serial.printf("fridge on-demand reconnect: %s\n",
+                reason != nullptr ? reason : "unknown");
+  connected = false;
+  gWriteChar = nullptr;
+  gNotifyChar = nullptr;
+  if (gClient != nullptr && gClient->isConnected()) {
+    gClient->disconnect();
+    delay(200);
+  }
+  if (victronManager != nullptr) {
+    victronManager->setFridgeGattConnected(false);
+  }
+  publishStatus();
+  delay(350);
+  return tryConnect();
+}
+
+bool FridgeManager::writeFridge(const uint8_t *data, size_t len, bool quietRadio) {
+  if (gWriteChar == nullptr || len == 0 || !connected) {
     return false;
   }
-  const bool withResponse = gWriteChar->canWrite();
+  if (quietRadio && victronManager != nullptr) {
+    victronManager->blockScanFor(FRIDGE_CMD_RADIO_QUIET_MS);
+    delay(40);
+  }
+
+  // Prefer write-without-response when available (void API — no success bool).
+  bool withResponse = true;
+  if (gWriteChar->canWriteNoResponse()) {
+    withResponse = false;
+  } else if (!gWriteChar->canWrite()) {
+    return false;
+  }
+
   size_t offset = 0;
   while (offset < len) {
     const size_t chunk = (len - offset > 20) ? 20 : (len - offset);
-    gWriteChar->writeValue(const_cast<uint8_t *>(data + offset), chunk, withResponse);
+    gWriteChar->writeValue(const_cast<uint8_t *>(data + offset), chunk,
+                           withResponse);
     offset += chunk;
     delay(5);
+  }
+
+  if (gClient == nullptr || !gClient->isConnected()) {
+    demoteLink("disconnect during write");
+    return false;
   }
   return true;
 }
 
-bool FridgeManager::sendQuery() {
+bool FridgeManager::sendQuery(bool quietRadio) {
   if (!connected || gWriteChar == nullptr) {
     return false;
   }
   static const uint8_t query[] = {0xFE, 0xFE, 0x03, 0x01, 0x02, 0x00};
   notifyLen = 0;
-  return writeFridge(query, sizeof(query));
+  statusNotifySeqAtQuery = statusNotifySeq;
+  return writeFridge(query, sizeof(query), quietRadio);
+}
+
+bool FridgeManager::sendQueryAndWait(unsigned long waitMs, bool quietRadio) {
+  if (!sendQuery(quietRadio)) {
+    return false;
+  }
+  const unsigned long start = millis();
+  while (millis() - start < waitMs) {
+    delay(10);
+    if (statusNotifySeq != statusNotifySeqAtQuery) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool FridgeManager::ensureWritable() {
+  if (gClient == nullptr || !gClient->isConnected() || !connected ||
+      gWriteChar == nullptr) {
+    Serial.println("fridge ensureWritable: no GATT — connect");
+    if (!tryConnect()) {
+      return false;
+    }
+  }
+
+  // Probe write path: query must produce a notify. Silent write death otherwise
+  // looks "connected" forever while commands do nothing.
+  if (sendQueryAndWait(FRIDGE_QUERY_RESPONSE_MS, true)) {
+    return true;
+  }
+
+  Serial.println("fridge ensureWritable: probe failed — reconnect");
+  return refreshLink("cmd probe");
 }
 
 bool FridgeManager::sendBind() {
   static const uint8_t bindFrame[] = {0xFE, 0xFE, 0x03, 0x00, 0x01, 0xFF};
-  return writeFridge(bindFrame, sizeof(bindFrame));
+  return writeFridge(bindFrame, sizeof(bindFrame), true);
 }
 
 bool FridgeManager::sendSetTemp(int8_t value, uint8_t zoneCmd) {
@@ -280,7 +373,7 @@ bool FridgeManager::sendSetTemp(int8_t value, uint8_t zoneCmd) {
     Serial.printf("fridge TX set z%u %dC\n", zoneCmd == 0x06 ? 2 : 1,
                   static_cast<int>(value));
   }
-  return writeFridge(frame, sizeof(frame));
+  return writeFridge(frame, sizeof(frame), true);
 }
 
 bool FridgeManager::sendSettingsPatch(uint8_t settingsIndex, uint8_t value) {
@@ -310,15 +403,32 @@ bool FridgeManager::sendSettingsPatch(uint8_t settingsIndex, uint8_t value) {
   frame[29] = static_cast<uint8_t>(sum >> 8);
   frame[30] = static_cast<uint8_t>(sum & 0xFF);
 
-  if (!writeFridge(frame, sizeof(frame))) {
-    return false;
-  }
-  delay(200);
-  return sendQuery();
+  return writeFridge(frame, sizeof(frame), true);
 }
 
 bool FridgeManager::setModeEco(bool eco) {
-  return sendSettingsPatch(2, eco ? 0x01 : 0x00);
+  if (!ensureWritable()) {
+    return false;
+  }
+  if (!sendSettingsPatch(2, eco ? 0x01 : 0x00)) {
+    if (!refreshLink("mode write") || !sendSettingsPatch(2, eco ? 0x01 : 0x00)) {
+      return false;
+    }
+  }
+  delay(200);
+  if (sendQueryAndWait(FRIDGE_QUERY_RESPONSE_MS, true) && ecoMode == eco) {
+    return true;
+  }
+  Serial.printf("fridge mode not confirmed (want %s got %s)\n",
+                eco ? "eco" : "max", ecoMode ? "eco" : "max");
+  if (!refreshLink("mode unconfirmed")) {
+    return false;
+  }
+  if (!sendSettingsPatch(2, eco ? 0x01 : 0x00)) {
+    return false;
+  }
+  delay(200);
+  return sendQueryAndWait(FRIDGE_QUERY_RESPONSE_MS, true) && ecoMode == eco;
 }
 
 bool FridgeManager::setModeToggle() {
@@ -326,13 +436,40 @@ bool FridgeManager::setModeToggle() {
 }
 
 bool FridgeManager::setZoneTemp(uint8_t zone, int8_t temp) {
-  if (zone == 1) {
-    return sendSetTemp(temp, 0x05);
+  if (zone != 1 && zone != 2) {
+    return false;
   }
-  if (zone == 2) {
-    return sendSetTemp(temp, 0x06);
+  const uint8_t zoneCmd = (zone == 1) ? 0x05 : 0x06;
+
+  if (!ensureWritable()) {
+    return false;
   }
-  return false;
+  if (!sendSetTemp(temp, zoneCmd)) {
+    if (!refreshLink("setTemp write") || !sendSetTemp(temp, zoneCmd)) {
+      return false;
+    }
+  }
+  delay(200);
+  if (sendQueryAndWait(FRIDGE_QUERY_RESPONSE_MS, true)) {
+    const int8_t got = (zone == 1) ? setpointC : setpoint2C;
+    if (got == temp) {
+      return true;
+    }
+    Serial.printf("fridge set not confirmed z%u want %d got %d\n", zone,
+                  static_cast<int>(temp), static_cast<int>(got));
+  } else {
+    Serial.println("fridge set: no status after command");
+  }
+
+  if (!refreshLink("setTemp unconfirmed") || !sendSetTemp(temp, zoneCmd)) {
+    return false;
+  }
+  delay(200);
+  if (!sendQueryAndWait(FRIDGE_QUERY_RESPONSE_MS, true)) {
+    return false;
+  }
+  const int8_t got = (zone == 1) ? setpointC : setpoint2C;
+  return got == temp;
 }
 
 bool FridgeManager::enableNotifications() {
@@ -354,8 +491,8 @@ bool FridgeManager::tryConnect() {
   }
 
   Serial.printf("fridge connecting %s...\n", FRIDGE_BLE_MAC);
-  victronManager->pauseScan();
-  delay(100);
+  victronManager->blockScanFor(FRIDGE_CMD_RADIO_QUIET_MS * 3);
+  delay(120);
 
   if (gClient == nullptr) {
     gClient = BLEDevice::createClient();
@@ -369,6 +506,7 @@ bool FridgeManager::tryConnect() {
   if (!gClient->connect(addr)) {
     Serial.println("fridge connect failed");
     connected = false;
+    victronManager->setFridgeGattConnected(false);
     publishStatus();
     return false;
   }
@@ -377,6 +515,7 @@ bool FridgeManager::tryConnect() {
   if (service == nullptr) {
     Serial.println("fridge service 1234 missing");
     gClient->disconnect();
+    victronManager->setFridgeGattConnected(false);
     return false;
   }
 
@@ -385,54 +524,69 @@ bool FridgeManager::tryConnect() {
   if (gWriteChar == nullptr || gNotifyChar == nullptr || !gNotifyChar->canNotify()) {
     Serial.println("fridge chars missing");
     gClient->disconnect();
+    victronManager->setFridgeGattConnected(false);
     return false;
   }
 
   if (!enableNotifications()) {
     gClient->disconnect();
+    victronManager->setFridgeGattConnected(false);
     return false;
   }
 
   delay(200);
   connected = true;
+  everConnected = true;
+  victronManager->setFridgeGattConnected(true);
   sendBind();
-  delay(100);
-  sendQuery();
+  delay(250);
+  sendQuery(true);
   lastQueryMs = millis();
   Serial.println("fridge connected");
   return true;
 }
 
 void FridgeManager::handleButtons() {
-  if (!connected) {
-    return;
-  }
   if (pollButton(gBtnPower)) {
-    // Local test only — UI power stays on module-5 relay
+    if (!ensureWritable()) {
+      return;
+    }
     sendSettingsPatch(1, powerOn ? 0x00 : 0x01);
   }
   if (pollButton(gBtnUp)) {
+    if (!ensureWritable()) {
+      return;
+    }
     if (sendSetTemp(static_cast<int8_t>(setpointC + 1), 0x05)) {
       delay(150);
-      sendQuery();
+      sendQuery(true);
     }
   }
   if (pollButton(gBtnDown)) {
+    if (!ensureWritable()) {
+      return;
+    }
     if (sendSetTemp(static_cast<int8_t>(setpointC - 1), 0x05)) {
       delay(150);
-      sendQuery();
+      sendQuery(true);
     }
   }
   if (pollButton(gBtnUp2)) {
+    if (!ensureWritable()) {
+      return;
+    }
     if (sendSetTemp(static_cast<int8_t>(setpoint2C + 1), 0x06)) {
       delay(150);
-      sendQuery();
+      sendQuery(true);
     }
   }
   if (pollButton(gBtnDown2)) {
+    if (!ensureWritable()) {
+      return;
+    }
     if (sendSetTemp(static_cast<int8_t>(setpoint2C - 1), 0x06)) {
       delay(150);
-      sendQuery();
+      sendQuery(true);
     }
   }
 }
@@ -445,25 +599,21 @@ void FridgeManager::loop() {
 
   if (connected) {
     if (gClient == nullptr || !gClient->isConnected()) {
-      Serial.println("fridge link lost");
-      connected = false;
-      gWriteChar = nullptr;
-      gNotifyChar = nullptr;
-      publishStatus();
+      demoteLink("GATT disconnect");
       return;
     }
+
+    // Status queries only — never reconnect here (would beep at night)
     if (millis() - lastQueryMs >= FRIDGE_QUERY_INTERVAL_MS) {
-      if (sendQuery()) {
-        lastQueryMs = millis();
-      } else {
-        connected = false;
-        publishStatus();
-      }
+      sendQuery(false);
+      lastQueryMs = millis();
     }
     return;
   }
 
-  if (victronManager != nullptr && victronManager->isBleReady() &&
+  // Boot / first link only. After that, reconnect solely from ensureWritable().
+  if (!everConnected && victronManager != nullptr &&
+      victronManager->isBleReady() &&
       millis() - lastReconnectAttemptMs >= FRIDGE_RECONNECT_INTERVAL_MS) {
     lastReconnectAttemptMs = millis();
     tryConnect();

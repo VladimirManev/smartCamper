@@ -2562,6 +2562,12 @@ body {
   opacity: 0.92;
 }
 
+.battery-modal-status__current {
+  font-size: 1.28rem;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
 .gray-water-modal-tank--clickable {
   cursor: pointer;
 }
@@ -6094,6 +6100,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   width: 100%;
   max-width: 21rem;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .fridge-ble-modal__photo {
@@ -6209,6 +6216,53 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   justify-content: center;
   gap: 1.9rem;
   transform: translate(-50%, -50%);
+}
+
+.fridge-ble-modal__sync {
+  position: absolute;
+  left: 50%;
+  top: calc(48% + 100px);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 8.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: rgba(20, 24, 32, 0.82);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.fridge-ble-modal__sync--error {
+  background: rgba(80, 28, 28, 0.88);
+}
+
+.fridge-ble-modal__sync-text {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  color: #fff;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.fridge-ble-modal__spinner {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  animation: fridge-ble-spin 0.75s linear infinite;
+}
+
+@keyframes fridge-ble-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .fridge-ble-modal__overlay--inactive {

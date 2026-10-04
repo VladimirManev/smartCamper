@@ -23,9 +23,11 @@ class VictronManager {
   CommandHandler commandHandler;
 
   unsigned long lastPublishMs;
+  unsigned long scanBlockedUntilMs;
   bool devicesConfigured;
   bool bleInitialized;
   bool bleScanActive;
+  bool fridgeGattConnected;
 
   void startBle();
 
@@ -42,7 +44,12 @@ class VictronManager {
   void printStatus() const;
 
   bool isBleReady() const { return bleInitialized; }
-  void pauseScan(); // stop scan before fridge GATT connect
+  void pauseScan(); // stop scan immediately
+  /** Stop scan and keep it from restarting until millis() passes. */
+  void blockScanFor(unsigned long durationMs);
+  /** Fridge GATT up — brief quiet after connect; scan cadence stays normal. */
+  void setFridgeGattConnected(bool connected);
+  bool isFridgeGattConnected() const { return fridgeGattConnected; }
 };
 
 #endif

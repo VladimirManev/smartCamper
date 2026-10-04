@@ -34,7 +34,7 @@ ESP32 module for controlling six appliances via relays (Audio System, Water Pump
 
 ### Refrigerator power vs BLE
 
-Relay **2** switches fridge mains/12 V power. ECO/MAX and zone setpoints are controlled over BLE by **module-6** (see `../module-6/FRIDGE_BLE.md`). UI: Fridge card tap opens BLE modal; long-press toggles this relay.
+Relay **2** switches fridge mains/12 V power. ECO/MAX and zone setpoints are controlled over BLE by **module-6** (see `../module-6/FRIDGE_BLE.md` — on-demand GATT reconnect before commands; UI spinner while confirming). UI: Fridge card tap opens BLE modal; long-press toggles this relay.
 | **3** | WC Fan       | 23        | 25         | WC fan control       |
 | **4** | Boiler       | 27        | 26         | Boiler control       |
 | **5** | Inverter     | 32        | 33         | Inverter control     |

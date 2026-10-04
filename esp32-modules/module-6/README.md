@@ -216,9 +216,9 @@ mosquitto_pub -h 192.168.4.1 -t 'smartcamper/commands/module-6/force_update' -m 
 ## Architecture
 
 - **ModuleManager**: WiFi, MQTT, heartbeat, commands
-- **VictronManager**: BLE scan, per-device cache, JSON publish timer (`pauseScan` during fridge GATT connect)
+- **VictronManager**: BLE scan, per-device cache, JSON publish timer (`blockScanFor` only around fridge commands / write probes)
 - **VictronBleParser**: AES-128-CTR decrypt + Victron record parsers
-- **FridgeManager**: Alpicool GATT client (service `1234`), status publish, mode/zone commands
+- **FridgeManager**: Alpicool GATT (service `1234`); long-lived status link; **on-demand** reconnect only before commands (fridge beeps on connect — see `FRIDGE_BLE.md`)
 - **CommandHandler**: `force_update` + fridge MQTT commands
 
 ## Debug Flags (`src/Config.h`)
