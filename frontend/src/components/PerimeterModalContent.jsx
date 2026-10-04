@@ -3,6 +3,7 @@
  */
 
 import { useCallback, useEffect, useId, useState } from "react";
+import camperBirthView from "../assets/camper_birth_view.png";
 import { getThemeColor } from "../utils/getThemeColor";
 
 /**
@@ -18,7 +19,6 @@ const ZONES = [
 ];
 
 const MOTION_CLEAR_MS = 5 * 60 * 1000;
-const CAMPER_IMAGE = "/camper_birth_view.png";
 
 /**
  * Bucket age for perimeter labels (short, delicate).
@@ -192,7 +192,7 @@ export function PerimeterModalContent({
 
             <img
               className="perimeter-modal__van-img"
-              src={CAMPER_IMAGE}
+              src={camperBirthView}
               alt=""
               draggable={false}
             />

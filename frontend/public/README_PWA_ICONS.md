@@ -1,13 +1,18 @@
-# PWA Icons
+# PWA / static icons (`public/`)
 
-За да работи PWA правилно, трябва да създадеш следните PNG икони в `public` папката:
+`public/` holds only files that must be available at a fixed root URL
+(PWA manifest, favicon, Apple touch icon). App UI images live in `src/assets/`
+and are imported from components.
 
-- `pwa-192x192.png` - 192x192 пиксела
-- `pwa-512x512.png` - 512x512 пиксела
-- `apple-touch-icon.png` - 180x180 пиксела (за iOS)
+For proper PWA support, add these PNG icons here:
 
-Можеш да използваш онлайн инструменти като:
+- `pwa-192x192.png` - 192x192
+- `pwa-512x512.png` - 512x512
+- `apple-touch-icon.png` - 180x180 (iOS)
+
+Tools:
+
 - https://realfavicongenerator.net/
 - https://www.pwabuilder.com/imageGenerator
 
-Или да конвертираш `icon.svg` в PNG с инструменти като ImageMagick или онлайн конвертори.
+Or convert `icon.svg` with ImageMagick / an online converter.

@@ -3,7 +3,7 @@
  * Shared by alarm idle and status overview.
  */
 
-const CAMPER_IMAGE = "/camper_birth_view.png";
+import camperBirthView from "../assets/camper_birth_view.png";
 
 /**
  * Door marker positions as % of the van layer (image rotated -90°: nose up).
@@ -62,7 +62,7 @@ export function CamperDoorsStage({
         ))}
         <img
           className="perimeter-modal__van-img"
-          src={CAMPER_IMAGE}
+          src={camperBirthView}
           alt="Camper"
           draggable={false}
         />

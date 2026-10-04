@@ -34,7 +34,7 @@ export const LevelingGroupCard = ({ name, onClick, disabled = false }) => {
   // Generate unique gradient ID based on name
   const gradientId = `gradient-${name.toLowerCase().replace(/\s+/g, "-")}-leveling-group`;
 
-  // Leveling icon (from leveling.svg - converted to use currentColor)
+  // Leveling icon SVG
   // Added small arrows under the two circles (wheels) pointing up
   const levelingIcon = (
     <svg viewBox="0 0 239 239" fill="none" xmlns="http://www.w3.org/2000/svg">

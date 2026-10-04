@@ -42,7 +42,7 @@ export const LEDGroupCard = ({
   // Generate unique gradient ID based on name
   const gradientId = `gradient-${name.toLowerCase().replace(/\s+/g, "-")}-group`;
 
-  // Lamp icon SVG (from lamp.svg - converted to use currentColor)
+  // Lamp icon SVG
   const lampIcon = (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12.0001 7.88989L10.9301 9.74989C10.6901 10.1599 10.8901 10.4999 11.3601 10.4999H12.6301C13.1101 10.4999 13.3001 10.8399 13.0601 11.2499L12.0001 13.1099" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
