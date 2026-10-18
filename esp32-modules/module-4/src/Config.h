@@ -33,22 +33,37 @@
 #define NUM_DAMPERS 5 // Number of dampers
 
 // Servo motor pins for each damper (array indices match damper indices)
-#define DAMPER_0_SERVO_PIN 26  // GPIO pin for damper 0 servo signal (Yellow/Orange wire) - changed from GPIO 2 (reserved for LED)
-#define DAMPER_0_BUTTON_PIN 4 // GPIO pin for damper 0 toggle button
-#define DAMPER_1_SERVO_PIN 5  // GPIO pin for damper 1 servo signal
-#define DAMPER_1_BUTTON_PIN 16 // GPIO pin for damper 1 toggle button
-#define DAMPER_2_SERVO_PIN 12 // GPIO pin for damper 2 servo signal
-#define DAMPER_2_BUTTON_PIN 17 // GPIO pin for damper 2 toggle button
-#define DAMPER_3_SERVO_PIN 13 // GPIO pin for damper 3 servo signal
-#define DAMPER_3_BUTTON_PIN 18 // GPIO pin for damper 3 toggle button
-#define DAMPER_4_SERVO_PIN 14 // GPIO pin for damper 4 servo signal
-#define DAMPER_4_BUTTON_PIN 19 // GPIO pin for damper 4 toggle button
+#define DAMPER_0_SERVO_PIN 26
+#define DAMPER_0_BUTTON_PIN 4
+#define DAMPER_1_SERVO_PIN 5
+#define DAMPER_1_BUTTON_PIN 16
+#define DAMPER_2_SERVO_PIN 12
+#define DAMPER_2_BUTTON_PIN 17
+#define DAMPER_3_SERVO_PIN 13
+#define DAMPER_3_BUTTON_PIN 18
+#define DAMPER_4_SERVO_PIN 14
+#define DAMPER_4_BUTTON_PIN 19
 
-// Table (lift) configuration
-#define TABLE_RELAY_UP_PIN 21   // GPIO pin for table relay up (NO contact -> +)
-#define TABLE_RELAY_DOWN_PIN 22 // GPIO pin for table relay down (NO contact -> +)
-#define TABLE_BUTTON_UP_PIN 23  // GPIO pin for table button up (INPUT_PULLUP)
-#define TABLE_BUTTON_DOWN_PIN 25 // GPIO pin for table button down (INPUT_PULLUP)
+// Table (lift) configuration — unchanged (keep existing wiring)
+#define TABLE_RELAY_UP_PIN 21
+#define TABLE_RELAY_DOWN_PIN 22
+#define TABLE_BUTTON_UP_PIN 23
+#define TABLE_BUTTON_DOWN_PIN 25
+
+// Autoterm Air 2D UART bridge (via ADuM1201) — all on DevKit left header (USB at bottom)
+// 34 is input-only (fine for RX). Transparent bridge only — no inject/MQTT yet.
+#define AUTOTERM_BAUD 9600
+#define AUTOTERM_SERIAL_CONFIG SERIAL_8N1
+#define AUTOTERM_INVERT_UART false
+#define AUTOTERM_RX_PULLUP true
+#define AUTOTERM_PANEL_RX_PIN 34   // Comfort Control → ESP (left, input-only)
+#define AUTOTERM_PANEL_TX_PIN 27   // ESP → Comfort Control
+#define AUTOTERM_HEATER_RX_PIN 32  // Air 2D ECU → ESP
+#define AUTOTERM_HEATER_TX_PIN 33  // ESP → Air 2D ECU
+#define AUTOTERM_RX_BUFFER_BYTES 2048
+#define AUTOTERM_TX_BUFFER_BYTES 512
+// USB decode log of PANEL:/HEATER: frames (noisy ~1 Hz). Keep false in production.
+#define AUTOTERM_LOG_DECODE false
 
 // Table timing settings
 #define TABLE_DOUBLE_CLICK_TIMEOUT 500  // ms - max time between clicks for double-click detection

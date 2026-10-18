@@ -1,243 +1,211 @@
-# Module-4: Heating Control - Damper & Table Management
+# Module-4: Heating Control — Dampers, Table & Autoterm UART
 
-ESP32 module for controlling heating system dampers (air vents) with servo motors and table lift control.
+ESP32 module for air-distribution dampers, table lift, and (planned) Autoterm Air 2D serial bridge on the same board — one Wi‑Fi client on the Pi SoftAP.
 
 ## Overview
 
-Module 4 controls:
-
-- **Air distribution dampers** using servo motors (SG90). Each damper can be positioned at three angles: 0° (closed), 45° (half-open), or 90° (open). Dampers can be controlled via MQTT commands from the backend or via physical toggle buttons.
-- **Table lift** using two relays (up/down) and physical buttons. Table can be controlled via MQTT commands or physical buttons with hold-to-move and double-click auto-movement modes.
+- **Dampers** — 5× SG90 servos + toggle buttons. Angles 0° / 45° / 90° via MQTT or local buttons (works offline).
+- **Table lift** — 2 relays (up/down) + 2 buttons. Hold-to-move, double-click auto-move, MQTT commands.
+- **Autoterm Air 2D** — UART bridge on GPIO **34 / 27 / 32 / 33** plus MQTT by-power control (start / set_power / stop). Thermostat and vent modes are observe-only (STOP allowed).
 
 ## Hardware Configuration
 
 ### Pin Assignment
 
-| Component             | Pin | Type   | Description                                                   |
-| --------------------- | --- | ------ | ------------------------------------------------------------- |
-| **Servo Motor 0**     | 26  | Output | SG90 servo signal for Damper 0 - Front (Yellow/Orange wire) |
-| **Button 0**          | 4   | Input  | Toggle button for Damper 0 - Front (INPUT_PULLUP)             |
-| **Servo Motor 1**     | 5   | Output | SG90 servo signal for Damper 1 - Rear (Yellow/Orange wire)    |
-| **Button 1**          | 16  | Input  | Toggle button for Damper 1 - Rear (INPUT_PULLUP)              |
-| **Servo Motor 2**     | 12  | Output | SG90 servo signal for Damper 2 - Bath (Yellow/Orange wire)    |
-| **Button 2**          | 17  | Input  | Toggle button for Damper 2 - Bath (INPUT_PULLUP)              |
-| **Servo Motor 3**     | 13  | Output | SG90 servo signal for Damper 3 - Shoes (Yellow/Orange wire)   |
-| **Button 3**          | 18  | Input  | Toggle button for Damper 3 - Shoes (INPUT_PULLUP)             |
-| **Servo Motor 4**     | 14  | Output | SG90 servo signal for Damper 4 - Cockpit (Yellow/Orange wire) |
-| **Button 4**          | 19  | Input  | Toggle button for Damper 4 - Cockpit (INPUT_PULLUP)           |
-| **Table Relay Up**    | 21  | Output | Relay for table lift up movement (NO contact -> +)            |
-| **Table Relay Down**  | 22  | Output | Relay for table lift down movement (NO contact -> +)          |
-| **Table Button Up**   | 23  | Input  | Button for table up movement (INPUT_PULLUP)                   |
-| **Table Button Down** | 25  | Input  | Button for table down movement (INPUT_PULLUP)                 |
+Classic ESP32 DevKit (USB at bottom). Damper/table pins unchanged from the previous install.
+
+| Component              | Pin | Type   | Notes |
+| ---------------------- | --- | ------ | ----- |
+| Damper 0 servo (Front) | 26  | Output | SG90 signal |
+| Damper 0 button        | 4   | Input  | INPUT_PULLUP |
+| Damper 1 servo (Rear)  | 5   | Output | |
+| Damper 1 button        | 16  | Input  | |
+| Damper 2 servo (Bath)  | 12  | Output | |
+| Damper 2 button        | 17  | Input  | |
+| Damper 3 servo (Shoes) | 13  | Output | |
+| Damper 3 button        | 18  | Input  | |
+| Damper 4 servo (Cockpit)| 14 | Output | |
+| Damper 4 button        | 19  | Input  | |
+| Table relay up         | 21  | Output | NO → + |
+| Table relay down       | 22  | Output | NO → + |
+| Table button up        | 23  | Input  | INPUT_PULLUP |
+| Table button down      | 25  | Input  | INPUT_PULLUP |
+| Autoterm panel RX      | 34  | Input  | Left header, input-only |
+| Autoterm panel TX      | 27  | Output | Left header |
+| Autoterm heater RX     | 32  | Input  | Left header |
+| Autoterm heater TX     | 33  | Output | Left header |
+
+Defines in `src/Config.h`: `DAMPER_*`, `TABLE_*`, `AUTOTERM_*`.
 
 ### Damper Names
 
-| Damper Index | Name    | Location     |
-| ------------ | ------- | ------------ |
-| 0            | Front   | Front area   |
-| 1            | Rear    | Rear area    |
-| 2            | Bath    | Bathroom     |
-| 3            | Shoes   | Shoe cabinet |
-| 4            | Cockpit | Driver cabin |
+| Index | Name    | Location     |
+| ----- | ------- | ------------ |
+| 0     | Front   | Front area   |
+| 1     | Rear    | Rear area    |
+| 2     | Bath    | Bathroom     |
+| 3     | Shoes   | Shoe cabinet |
+| 4     | Cockpit | Driver cabin |
 
-### Servo Motor Wiring (SG90)
+### Servo Wiring (SG90)
 
-- **Red wire** → 5V on ESP32
-- **Brown/Black wire** → GND on ESP32
-- **Yellow/Orange wire** → GPIO pin (signal)
+- Red → 5V
+- Brown/Black → GND
+- Yellow/Orange → servo GPIO
 
 ### Button Wiring
 
-- One terminal → GPIO pin
-- Other terminal → GND
-- Internal pull-up resistor enabled (INPUT_PULLUP)
+- One side → GPIO, other → GND, `INPUT_PULLUP` on the ESP.
+
+### Autoterm UART (ADuM1201)
+
+Direct panel↔heater TX/RX wires are cut. ESP reconnects them through two ADuM1201 isolators. Same layout as the lab sniffer (validated: bridge + vent inject).
+
+```
+Comfort Control TX ---- ADuM#1 VIA (7) ---- VOA (2) ---- ESP32 GPIO 34 RX
+Comfort Control RX ---- ADuM#1 VOB (6) ---- VIB (3) ---- ESP32 GPIO 27 TX
+
+Air 2D TX ------------- ADuM#2 VIA (7) ---- VOA (2) ---- ESP32 GPIO 32 RX
+Air 2D RX ------------- ADuM#2 VOB (6) ---- VIB (3) ---- ESP32 GPIO 33 TX
+```
+
+| Port   | UART  | RX | TX |
+| ------ | ----- | -- | -- |
+| Panel  | UART1 | 34 | 27 |
+| Heater | UART2 | 32 | 33 |
+
+- Baud: **9600 8N1** (`AUTOTERM_BAUD`)
+- Panel/heater supply stay on their own +12 V / GND
+- ADuM: VDD1 = 3.3 V (ESP), VDD2 = ~5 V, common GND with ESP (or isolated VDD2 if you use that scheme)
+- Fuel pump / fan / glow plug / safety stay in the original ECU
+- MQTT status: `smartcamper/sensors/module-4/autoterm/status`
+- MQTT commands: `.../autoterm/start|set_power|stop` (by-power only; STOP always)
+- Optional USB decode log: `AUTOTERM_LOG_DECODE` in `Config.h`
 
 ## Architecture
 
-- **ModuleManager**: Handles common infrastructure (Network, MQTT, Heartbeat, Commands)
-- **DamperManager**: Coordinates all damper controllers
-- **DamperController**: Controls a single damper (servo + button)
-- **ServoController**: Reusable servo motor control class
-- **TableManager**: Coordinates table lift controller
-- **TableController**: Controls table lift (relays + buttons)
-- **SensorManager**: Coordinates all components
-- **CommandHandler**: Handles MQTT commands from backend
-- **NetworkManager**: WiFi connection management
-- **MQTTManager**: MQTT broker communication
-- **HeartbeatManager**: Module status reporting
+- **ModuleManager** — Network, MQTT, Heartbeat, Commands
+- **DamperManager** / **DamperController** / **ServoController**
+- **TableManager** / **TableController**
+- **SensorManager** — coordinates dampers + table
+- **CommandHandler**, **NetworkManager**, **MQTTManager**, **HeartbeatManager**
+- **AutotermBridge** — panel ↔ heater bridge, status parse, by-power inject
 
 ## Configuration
 
-Edit `src/Config.h` to configure:
+Edit `src/Config.h`:
 
-- WiFi credentials
-- MQTT broker IP and port
-- Number of dampers: `NUM_DAMPERS` (currently 5)
-- Servo pins: `DAMPER_0_SERVO_PIN` through `DAMPER_4_SERVO_PIN`
-- Button pins: `DAMPER_0_BUTTON_PIN` through `DAMPER_4_BUTTON_PIN`
-- Table relay pins: `TABLE_RELAY_UP_PIN` (21), `TABLE_RELAY_DOWN_PIN` (22)
-- Table button pins: `TABLE_BUTTON_UP_PIN` (23), `TABLE_BUTTON_DOWN_PIN` (25)
-- Table timing: `TABLE_DOUBLE_CLICK_TIMEOUT` (500ms), `TABLE_AUTO_MOVE_DURATION` (5000ms), `TABLE_START_DELAY` (600ms)
+- WiFi / MQTT broker
+- `NUM_DAMPERS` (5)
+- Damper servo/button pins
+- Table relay/button pins and timing:
+  - `TABLE_DOUBLE_CLICK_TIMEOUT` — 500 ms
+  - `TABLE_AUTO_MOVE_DURATION` — **20000 ms** (double-click / auto move)
+  - `TABLE_START_DELAY` — 600 ms
+- Autoterm: `AUTOTERM_PANEL_RX_PIN` 34, `AUTOTERM_PANEL_TX_PIN` 27, `AUTOTERM_HEATER_RX_PIN` 32, `AUTOTERM_HEATER_TX_PIN` 33, `AUTOTERM_BAUD` 9600
 
 ## Building and Uploading
 
-1. Install PlatformIO
-2. Open the project in PlatformIO
-3. Build: `pio run`
-4. Upload: `pio run --target upload`
-5. Monitor: `pio device monitor`
+```bash
+cd esp32-modules/module-4
+pio run -t upload
+pio device monitor
+```
 
 ## MQTT Topics
 
 ### Published (Status)
 
-| Topic                                               | Message Format                         | Update Frequency                                  |
-| --------------------------------------------------- | -------------------------------------- | ------------------------------------------------- |
-| `smartcamper/sensors/module-4/damper/{index}/angle` | `{"angle": 45}`                        | On change (when servo reaches target)             |
-| `smartcamper/sensors/module-4/table/direction`      | `{"direction":"up","autoMoving":true}` | On change (direction: "up", "down", or "stopped") |
+| Topic | Message | When |
+| ----- | ------- | ---- |
+| `smartcamper/sensors/module-4/damper/{index}/angle` | `{"angle": 45}` | When servo reaches target |
+| `smartcamper/sensors/module-4/table/direction` | `{"direction":"up","autoMoving":true}` | On change (`up` / `down` / `stopped`) |
+| `smartcamper/sensors/module-4/autoterm/status` | `{"state":"running","mode":"by-power","power":5,"errorCode":0,"heaterTemp":45,"battery":13.4,"controlLocked":false}` | On change; `error` string when `errorCode` ≠ 0 |
 
 ### Subscribed (Commands)
 
-| Topic                                                    | Payload                                                       | Action                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `smartcamper/commands/module-4/damper/{index}/set_angle` | `{"type":"damper","index":0,"action":"set_angle","angle":45}` | Set damper angle (0-180°). Index: 0-4 (Front, Rear, Bath, Shoes, Cockpit) |
-| `smartcamper/commands/module-4/table/move_up`            | `{"type":"table","action":"move_up"}`                         | Start manual upward movement (hold-to-move)                               |
-| `smartcamper/commands/module-4/table/move_down`          | `{"type":"table","action":"move_down"}`                       | Start manual downward movement (hold-to-move)                             |
-| `smartcamper/commands/module-4/table/stop`               | `{"type":"table","action":"stop"}`                            | Stop table movement                                                       |
-| `smartcamper/commands/module-4/table/move_up_auto`       | `{"type":"table","action":"move_up_auto","duration":5000}`    | Auto move up for duration (default 5000ms)                                |
-| `smartcamper/commands/module-4/table/move_down_auto`     | `{"type":"table","action":"move_down_auto","duration":5000}`  | Auto move down for duration (default 5000ms)                              |
-| `smartcamper/commands/module-4/force_update`             | `{}`                                                          | Force publish all damper and table statuses                               |
+| Topic | Payload | Action |
+| ----- | ------- | ------ |
+| `smartcamper/commands/module-4/damper/{index}/set_angle` | `{"type":"damper","index":0,"action":"set_angle","angle":45}` | Set angle 0–180°, index 0–4 |
+| `smartcamper/commands/module-4/table/move_up` | `{"type":"table","action":"move_up"}` | Hold-to-move up |
+| `smartcamper/commands/module-4/table/move_down` | `{"type":"table","action":"move_down"}` | Hold-to-move down |
+| `smartcamper/commands/module-4/table/stop` | `{"type":"table","action":"stop"}` | Stop |
+| `smartcamper/commands/module-4/table/move_up_auto` | `{"type":"table","action":"move_up_auto"}` | Auto up for `TABLE_AUTO_MOVE_DURATION` (20 s) |
+| `smartcamper/commands/module-4/table/move_down_auto` | `{"type":"table","action":"move_down_auto"}` | Auto down for 20 s |
+| `smartcamper/commands/module-4/autoterm/start` | `{"type":"autoterm","action":"start","power":5}` | START by-power (refused if vent/thermostat active) |
+| `smartcamper/commands/module-4/autoterm/set_power` | `{"type":"autoterm","action":"set_power","power":7}` | Change power while by-power running |
+| `smartcamper/commands/module-4/autoterm/stop` | `{"type":"autoterm","action":"stop"}` | STOP (any mode) |
+| `smartcamper/commands/module-4/force_update` | `{}` | Republish damper + table + autoterm status |
 
 ### Heartbeat
 
-| Topic                            | Message Format                                                                | Update Frequency |
-| -------------------------------- | ----------------------------------------------------------------------------- | ---------------- |
-| `smartcamper/heartbeat/module-4` | `{"timestamp":1234567890,"moduleId":"module-4","uptime":3600,"wifiRSSI":-65}` | Every 10 seconds |
+| Topic | Message | Interval |
+| ----- | ------- | -------- |
+| `smartcamper/heartbeat/module-4` | `{"timestamp":…,"moduleId":"module-4","uptime":…,"wifiRSSI":…}` | 10 s |
 
-## Operation
+## Damper Operation
 
-### Button Control
-
-- **Click**: Cycles through positions: 0° → 45° → 90° → 0°
-- **Debouncing**: 50ms delay to prevent multiple triggers
-- **Offline operation**: Button works even without WiFi/MQTT connection
-
-### Servo Movement
-
-- **Smooth movement**: 2-3 seconds for 0-90° rotation
-- **Step size**: 5° per step
-- **Step delay**: 150ms between steps
-- **Angle range**: 0-180° (validated)
-
-### Position States
-
-- **0° (Closed)**: Damper blade vertical - blocks air flow
-- **45° (Half-open)**: Damper blade at 45° - partial air flow
-- **90° (Open)**: Damper blade horizontal - full air flow
+- **Button click** — cycle 0° → 45° → 90° → 0° (50 ms debounce, works offline)
+- **Servo** — smooth move (~2–3 s for 0–90°), 5° steps / 150 ms, range 0–180°
+- **Positions** — 0° closed, 45° half, 90° open
+- **Safety** — at least one damper at 90°, or at least two at ≥45°, before closing further
 
 ## Table Lift Control
 
-### Physical Button Control
+### Physical buttons
 
-- **Hold button**: Manual movement - table moves while button is held, stops when released
-- **Double-click**: Auto movement - double-click within 500ms triggers automatic movement for 5 seconds
-- **Safety**: Pressing any button during auto movement immediately stops it
-- **Debouncing**: 50ms delay to prevent multiple triggers
-- **Start delay**: 600ms delay before starting movement (allows double-click detection)
-- **Offline operation**: Buttons work even without WiFi/MQTT connection
+- **Hold** — move while held
+- **Double-click** (within 500 ms) — auto move for **20 s** (`TABLE_AUTO_MOVE_DURATION`)
+- Any button during auto-move stops immediately
+- 600 ms start delay (double-click window), 50 ms debounce
+- Works offline
 
-### Frontend Control
+### Frontend / MQTT
 
-- **Single click/touch**: Triggers automatic movement (5 seconds) - simplified interface for touch screens
-- **During auto movement**: Clicking any button stops the movement immediately
-- **Visual feedback**: Button shows bright blue glow when table is moving
-
-### MQTT Commands
-
-- **move_up**: Manual upward movement (hold-to-move mode)
-- **move_down**: Manual downward movement (hold-to-move mode)
-- **stop**: Stop any movement
-- **move_up_auto**: Automatic upward movement for specified duration (default 5000ms)
-- **move_down_auto**: Automatic downward movement for specified duration (default 5000ms)
-
-### Safety Features
-
-- **Mutual exclusion**: Up and down relays cannot be active simultaneously
-- **Auto-stop protection**: Any button press during auto movement stops it immediately
-- **Command validation**: Invalid commands are ignored
+- UI single click → auto move (20 s); click again → stop
+- `move_up` / `move_down` = hold-to-move; `*_auto` = timed; `stop` = halt
+- Up and down relays never active together
 
 ## Installation & Setup
 
-1. **Upload firmware:**
-
-   ```bash
-   cd esp32-modules/module-4
-   pio run --target upload
-   ```
-
-2. **Monitor serial output:**
-
-   ```bash
-   pio device monitor
-   ```
-
-   - Check WiFi connection status
-   - Verify MQTT connection
-   - Monitor damper status
-
-3. **Verify operation:**
-   - Check frontend dashboard for damper control
-   - Verify heartbeat status icon (blue = online, red = offline)
-   - Test button control (works offline)
+1. Upload firmware (`pio run -t upload`)
+2. Serial monitor — WiFi, MQTT, damper/table logs
+3. Dashboard — damper UI, heartbeat (blue online / red offline), local buttons offline
 
 ## Troubleshooting
 
-### No WiFi Connection
+### No WiFi
 
-- Check SSID and password in `src/Config.h`
-- Verify WiFi router is broadcasting `SmartCamper` network
-- Check serial output for connection errors
+- SSID/password in `src/Config.h`, SoftAP `SmartCamper` up, serial errors
 
-### No MQTT Connection
+### No MQTT
 
-- Verify MQTT broker IP address in `src/Config.h` (default: `192.168.4.1`)
-- Check if Raspberry Pi is running and MQTT broker is active
-- Verify network connectivity (ping MQTT broker IP)
+- Broker IP `192.168.4.1`, Pi/MQTT running, ping from module network
 
-### Servo Not Moving
+### Servo not moving
 
-- Check wiring (VCC, GND, Signal pin 2)
-- Verify servo is powered (5V)
-- Check serial output for servo errors
-- Verify angle is valid (0-180°)
+- VCC / GND / signal on the pin from the table above (not GPIO 2)
+- 5 V supply to servo, valid angle 0–180°, serial logs
 
-### Button Not Working
+### Button not working
 
-- Check button wiring (GPIO 4 to button, button to GND)
-- Verify button is not stuck
-- Check serial output for button state changes
-- Button works offline - no network required
+- GPIO → button → GND, not stuck; works without network
+
+### Autoterm
+
+- Comfort Control “no link” → check ADuM TX path (VIB→VOB), common GND, 3.3 V / 5 V on ADuM
+- Confirm baud 9600; panel frames `AA 03`, heater `AA 04`
+- Boot log should show `Autoterm bridge ready`
+- For verbose frame log set `AUTOTERM_LOG_DECODE true` and reflash
 
 ## Offline Operation
 
-Module operates independently:
-
-- Servo and button work even without WiFi/MQTT
-- Status is published when connection is restored
-- Auto-reconnect to WiFi and MQTT every 2-3 seconds
+Dampers and table buttons work without WiFi/MQTT. Status publishes after reconnect. Auto-reconnect every few seconds.
 
 ## Status
 
-✅ Base infrastructure complete
-✅ WiFi connection management
-✅ MQTT communication
-✅ Heartbeat system
-✅ Command handling
-✅ Damper control with servo motors
-✅ Button control (offline operation)
-✅ Smooth servo movement
-✅ Status publishing
-✅ Table lift control with relays
-✅ Table button control (hold-to-move + double-click auto)
-✅ Table MQTT commands
-✅ Table status publishing
+- ✅ WiFi, MQTT, heartbeat, commands
+- ✅ 5 dampers + buttons + safety rule
+- ✅ Table lift (relays, buttons, MQTT)
+- ✅ Autoterm bridge + by-power MQTT (34/27/32/33)
+- ⏳ Cabin thermostat algorithm (own sensor) — later

@@ -51,9 +51,11 @@ const sensorDataHandler = (io, topic, message) => {
       return handleFloorHeating(io, topicParts, message);
 
     case "module-4":
-      // Module-4 is the heating control module (dampers and table)
-      // Try damper first, then table
+      // Module-4: dampers, table, Autoterm
       if (handleDamper(io, topicParts, message)) {
+        return true;
+      }
+      if (handleAutoterm(io, topicParts, message)) {
         return true;
       }
       return handleTable(io, topicParts, message);
@@ -403,6 +405,47 @@ function handleDamper(io, topicParts, message) {
     } catch (error) {
       console.log(`❌ Failed to parse damper status JSON: ${error.message}`);
       return true; // Handled, but error
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Handle Autoterm status
+ * Format: smartcamper/sensors/module-4/autoterm/status
+ */
+function handleAutoterm(io, topicParts, message) {
+  if (
+    topicParts.length >= 5 &&
+    topicParts[3] === "autoterm" &&
+    topicParts[4] === "status"
+  ) {
+    try {
+      const statusData = JSON.parse(message);
+      if (!statusData || typeof statusData !== "object") {
+        console.log("❌ Invalid autoterm status JSON");
+        return true;
+      }
+
+      io.emit("autotermStatusUpdate", {
+        type: "autoterm",
+        state: statusData.state || "unknown",
+        mode: statusData.mode || "unknown",
+        power: statusData.power,
+        errorCode: statusData.errorCode || 0,
+        error: statusData.error || null,
+        heaterTemp: statusData.heaterTemp,
+        battery: statusData.battery,
+        controlLocked: !!statusData.controlLocked,
+        lockReason: statusData.lockReason || null,
+        timestamp: new Date().toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      console.log(`❌ Failed to parse autoterm status JSON: ${error.message}`);
+      return true;
     }
   }
 

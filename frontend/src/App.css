@@ -3423,6 +3423,287 @@ body {
   color: var(--color-text-primary);
 }
 
+/* Autoterm heater modal */
+.autoterm-modal {
+  /* Match Manual power stepper: − (4.46rem) + gap + bars + gap + + */
+  --autoterm-step-btn: 4.46rem;
+  --autoterm-stepper-gap: 1.1rem;
+  --autoterm-power-bars-width: 7.5rem;
+  --autoterm-stepper-width: calc(
+    var(--autoterm-step-btn) + var(--autoterm-stepper-gap) + var(--autoterm-power-bars-width) +
+      var(--autoterm-stepper-gap) + var(--autoterm-step-btn)
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.autoterm-modal__manual,
+.autoterm-modal__temp {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.autoterm-modal__temp {
+  align-items: stretch;
+  padding-top: 0.5rem;
+}
+
+.autoterm-modal__temp > .autoterm-modal__stepper {
+  align-self: center;
+}
+
+.autoterm-modal__power-block {
+  margin: 1.1rem 0 1.35rem;
+}
+
+.autoterm-modal__error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-accent-red, #ef4444) 18%, transparent);
+  color: var(--color-text-primary, #fff);
+  font-size: 0.95rem;
+}
+
+.autoterm-modal__error strong {
+  color: var(--color-accent-red, #ef4444);
+}
+
+.autoterm-modal__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.autoterm-modal__live-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  /* Same left inset as the Manual − button (centered stepper) */
+  padding-left: max(0px, calc((100% - var(--autoterm-stepper-width)) / 2));
+}
+
+.autoterm-modal__live-status-text {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  /* Fixed width so status string length does not shift the power button */
+  flex: 0 0 13.5rem;
+  width: 13.5rem;
+  min-width: 13.5rem;
+  text-align: left;
+}
+
+.autoterm-modal__live-status-line {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.autoterm-modal__live-status-value {
+  font-weight: 500; /* Match dropdown option weight */
+}
+
+.autoterm-modal__power-btn {
+  flex: 0 0 var(--autoterm-step-btn);
+  width: var(--autoterm-step-btn);
+  height: var(--autoterm-step-btn);
+  min-width: var(--autoterm-step-btn);
+  min-height: var(--autoterm-step-btn);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.autoterm-modal__power-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.autoterm-modal__power-btn-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.autoterm-modal__power-symbol {
+  width: 1.55rem;
+  height: 1.55rem;
+  display: block;
+}
+
+/* Wider dropdowns + centered selected value (Autoterm modal only) */
+.autoterm-modal .settings-dropdown {
+  width: min(240px, 68%);
+  max-width: min(240px, 68%);
+  flex: 1 1 auto;
+}
+
+.autoterm-modal .settings-dropdown .custom-dropdown-button {
+  position: relative;
+  justify-content: center;
+  text-align: center;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.autoterm-modal .settings-dropdown .custom-dropdown-text {
+  flex: 0 1 auto;
+  text-align: center;
+}
+
+.autoterm-modal .settings-dropdown .custom-dropdown-arrow {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  margin-left: 0;
+  transform: translateY(-50%);
+}
+
+.autoterm-modal .settings-dropdown .custom-dropdown-arrow.open {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.autoterm-modal .settings-dropdown .custom-dropdown-option {
+  text-align: center;
+}
+
+.autoterm-modal__dampers--readonly {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.autoterm-modal__dampers--readonly .neumorphic-button {
+  cursor: default;
+}
+
+/* Larger damper icons in heater modal (all modes) */
+.autoterm-modal .modal-grid .icon-container {
+  --icon-size: 34px;
+}
+
+.autoterm-modal .modal-grid .damper-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.autoterm-modal__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.autoterm-modal__label {
+  color: var(--color-text-secondary, #888);
+  font-size: 0.9rem;
+}
+
+.autoterm-modal__value {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.autoterm-modal__locked,
+.autoterm-modal__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.autoterm-modal__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #888);
+}
+
+.autoterm-modal__btn {
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-surface-elevated, #2a2a2a);
+  color: var(--color-text-primary, #fff);
+}
+
+.autoterm-modal__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.autoterm-modal__btn--start {
+  background: var(--color-accent-blue, #3b82f6);
+  color: #fff;
+}
+
+.autoterm-modal__btn--stop {
+  background: var(--color-accent-red, #ef4444);
+  color: #fff;
+}
+
+.autoterm-modal__stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--autoterm-stepper-gap, 1.1rem);
+  width: var(--autoterm-stepper-width);
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.autoterm-modal__stepper--bars-only {
+  width: auto;
+}
+
+.autoterm-modal__power-value {
+  min-width: 2.5rem;
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+/* Autoterm power bars — match Comfort Control wedge (9 ascending ticks) */
+.autoterm-power-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.28rem;
+  height: 2.6rem;
+  width: var(--autoterm-power-bars-width, 7.5rem);
+  min-width: var(--autoterm-power-bars-width, 7.5rem);
+  padding: 0 0.15rem;
+  box-sizing: border-box;
+}
+
+.autoterm-power-bars__bar {
+  --bar-index: 0;
+  width: 0.42rem;
+  height: calc(0.55rem + var(--bar-index) * 0.22rem);
+  border-radius: 0.12rem;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-text-primary);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.autoterm-power-bars__bar--filled {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
 /* Perimeter modal: fit on one screen, no inner scroll. */
 .modal-content:has(.perimeter-modal):not(:has(.alarm-modal)) {
   overflow: hidden;
@@ -4954,6 +5235,59 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     width: min(170px, 49%);
     max-width: min(170px, 49%);
     flex-shrink: 0;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal .settings-dropdown {
+    width: min(260px, 70%);
+    max-width: min(260px, 70%);
+    flex: 1 1 auto;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal .settings-dropdown .custom-dropdown-button {
+    justify-content: center;
+    text-align: center;
+    padding-left: 2.15rem;
+    padding-right: 2.15rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal .settings-dropdown .custom-dropdown-option {
+    text-align: center;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal__live-status-text {
+    flex-basis: 15.5rem;
+    width: 15.5rem;
+    min-width: 15.5rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal__power-btn {
+    /* Keep aligned with Manual − : same size as step buttons, not tablet card size */
+    width: var(--autoterm-step-btn);
+    height: var(--autoterm-step-btn);
+    min-width: var(--autoterm-step-btn);
+    min-height: var(--autoterm-step-btn);
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal__power-btn-label {
+    font-size: 0.85rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal__power-symbol {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal__power-block {
+    margin: 1.35rem 0 1.6rem;
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal .modal-grid .icon-container {
+    --icon-size: clamp(40px, 6vw, 52px);
+  }
+
+  .app.app--tablet-landscape .tablet-embedded-panel__body .autoterm-modal .modal-grid .damper-icon {
+    width: clamp(40px, 6vw, 52px);
+    height: clamp(40px, 6vw, 52px);
   }
 
   .app.app--tablet-landscape .tablet-embedded-panel__body .settings-dropdown .custom-dropdown-button {

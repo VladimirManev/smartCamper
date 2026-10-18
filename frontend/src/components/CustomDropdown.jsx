@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from "react";
 
 /**
  * CustomDropdown Component
- * Custom dropdown component that matches app design and prevents iOS zoom issues
- * 
+ * Custom dropdown component that matches app design and prevents iOS zoom issues.
+ * Option selection uses pointerdown + a short document click swallow so the
+ * closing menu does not click-through to controls underneath.
+ *
  * @param {Object} props - Component props
  * @param {string} props.value - Currently selected value
  * @param {Function} props.onChange - Change handler (receives new value)
@@ -26,7 +28,42 @@ export const CustomDropdown = ({
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const pointerTriggeredToggleRef = useRef(false);
-  const pointerTriggeredSelectRef = useRef(false);
+  const suppressClickThroughRef = useRef(false);
+
+  // After selecting an option, swallow the leftover click/pointerup that would
+  // otherwise hit whatever was under the menu.
+  useEffect(() => {
+    if (!suppressClickThroughRef.current) {
+      return undefined;
+    }
+
+    const swallow = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      suppressClickThroughRef.current = false;
+    };
+
+    document.addEventListener("click", swallow, true);
+    document.addEventListener("pointerup", swallow, true);
+    document.addEventListener("mouseup", swallow, true);
+
+    const timer = window.setTimeout(() => {
+      suppressClickThroughRef.current = false;
+      document.removeEventListener("click", swallow, true);
+      document.removeEventListener("pointerup", swallow, true);
+      document.removeEventListener("mouseup", swallow, true);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("click", swallow, true);
+      document.removeEventListener("pointerup", swallow, true);
+      document.removeEventListener("mouseup", swallow, true);
+    };
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -83,7 +120,7 @@ export const CustomDropdown = ({
 
   const handleToggle = () => {
     if (!disabled) {
-      setIsOpen(!isOpen);
+      setIsOpen((open) => !open);
     }
   };
 
@@ -91,6 +128,7 @@ export const CustomDropdown = ({
     if (onChange) {
       onChange(optionValue);
     }
+    suppressClickThroughRef.current = true;
     setIsOpen(false);
   };
 
@@ -142,6 +180,10 @@ export const CustomDropdown = ({
             menuPlacement === "top" ? " custom-dropdown-menu--top" : ""
           }`}
           ref={dropdownRef}
+          role="listbox"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
         >
           {normalizedOptions.map((option) => (
             <button
@@ -151,18 +193,13 @@ export const CustomDropdown = ({
                 option.value === value ? "selected" : ""
               }`}
               style={{ touchAction: "manipulation" }}
-              onPointerUp={(e) => {
+              role="option"
+              aria-selected={option.value === value}
+              onPointerDown={(e) => {
                 if (disabled) return;
-                if (e.pointerType === "touch" || e.pointerType === "pen") {
-                  pointerTriggeredSelectRef.current = true;
-                  handleSelect(option.value);
-                }
-              }}
-              onClick={() => {
-                if (pointerTriggeredSelectRef.current) {
-                  pointerTriggeredSelectRef.current = false;
-                  return;
-                }
+                if (e.button !== undefined && e.button !== 0) return;
+                e.preventDefault();
+                e.stopPropagation();
                 handleSelect(option.value);
               }}
             >

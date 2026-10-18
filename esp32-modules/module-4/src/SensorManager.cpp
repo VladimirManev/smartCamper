@@ -37,10 +37,13 @@ void SensorManager::begin() {
   
   // Initialize table manager
   tableManager.begin();
-  
-  // Set MQTT callback to SensorManager::handleMQTTMessage (handles force_update, damper, and table commands)
+
+  // Autoterm bridge + by-power inject/status (needs MQTT manager for publish)
   if (moduleManager) {
+    autotermBridge.begin(&moduleManager->getMQTTManager());
     moduleManager->getMQTTManager().setCallback(SensorManager::handleMQTTMessage);
+  } else {
+    autotermBridge.begin(nullptr);
   }
   
   // Command handler will be initialized by ModuleManager
@@ -57,6 +60,9 @@ void SensorManager::loop() {
     return;  // Cannot proceed without module manager
   }
   
+  // Autoterm first — keep UART latency low while Comfort Control is linked
+  autotermBridge.loop();
+
   // Update damper manager (handles servo movement and button processing)
   damperManager.loop();
   
@@ -76,6 +82,8 @@ void SensorManager::handleForceUpdate() {
   
   // Force update table (publish current status)
   tableManager.forceUpdate();
+
+  autotermBridge.forceUpdate();
 }
 
 // Static MQTT callback method (wrapper for MQTTManager)
@@ -118,6 +126,12 @@ void SensorManager::processMQTTMessage(char* topic, byte* payload, unsigned int 
   if (topicStr.indexOf("/table") >= 0) {
     // Forward to table manager
     tableManager.handleMQTTCommand(message);
+    return;
+  }
+
+  // Autoterm: smartcamper/commands/module-4/autoterm/{start|set_power|stop}
+  if (topicStr.indexOf("/autoterm") >= 0) {
+    autotermBridge.handleMQTTCommand(message);
     return;
   }
   

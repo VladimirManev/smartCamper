@@ -10,6 +10,7 @@
 #include "CommandHandler.h"
 #include "DamperManager.h"
 #include "TableManager.h"
+#include "AutotermBridge.h"
 
 class SensorManager {
 private:
@@ -17,6 +18,7 @@ private:
   CommandHandler commandHandler;
   DamperManager damperManager;
   TableManager tableManager;
+  AutotermBridge autotermBridge;  // UART bridge + by-power MQTT
   
   // Static pointer for MQTT callback
   static SensorManager* currentInstance;

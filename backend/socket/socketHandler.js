@@ -13,6 +13,7 @@ const floorHeatingCommandHandler = require("./handlers/floorHeatingCommandHandle
 const levelingCommandHandler = require("./handlers/levelingCommandHandler");
 const damperCommandHandler = require("./handlers/damperCommandHandler");
 const tableCommandHandler = require("./handlers/tableCommandHandler");
+const autotermCommandHandler = require("./handlers/autotermCommandHandler");
 const applianceCommandHandler = require("./handlers/applianceCommandHandler");
 const fridgeCommandHandler = require("./handlers/fridgeCommandHandler");
 const securityCommandHandler = require("./handlers/securityCommandHandler");
@@ -113,6 +114,11 @@ const setupSocketIO = (io, aedes) => {
     // Handle table commands from frontend
     socket.on("tableCommand", (data) => {
       tableCommandHandler(socket, aedes, data);
+    });
+
+    // Handle Autoterm heater commands (module-4)
+    socket.on("autotermCommand", (data) => {
+      autotermCommandHandler(socket, aedes, data);
     });
 
     // Handle appliance commands from frontend

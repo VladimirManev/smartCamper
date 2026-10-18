@@ -14,6 +14,7 @@ import { useBatterySystem } from "./hooks/useBatterySystem";
 import { useLEDController } from "./hooks/useLEDController";
 import { useFloorHeating } from "./hooks/useFloorHeating";
 import { useDamperController } from "./hooks/useDamperController";
+import { useAutotermController } from "./hooks/useAutotermController";
 import { useTableController } from "./hooks/useTableController";
 import { useLeveling } from "./hooks/useLeveling";
 import { useApplianceController } from "./hooks/useApplianceController";
@@ -27,11 +28,11 @@ import { ToiletUrineTank } from "./components/ToiletUrineTank";
 import { BatteryCard } from "./components/BatteryCard";
 import { LEDCard } from "./components/LEDCard";
 import { FloorHeatingCard } from "./components/FloorHeatingCard";
-import { DamperCard } from "./components/DamperCard";
 import { TableCard } from "./components/TableCard";
 import { LEDGroupCard } from "./components/LEDGroupCard";
 import { FloorHeatingGroupCard } from "./components/FloorHeatingGroupCard";
-import { DamperGroupCard } from "./components/DamperGroupCard";
+import { AutotermCard } from "./components/AutotermCard";
+import { AutotermModalContent } from "./components/AutotermModalContent";
 import { TableGroupCard } from "./components/TableGroupCard";
 import { LevelingGroupCard } from "./components/LevelingGroupCard";
 import { LevelingGauge } from "./components/LevelingGauge";
@@ -255,9 +256,12 @@ function App() {
   // Damper controller
   const { dampers, sendDamperCommand } = useDamperController(socket);
 
-  // Damper presets - array of { name, angles: [angle0, angle1, angle2, angle3, angle4] }
+  // Autoterm Air 2D (module-4 by-power)
+  const { status: autotermStatus, sendAutotermCommand } =
+    useAutotermController(socket);
+
+  // Damper presets — used inside Heater modal (former Airflow)
   // Index: 0=Front, 1=Rear, 2=Bath, 3=Shoes, 4=Cockpit
-  // Order: Comfort first, then others
   const damperPresets = [
     { name: "Comfort", angles: [45, 90, 45, 45, 0] },
     { name: "All Open", angles: [90, 90, 90, 90, 90] },
@@ -341,10 +345,8 @@ function App() {
     return () => clearInterval(id);
   }, [socket, connected, modalStack]);
 
-  // Damper preset selection state
+  // Damper preset selection (Heater modal)
   const [selectedPreset, setSelectedPreset] = useState("Manual");
-
-  // Track expected angles when applying preset (to detect physical button changes)
   const expectedPresetAngles = useRef(null);
   const isApplyingPreset = useRef(false);
 
@@ -731,94 +733,35 @@ function App() {
       );
     }
 
-    if (cardType === "damper-group") {
-      // Render all damper cards in grid
+    if (cardType === "autoterm") {
       return (
-        <div>
-          <div className="damper-preset-container">
-            <CustomDropdown
-              value={selectedPreset}
-              onChange={(presetName) => {
-                setSelectedPreset(presetName);
-                const preset = damperPresets.find((p) => p.name === presetName);
-                if (preset) {
-                  handleDamperPreset(preset);
-                }
-              }}
-              options={damperPresets.map((preset) => ({
-                value: preset.name,
-                label: preset.name,
-              }))}
-              placeholder="Manual"
-              disabled={!isModule4Online}
-            />
-          </div>
-          <div className="modal-grid">
-            <div className="card-wrapper">
-              <DamperCard
-                name="Front"
-                damper={dampers[0]}
-                onClick={() => handleDamperToggle(0)}
-                onLongPress={() =>
-                  openModal("damper", "Front", { damper: dampers[0], index: 0 })
-                }
-                disabled={!isModule4Online}
-              />
-              <p className="card-label">Front</p>
-            </div>
-            <div className="card-wrapper">
-              <DamperCard
-                name="Rear"
-                damper={dampers[1]}
-                onClick={() => handleDamperToggle(1)}
-                onLongPress={() =>
-                  openModal("damper", "Rear", { damper: dampers[1], index: 1 })
-                }
-                disabled={!isModule4Online}
-              />
-              <p className="card-label">Rear</p>
-            </div>
-            <div className="card-wrapper">
-              <DamperCard
-                name="Bath"
-                damper={dampers[2]}
-                onClick={() => handleDamperToggle(2)}
-                onLongPress={() =>
-                  openModal("damper", "Bath", { damper: dampers[2], index: 2 })
-                }
-                disabled={!isModule4Online}
-              />
-              <p className="card-label">Bath</p>
-            </div>
-            <div className="card-wrapper">
-              <DamperCard
-                name="Shoes"
-                damper={dampers[3]}
-                onClick={() => handleDamperToggle(3)}
-                onLongPress={() =>
-                  openModal("damper", "Shoes", { damper: dampers[3], index: 3 })
-                }
-                disabled={!isModule4Online}
-              />
-              <p className="card-label">Shoes</p>
-            </div>
-            <div className="card-wrapper">
-              <DamperCard
-                name="Cockpit"
-                damper={dampers[4]}
-                onClick={() => handleDamperToggle(4)}
-                onLongPress={() =>
-                  openModal("damper", "Cockpit", {
-                    damper: dampers[4],
-                    index: 4,
-                  })
-                }
-                disabled={!isModule4Online}
-              />
-              <p className="card-label">Cockpit</p>
-            </div>
-          </div>
-        </div>
+        <AutotermModalContent
+          status={autotermStatus}
+          disabled={!isModule4Online}
+          onStart={(power) =>
+            sendAutotermCommand({ action: "start", power })
+          }
+          onStop={() => sendAutotermCommand({ action: "stop" })}
+          onSetPower={(power) =>
+            sendAutotermCommand({ action: "set_power", power })
+          }
+          dampers={dampers}
+          damperPresets={damperPresets}
+          selectedPreset={selectedPreset}
+          onPresetChange={(presetName) => {
+            setSelectedPreset(presetName);
+            const preset = damperPresets.find((p) => p.name === presetName);
+            if (preset) {
+              handleDamperPreset(preset);
+            } else if (presetName === "Manual") {
+              expectedPresetAngles.current = null;
+            }
+          }}
+          onDamperToggle={handleDamperToggle}
+          onDamperLongPress={(index, name, damper) =>
+            openModal("damper", name, { damper, index })
+          }
+        />
       );
     }
 
@@ -1508,7 +1451,7 @@ function App() {
     });
   };
 
-  // Damper preset handler
+  // Damper preset handler (Heater modal)
   const handleDamperPreset = (preset) => {
     if (!isModule4Online) {
       console.warn("⚠️ Cannot apply preset - module-4 is offline");
@@ -1517,17 +1460,14 @@ function App() {
 
     console.log(`🌬️ Applying preset: ${preset.name}`);
 
-    // Store expected angles and set flag to ignore updates temporarily
     expectedPresetAngles.current = preset.angles;
     isApplyingPreset.current = true;
 
-    // Create array of commands with index and angle, then sort by angle (descending)
-    // This ensures we open dampers first, then close them (protection: at least one must be open)
+    // Open first, then close (protection: at least one must be open)
     const commands = preset.angles.map((angle, index) => ({ index, angle }));
-    commands.sort((a, b) => b.angle - a.angle); // Sort descending: open first, close last
+    commands.sort((a, b) => b.angle - a.angle);
 
-    // Send commands in sorted order with delay between each (to allow module to process)
-    const COMMAND_DELAY = 200; // ms delay between commands
+    const COMMAND_DELAY = 200;
     commands.forEach(({ index, angle }, commandIndex) => {
       setTimeout(() => {
         sendDamperCommand({
@@ -1539,29 +1479,22 @@ function App() {
       }, commandIndex * COMMAND_DELAY);
     });
 
-    // Clear flag after 2 seconds (enough time for all updates to arrive)
     setTimeout(() => {
       isApplyingPreset.current = false;
     }, 2000);
   };
 
-  // Detect physical button changes - switch to Manual if preset doesn't match
+  // Detect physical button changes — switch to Manual if preset doesn't match
   useEffect(() => {
-    // Skip if we're currently applying a preset (waiting for updates)
     if (isApplyingPreset.current) {
       return;
     }
-
-    // Skip if no preset is selected (already Manual)
     if (selectedPreset === "Manual" || !expectedPresetAngles.current) {
       return;
     }
 
-    // Check if current angles match expected preset angles
     const currentAngles = [0, 1, 2, 3, 4].map((i) => dampers[i]?.angle ?? 90);
     const expectedAngles = expectedPresetAngles.current;
-
-    // Compare angles - if any doesn't match, switch to Manual
     const anglesMatch = currentAngles.every(
       (angle, index) => angle === expectedAngles[index],
     );
@@ -1801,12 +1734,32 @@ function App() {
           </div>
 
           <div className="card-wrapper">
-            <DamperGroupCard
-              name="Airflow"
-              onClick={() => activateFromMainMenu("damper-group", "Airflow")}
+            <AutotermCard
+              name="Heater"
+              status={autotermStatus}
+              onClick={() => {
+                if (!isModule4Online) {
+                  return;
+                }
+                activateFromMainMenu("autoterm", "Heater");
+              }}
+              onLongPress={() => {
+                if (!isModule4Online) {
+                  return;
+                }
+                const state = autotermStatus?.state || "unknown";
+                const isOn =
+                  state === "running" ||
+                  state === "starting" ||
+                  state === "vent" ||
+                  state === "shutdown";
+                if (isOn) {
+                  sendAutotermCommand({ action: "stop" });
+                }
+              }}
               disabled={!isModule4Online}
             />
-            <p className="card-label">Airflow</p>
+            <p className="card-label">Heater</p>
           </div>
 
           <div className="card-wrapper">

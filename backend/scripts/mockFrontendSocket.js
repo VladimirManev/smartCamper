@@ -12,6 +12,7 @@
  * Default URL: http://localhost:3100 (override with MOCK_SOCKET_PORT)
  * Also serves GET /api/history/readings?metric=soc&hours=24 (synthetic SOC curve).
  * MOCK_CONNECT_DELAY_MS — wait before first emit burst (default 450).
+ * MOCK_AUTOTERM_SCENARIO — locked-vent | locked-thermo | error (optional start state).
  */
 
 const http = require("http");
@@ -263,6 +264,19 @@ const STATIC = {
     autoMoving: false,
     timestamp: ts(),
   },
+  autotermStatusUpdate: {
+    type: "autoterm",
+    state: "off",
+    mode: "by-power",
+    power: 5,
+    errorCode: 0,
+    error: null,
+    heaterTemp: 28,
+    battery: 13.4,
+    controlLocked: false,
+    lockReason: null,
+    timestamp: ts(),
+  },
   applianceStatusUpdate: {
     type: "full",
     data: {
@@ -352,6 +366,111 @@ function damperUpdates() {
     angle,
     timestamp: ts(),
   }));
+}
+
+function createInitialAutotermState() {
+  return {
+    type: "autoterm",
+    state: STATIC.autotermStatusUpdate.state,
+    mode: STATIC.autotermStatusUpdate.mode,
+    power: STATIC.autotermStatusUpdate.power,
+    errorCode: STATIC.autotermStatusUpdate.errorCode,
+    error: STATIC.autotermStatusUpdate.error,
+    heaterTemp: STATIC.autotermStatusUpdate.heaterTemp,
+    battery: STATIC.autotermStatusUpdate.battery,
+    controlLocked: STATIC.autotermStatusUpdate.controlLocked,
+    lockReason: STATIC.autotermStatusUpdate.lockReason,
+  };
+}
+
+function emitAutotermStatus(socket, state) {
+  socket.emit("autotermStatusUpdate", {
+    ...state,
+    timestamp: ts(),
+  });
+}
+
+/**
+ * Mock Autoterm by-power control (same events as real backend).
+ * Optional: MOCK_AUTOTERM_SCENARIO=locked-vent|locked-thermo|error
+ */
+function applyAutotermScenario(state) {
+  const scenario = process.env.MOCK_AUTOTERM_SCENARIO || "";
+  if (scenario === "locked-vent") {
+    state.state = "vent";
+    state.mode = "by-power";
+    state.controlLocked = true;
+    state.lockReason = "vent";
+    state.errorCode = 0;
+    state.error = null;
+  } else if (scenario === "locked-thermo") {
+    state.state = "running";
+    state.mode = "by-panel-T";
+    state.controlLocked = true;
+    state.lockReason = "thermostat";
+    state.errorCode = 0;
+    state.error = null;
+  } else if (scenario === "error") {
+    state.state = "shutdown";
+    state.mode = "by-power";
+    state.controlLocked = false;
+    state.lockReason = null;
+    state.errorCode = 13;
+    state.error = "Battery undervoltage";
+  }
+  return state;
+}
+
+function handleMockAutotermCommand(socket, state, payload) {
+  if (!payload || payload.type !== "autoterm" || !payload.action) {
+    return;
+  }
+
+  const action = payload.action;
+
+  if (action === "stop") {
+    state.state = "off";
+    state.controlLocked = false;
+    state.lockReason = null;
+    state.errorCode = 0;
+    state.error = null;
+    emitAutotermStatus(socket, state);
+    return;
+  }
+
+  if (state.controlLocked) {
+    return;
+  }
+
+  if (action === "start") {
+    const power =
+      typeof payload.power === "number" && payload.power >= 1 && payload.power <= 9
+        ? payload.power
+        : state.power || 5;
+    state.power = power;
+    state.mode = "by-power";
+    state.state = "running";
+    state.heaterTemp = Math.max(state.heaterTemp || 28, 35);
+    state.errorCode = 0;
+    state.error = null;
+    emitAutotermStatus(socket, state);
+    return;
+  }
+
+  if (action === "set_power") {
+    if (state.state === "off") {
+      return;
+    }
+    if (state.mode !== "by-power") {
+      return;
+    }
+    const power = payload.power;
+    if (typeof power !== "number" || power < 1 || power > 9) {
+      return;
+    }
+    state.power = power;
+    emitAutotermStatus(socket, state);
+  }
 }
 
 function randomSensorPayload() {
@@ -1037,7 +1156,7 @@ function handleMockApplianceCommand(socket, applianceState, payload) {
   emitApplianceStatus(socket, applianceState);
 }
 
-function sendAll(socket, securityState, fridgeState) {
+function sendAll(socket, securityState, fridgeState, autotermState) {
   const stamp = ts();
   socket.emit("moduleStatusUpdate", {
     modules: buildModuleStatuses(),
@@ -1059,6 +1178,7 @@ function sendAll(socket, securityState, fridgeState) {
     socket.emit("damperStatusUpdate", { ...d, timestamp: stamp });
   }
   socket.emit("tableStatusUpdate", { ...STATIC.tableStatusUpdate, timestamp: stamp });
+  emitAutotermStatus(socket, autotermState);
   socket.emit("applianceStatusUpdate", {
     ...STATIC.applianceStatusUpdate,
     timestamp: stamp,
@@ -1095,6 +1215,7 @@ io.on("connection", (socket) => {
   const applianceState = createInitialApplianceState();
   const fridgeState = createInitialFridgeState();
   const securityState = createInitialSecurityState();
+  const autotermState = applyAutotermScenario(createInitialAutotermState());
   const zone1Ctrl = createZone1DelayController(socket, securityState);
   const motionSim = createRoundMinuteMotionSimulator(
     socket,
@@ -1107,7 +1228,7 @@ io.on("connection", (socket) => {
   const connectDelayMs = Number(process.env.MOCK_CONNECT_DELAY_MS || 450);
   let sensorTimer = null;
   const connectTimer = setTimeout(() => {
-    sendAll(socket, securityState, fridgeState);
+    sendAll(socket, securityState, fridgeState, autotermState);
     motionSim.start();
     doorSim.start();
     const sensorIntervalMs = Number(process.env.MOCK_SENSOR_INTERVAL_MS || 4000);
@@ -1143,6 +1264,13 @@ io.on("connection", (socket) => {
     handleMockSecurityCommand(socket, securityState, zone1Ctrl, payload);
     if (process.env.DEBUG_MOCK_SOCKET) {
       console.log("[mock] securityCommand", payload);
+    }
+  });
+
+  socket.on("autotermCommand", (payload) => {
+    handleMockAutotermCommand(socket, autotermState, payload);
+    if (process.env.DEBUG_MOCK_SOCKET) {
+      console.log("[mock] autotermCommand", payload);
     }
   });
 
@@ -1196,6 +1324,9 @@ server.listen(PORT, () => {
     `[mock] Front door scenes every ${Number(process.env.MOCK_DOOR_STEP_MS || 8000) / 1000}s (closed → left → right → both)`
   );
   console.log(`[mock] Optional: MOCK_SENSOR_INTERVAL_MS (default 4000)`);
+  console.log(
+    `[mock] Autoterm: MOCK_AUTOTERM_SCENARIO=locked-vent|locked-thermo|error`
+  );
   console.log(
     `[mock] AC charger: ${AC_CHARGER_CYCLE_MS / 1000}s on / ${AC_CHARGER_CYCLE_MS / 1000}s off (no payload)`
   );
