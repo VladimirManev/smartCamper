@@ -34,16 +34,19 @@
 // Relay pins (for controlling appliances)
 #define RELAY_PIN_0 14 // GPIO pin for relay 0 (Audio System)
 #define RELAY_PIN_1 15 // GPIO pin for relay 1 (Water Pump)
-#define RELAY_PIN_2 16 // GPIO pin for relay 2 (Refrigerator)
+#define RELAY_PIN_2 16 // UNUSED — fridge power moved to module-6 GPIO 14
 #define RELAY_PIN_3 23 // GPIO pin for relay 3 (WC Fan)
 #define RELAY_PIN_4 27 // GPIO pin for relay 4 (Boiler)
 #define RELAY_PIN_5 32 // GPIO pin for relay 5 (Inverter)
 #define RELAY_PIN_6 13 // GPIO pin for relay 6 (Display backlight — tablet UI only; NO contact in series)
 
+// Fridge power (index 2) lives on module-6 — ignore MQTT/button for this index.
+#define FRIDGE_RELAY_MOVED_INDEX 2
+
 // Button pins (for manual control - toggle buttons)
 #define BUTTON_PIN_0 17 // GPIO pin for button 0 (Audio System)
 #define BUTTON_PIN_1 21 // GPIO pin for button 1 (Water Pump)
-#define BUTTON_PIN_2 22 // GPIO pin for button 2 (Refrigerator)
+#define BUTTON_PIN_2 22 // UNUSED — fridge button moved to module-6 GPIO 22
 #define BUTTON_PIN_3 25 // GPIO pin for button 3 (WC Fan)
 #define BUTTON_PIN_4 26 // GPIO pin for button 4 (Boiler)
 #define BUTTON_PIN_5 33 // GPIO pin for button 5 (Inverter)
@@ -65,7 +68,7 @@
 // Appliance names (for identification)
 // Relay 0: Audio System
 // Relay 1: Water Pump
-// Relay 2: Refrigerator
+// Relay 2: Refrigerator — MOVED to module-6 (GPIO 14 relay / GPIO 22 button)
 // Relay 3: WC Fan
 // Relay 4: Boiler
 // Relay 5: Inverter

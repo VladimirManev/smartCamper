@@ -138,7 +138,7 @@ void ApplianceManager::processApplianceCommand(char* topic, byte* payload, unsig
     
     String relayIndexStr = relayCommand.substring(0, slashIndex);
     uint8_t relayIndex = relayIndexStr.toInt();
-    
+
     // Validate relay index
     if (relayIndex >= NUM_RELAYS) {
       if (DEBUG_SERIAL) {
@@ -146,7 +146,14 @@ void ApplianceManager::processApplianceCommand(char* topic, byte* payload, unsig
       }
       return;
     }
-    
+
+    if (relayIndex == FRIDGE_RELAY_MOVED_INDEX) {
+      if (DEBUG_SERIAL) {
+        Serial.println("⚠️ Relay 2 ignored — fridge power is on module-6");
+      }
+      return;
+    }
+
     String action = relayCommand.substring(slashIndex + 1);
     
     if (action == "toggle") {
@@ -185,9 +192,12 @@ void ApplianceManager::publishFullStatus() {
   // Create JSON object with all data
   StaticJsonDocument<512> doc;
   
-  // Add data for all relays
+  // Add data for all relays (skip fridge index 2 — owned by module-6)
   JsonObject relays = doc.createNestedObject("relays");
   for (uint8_t i = 0; i < NUM_RELAYS; i++) {
+    if (i == FRIDGE_RELAY_MOVED_INDEX) {
+      continue;
+    }
     JsonObject relay = relays.createNestedObject(String(i));
     relay["state"] = relayController.getRelayState(i) ? "ON" : "OFF";
   }

@@ -3,22 +3,24 @@
  *
  * Physical layout: left compartment is colder (BLE zone 2), right is warmer (zone 1).
  * Tap a zone badge to show +/−; draft updates locally; after idle 1.5s one absolute
- * setpoint is sent. A spinner covers the wait for BLE probe/reconnect/confirm.
- * `readOnly` — status carousel: photo + temps only (no controls).
+ * setpoint is sent. A spinner covers the wait for ESP connect → write → disconnect.
+ * Stale status (no fresh MQTT) shows dashes. `readOnly` — carousel display only.
  */
 
 import { useEffect, useId, useRef, useState } from "react";
 import fridgePhoto from "../assets/fridge.png";
 import { getThemeColor } from "../utils/getThemeColor";
+import { FRIDGE_STALE_MS } from "../hooks/useFridge";
 
 const EDIT_IDLE_MS = 1500;
-const CONFIRM_TIMEOUT_MS = 8000;
+/** Ephemeral GATT session can take several seconds. */
+const CONFIRM_TIMEOUT_MS = 20000;
 const ERROR_SHOW_MS = 4000;
 
 /**
  * @param {Object} props
  * @param {Object} props.status - from useFridge
- * @param {boolean} props.powerOn - module-5 fridge relay ON
+ * @param {boolean} props.powerOn - module-6 fridge mains relay ON
  * @param {Function} [props.onPowerToggle] - toggles module-5 relay
  * @param {boolean} [props.powerDisabled]
  * @param {Function} [props.onMode] - (action: 'eco'|'max'|'toggle') => void
@@ -36,9 +38,12 @@ export function FridgeModalContent({
   disabled = false,
   readOnly = false,
 }) {
-  const mode = status?.mode;
-  const z1 = status?.zone1 || {};
-  const z2 = status?.zone2 || {};
+  const fresh = status?.fresh !== false && status?.receivedAt != null;
+  const mode = fresh ? status?.mode : null;
+  const z1 = fresh ? status?.zone1 || {} : { temp: null, setpoint: null };
+  const z2 = fresh ? status?.zone2 || {} : { temp: null, setpoint: null };
+  const ageMs = status?.ageMs;
+  const lastIntervalMs = status?.lastIntervalMs;
 
   /** @type {[null|1|2, Function]} BLE zone being edited */
   const [editingZone, setEditingZone] = useState(null);
@@ -207,12 +212,26 @@ export function FridgeModalContent({
       ? "—"
       : `${Math.round(v)}°C`;
 
-  // Module online + power on is enough to attempt a command (ESP reconnects on demand).
-  // Do not require status.connected — write path can be dead while notifies still work.
+  // Module online + power on is enough — ESP opens a fresh GATT session per command.
   const canEditZones =
     !readOnly && !fridgeOff && !disabled && !isSyncing;
   const canChangeMode = !fridgeOff && !disabled && !isSyncing;
   const badgeDimmed = fridgeOff || disabled || isSyncing;
+
+  const ageLabel = (() => {
+    if (status?.receivedAt == null) {
+      return "No data";
+    }
+    if (!fresh) {
+      const staleSec = Math.round((ageMs ?? FRIDGE_STALE_MS) / 1000);
+      return `Stale · ${staleSec}s ago`;
+    }
+    const ageSec = Math.max(0, Math.round((ageMs ?? 0) / 1000));
+    if (lastIntervalMs != null) {
+      return `${ageSec}s ago · every ~${Math.round(lastIntervalMs / 1000)}s`;
+    }
+    return `${ageSec}s ago`;
+  })();
 
   const openEditor = (zone, setpoint) => {
     if (readOnly || fridgeOff || disabled || isSyncing) {
@@ -228,12 +247,19 @@ export function FridgeModalContent({
       onZoneSetRef.current?.(editingZone, draftSet);
       return;
     }
+    // Prefer live setpoint; if stale, fall back to last known from raw status.
+    const fallbackSet =
+      zone === 1 ? status?.zone1?.setpoint : status?.zone2?.setpoint;
+    const baseSet =
+      setpoint === null || setpoint === undefined || Number.isNaN(setpoint)
+        ? fallbackSet
+        : setpoint;
     const start =
       editingZone === zone && draftSet !== null
         ? draftSet
-        : setpoint === null || setpoint === undefined || Number.isNaN(setpoint)
+        : baseSet === null || baseSet === undefined || Number.isNaN(baseSet)
           ? 0
-          : Math.round(setpoint);
+          : Math.round(baseSet);
     setSyncState("idle");
     setSyncError("");
     setEditingZone(zone);
@@ -364,6 +390,15 @@ export function FridgeModalContent({
             <span className="fridge-ble-modal__sync-text">{syncError}</span>
           </div>
         )}
+
+        <p
+          className={`fridge-ble-modal__age${
+            fresh ? "" : " fridge-ble-modal__age--stale"
+          }`}
+          aria-live="polite"
+        >
+          {ageLabel}
+        </p>
       </div>
 
       {!readOnly && (

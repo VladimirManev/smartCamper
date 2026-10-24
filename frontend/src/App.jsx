@@ -1879,12 +1879,12 @@ function App() {
                 })
               }
               onLongPress={() => {
-                if (!isModule5Online) return;
+                if (!isModule6Online) return;
                 handleApplianceToggle(APPLIANCE_INDEX.fridge);
               }}
               type="relay"
               icon="fridge"
-              disabled={!isModule5Online && !isModule6Online}
+              disabled={!isModule6Online}
             />
             <p className="card-label">Fridge</p>
           </div>

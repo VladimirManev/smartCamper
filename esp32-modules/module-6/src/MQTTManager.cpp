@@ -201,24 +201,25 @@ bool MQTTManager::publishRaw(String topic, String payload) {
 }
 
 bool MQTTManager::subscribeToCommands(String moduleType) {
+  return subscribeTopic(String(MQTT_TOPIC_COMMANDS) + moduleType + "/#");
+}
+
+bool MQTTManager::subscribeTopic(const String &topic) {
   if (!isMQTTConnected()) {
     if (DEBUG_SERIAL) {
       Serial.println("❌ Cannot subscribe - MQTT not connected");
     }
     return false;
   }
-  
-  String topic = MQTT_TOPIC_COMMANDS + moduleType + "/#";
+
   bool result = mqttClient.subscribe(topic.c_str());
-  
-  if (DEBUG_MQTT) {
+  if (DEBUG_SERIAL || DEBUG_MQTT) {
     if (result) {
       Serial.println("📥 Subscribed to: " + topic);
     } else {
       Serial.println("❌ Failed to subscribe to: " + topic);
     }
   }
-  
   return result;
 }
 

@@ -1,37 +1,39 @@
 /**
  * Appliance Command Handler
  * Handles appliance commands from frontend and publishes to MQTT
+ *
+ * Fridge power (index 2) is on module-6; other relays stay on module-5.
  */
+
+const FRIDGE_RELAY_INDEX = 2;
 
 const applianceCommandHandler = (socket, aedes, data) => {
   console.log("🔌 Appliance Command received:", data);
 
-  // Validate data
   if (!data || !data.type) {
     console.log("❌ Invalid appliance command format");
     return;
   }
 
-  // Use module-5 as the module ID
-  const moduleId = "module-5";
-
   let mqttTopic;
   let mqttPayload = "{}";
 
-  // Construct MQTT topic and payload according to command type
   const relayActions = ["toggle", "on", "off"];
   if (
     data.type === "relay" &&
     typeof data.index === "number" &&
     relayActions.includes(data.action)
   ) {
-    mqttTopic = `smartcamper/commands/${moduleId}/relay/${data.index}/${data.action}`;
+    if (data.index === FRIDGE_RELAY_INDEX) {
+      mqttTopic = `smartcamper/commands/module-6/fridge/power/${data.action}`;
+    } else {
+      mqttTopic = `smartcamper/commands/module-5/relay/${data.index}/${data.action}`;
+    }
   } else {
     console.log("❌ Invalid appliance command:", data);
     return;
   }
 
-  // Publish command to MQTT
   aedes.publish(
     {
       topic: mqttTopic,

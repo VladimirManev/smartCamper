@@ -47,6 +47,8 @@ class VictronManager {
   void pauseScan(); // stop scan immediately
   /** Stop scan and keep it from restarting until millis() passes. */
   void blockScanFor(unsigned long durationMs);
+  /** Clear fridge quiet window so Instant Readout can resume immediately. */
+  void clearScanBlock();
   /** Fridge GATT up — brief quiet after connect; scan cadence stays normal. */
   void setFridgeGattConnected(bool connected);
   bool isFridgeGattConnected() const { return fridgeGattConnected; }

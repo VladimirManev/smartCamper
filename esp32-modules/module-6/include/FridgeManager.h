@@ -1,4 +1,4 @@
-// Fridge BLE GATT client (Alpicool / AAOBOSI) — module-6 with Victron Instant Readout
+// Fridge BLE GATT client (Alpicool / AAOBOSI) + local mains power relay — module-6
 
 #ifndef FRIDGE_MANAGER_H
 #define FRIDGE_MANAGER_H
@@ -14,9 +14,11 @@ class FridgeManager {
   VictronManager *victronManager;
 
   bool connected;
-  bool everConnected;
+  bool sessionBusy;
   unsigned long lastQueryMs;
   unsigned long lastReconnectAttemptMs;
+  unsigned long reconnectIntervalMs;
+  uint8_t connectFailStreak;
   unsigned long lastPublishMs;
   uint32_t statusNotifySeq;
   uint32_t statusNotifySeqAtQuery;
@@ -27,7 +29,9 @@ class FridgeManager {
   uint8_t lastStatus[64];
   size_t lastStatusLen;
   bool haveStatus;
-  bool powerOn;
+  volatile bool statusDirty; // set in BLE notify; publish only from loop()
+  bool powerRelayOn;         // local FRIDGE_RELAY_PIN
+  bool powerOn;              // from fridge BLE status frame
   bool ecoMode;
   int8_t setpointC;
   int8_t setpoint2C;
@@ -35,20 +39,23 @@ class FridgeManager {
   int8_t temp2C;
   bool haveZone2;
 
-  bool tryConnect();
-  bool refreshLink(const char *reason);
-  bool ensureWritable();
+  bool openSession();
   void demoteLink(const char *reason);
+  void noteConnectSuccess();
+  void noteConnectFailure();
+  void resetReconnectBackoff();
+  bool ensureLinkForCommand();
   bool enableNotifications();
   bool writeFridge(const uint8_t *data, size_t len, bool quietRadio);
   bool sendBind();
   bool sendQuery(bool quietRadio = false);
-  bool sendQueryAndWait(unsigned long waitMs, bool quietRadio);
+  bool sendQueryAndWait(unsigned long waitMs, bool quietRadio = false);
   bool sendSetTemp(int8_t tempC, uint8_t zoneCmd);
   bool sendSettingsPatch(uint8_t settingsIndex, uint8_t value);
   void parseStatusFrame(const uint8_t *frame, size_t len);
   void setupButtons();
   void handleButtons();
+  void applyPowerRelay(bool on, bool publish);
   void publishStatus();
 
  public:
@@ -60,7 +67,11 @@ class FridgeManager {
   void onNotify(uint8_t *pData, size_t length);
   void handleForceUpdate();
 
-  // MQTT commands
+  bool isPowerRelayOn() const { return powerRelayOn; }
+  void setPower(bool on);
+  void togglePower();
+
+  // MQTT / button commands — reuse link or reconnect, then keep link for status
   bool setModeEco(bool eco);
   bool setModeToggle();
   bool setZoneTemp(uint8_t zone, int8_t temp);

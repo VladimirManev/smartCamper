@@ -576,11 +576,32 @@ function handleFridge(io, topicParts, message) {
         return true;
       }
 
+      const receivedAt = Date.now();
       io.emit("fridgeStatusUpdate", {
         type: "full",
-        data: statusData,
+        data: {
+          ...statusData,
+          // Wall-clock when backend received MQTT (ESP updatedAt is millis()).
+          receivedAt,
+        },
         timestamp: new Date().toISOString(),
       });
+
+      // Fridge mains relay lives on module-6 — keep appliance UI index 2 in sync.
+      if (
+        statusData.powerRelay === "ON" ||
+        statusData.powerRelay === "OFF"
+      ) {
+        io.emit("applianceStatusUpdate", {
+          type: "full",
+          data: {
+            relays: {
+              2: { state: statusData.powerRelay },
+            },
+          },
+          timestamp: new Date().toISOString(),
+        });
+      }
       return true;
     } catch (error) {
       console.log(`❌ Failed to parse fridge status JSON: ${error.message}`);

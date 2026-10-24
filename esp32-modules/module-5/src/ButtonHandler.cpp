@@ -53,7 +53,11 @@ void ButtonHandler::begin() {
 
 void ButtonHandler::processButton(uint8_t btnIndex, unsigned long currentTime) {
   if (btnIndex >= NUM_BUTTONS) return;
-  
+  // Fridge button/relay moved to module-6
+  if (btnIndex == FRIDGE_RELAY_MOVED_INDEX) {
+    return;
+  }
+
   ButtonStateMachine& btn = buttons[btnIndex];
   uint8_t relayIndex = btn.relayIndex;
   

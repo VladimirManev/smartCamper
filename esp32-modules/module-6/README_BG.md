@@ -3,7 +3,7 @@
 Отделен ESP32 модул, който:
 
 1. Чете Victron **Instant Readout via Bluetooth** и публикува енергиен snapshot в MQTT на всеки 2 s.
-2. Свързва се към **AAOBOSI / Alpicool** хладилника по BLE GATT (режим + две зони). **Захранването** остава на реле 2 на module-5.
+2. Управлява **AAOBOSI / Alpicool** хладилника: захранващо реле (GPIO 14) + BLE GATT (режим + две зони).
 
 Дръж ESP32 на 1–3 m от Victron устройствата **и** хладилника. Затвори телефонното fridge app докато модулът е свързан.
 
@@ -15,7 +15,7 @@
 | --------- | -------- |
 | **ESP32** | ESP32 dev платка с **4 MB flash** (WiFi + BLE) |
 | **Захранване** | 5 V USB или 3.3 V стабилизирано |
-| **GPIO** | Опционални бутони за fridge тест (виж `Config.h`); не са нужни за нормална работа |
+| **GPIO** | Fridge реле **14**, бутон **22**; опционални BLE тест бутони в `Config.h` |
 
 Модулът е отделен от модулите 1–5, за да не се пречи BLE сканирането на релета/осветление.
 
@@ -171,7 +171,7 @@ mosquitto_pub -h 192.168.4.1 -t 'smartcamper/commands/module-6/force_update' -m 
 - **ModuleManager** — WiFi, MQTT, heartbeat, commands
 - **VictronManager** — BLE scan, cache, publish timer (`blockScanFor` само около fridge команди / write probe)
 - **VictronBleParser** — decrypt + parsers (вкл. AC charger `0x08`)
-- **FridgeManager** — Alpicool GATT (service `1234`); дългоживуща status връзка; **on-demand** reconnect само преди команди (хладилникът пифка при connect — виж `FRIDGE_BLE.md`)
+- **FridgeManager** — локално захранващо реле + Alpicool GATT докато реле е ON (виж `FRIDGE_BLE.md`)
 - **CommandHandler** — `force_update` + fridge MQTT команди
 
 ## Debug (`src/Config.h`)

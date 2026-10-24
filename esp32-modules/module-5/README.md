@@ -10,14 +10,14 @@ ESP32 module for controlling six appliances via relays (Audio System, Water Pump
 | --------------------------- | --- | --------------- | ------------------------------ |
 | **Relay 0** (Audio System)  | 14  | Output          | Relay control for audio        |
 | **Relay 1** (Water Pump)    | 15  | Output          | Relay control for pump         |
-| **Relay 2** (Refrigerator)  | 16  | Output          | Relay control for refrigerator |
+| **Relay 2** (Refrigerator)  | —   | —               | **Moved to module-6** (GPIO 14) |
 | **Relay 3** (WC Fan)        | 23  | Output          | Relay control for WC fan       |
 | **Relay 4** (Boiler)        | 27  | Output          | Relay control for boiler       |
 | **Relay 5** (Inverter)      | 32  | Output          | Relay control for inverter     |
 | **Relay 6** (Display backlight) | 13 | Output       | Tablet backlight (NO contact)  |
 | **Button 0** (Audio System) | 17  | Input (Pull-up) | Manual toggle for relay 0      |
 | **Button 1** (Water Pump)   | 21  | Input (Pull-up) | Manual toggle for relay 1      |
-| **Button 2** (Refrigerator) | 22  | Input (Pull-up) | Manual toggle for relay 2      |
+| **Button 2** (Refrigerator) | —   | —               | **Moved to module-6** (GPIO 22) |
 | **Button 3** (WC Fan)       | 25  | Input (Pull-up) | Manual toggle for relay 3      |
 | **Button 4** (Boiler)       | 26  | Input (Pull-up) | Manual toggle for relay 4      |
 | **Button 5** (Inverter)     | 33  | Input (Pull-up) | Manual toggle for relay 5      |
@@ -30,11 +30,11 @@ ESP32 module for controlling six appliances via relays (Audio System, Water Pump
 | ----- | ------------ | --------- | ---------- | -------------------- |
 | **0** | Audio System | 14        | 17         | Audio system control |
 | **1** | Water Pump   | 15        | 21         | Water pump control   |
-| **2** | Refrigerator | 16        | 22         | Power only — mode/temps via module-6 BLE |
+| **2** | Refrigerator | —         | —          | **Moved to module-6** (power + BLE) |
 
-### Refrigerator power vs BLE
+### Refrigerator (moved)
 
-Relay **2** switches fridge mains/12 V power. ECO/MAX and zone setpoints are controlled over BLE by **module-6** (see `../module-6/FRIDGE_BLE.md` — on-demand GATT reconnect before commands; UI spinner while confirming). UI: Fridge card tap opens BLE modal; long-press toggles this relay.
+Fridge **power + BLE** are on **module-6** (relay GPIO 14, button GPIO 22). See `../module-6/FRIDGE_BLE.md`. Module-5 ignores MQTT/button for relay index 2.
 | **3** | WC Fan       | 23        | 25         | WC fan control       |
 | **4** | Boiler       | 27        | 26         | Boiler control       |
 | **5** | Inverter     | 32        | 33         | Inverter control     |
@@ -173,13 +173,13 @@ Logic is in the frontend only (`frontend/src/constants/appliances.js`) — modul
 ### Relays not working
 
 - Check relay power supply (12V DC)
-- Check relay connections (pins 14, 15, 16, 23, 27, 32, 13 for display backlight)
+- Check relay connections (pins 14, 15, 23, 27, 32, 13 for display backlight; fridge power is on module-6 GPIO 14)
 - Check serial output for errors
 - Ensure proper ground connection between ESP32 and relays
 
 ### Buttons not working
 
-- Check button connections (pins 17, 21, 22, 25, 26, 33)
+- Check button connections (pins 17, 21, 25, 26, 33; fridge button is on module-6 GPIO 22)
 - Check pull-up resistors (internal pull-ups are used)
 - Test with multimeter (button should connect pin to GND when pressed)
 - Check serial output for press messages

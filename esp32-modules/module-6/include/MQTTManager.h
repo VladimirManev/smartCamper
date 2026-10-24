@@ -42,6 +42,7 @@ public:
   
   // Subscribe to commands
   bool subscribeToCommands(String moduleType);
+  bool subscribeTopic(const String &topic);
   
   // Callback for received messages
   void setCallback(void (*callback)(char* topic, byte* payload, unsigned int length));

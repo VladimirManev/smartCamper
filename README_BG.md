@@ -27,8 +27,8 @@
   - **module-2** — LED ленти, motion, ambient реле
   - **module-3** — подово отопление + нивелиране
   - **module-4** — клапи + маса
-  - **module-5** — релета за уреди (захранване хладилник, помпа, инвертор, …) + урина + tablet backlight
-  - **module-6** — Victron Instant Readout (SmartShunt, MPPT, Orion, AC зарядно) + AAOBOSI fridge BLE
+  - **module-5** — релета за уреди (помпа, инвертор, …) + урина + tablet backlight
+  - **module-6** — Victron Instant Readout + AAOBOSI fridge (захранващо реле + BLE)
   - **module-7** — чиста вода
   - **module-8** — аларма (зони, сирена, CAN врати)
 
@@ -97,7 +97,7 @@ pio run --target upload
 - Real-time сензори, осветление, климат, уреди
 - Victron енергия (солар, shunt, Orion, **AC зарядно**)
 - Бойлер активен при инвертор **или** живо shore AC зарядно; auto-off само когато и двете липсват
-- Хладилник: захранване (module-5) + BLE режим/температури (module-6)
+- Хладилник: захранване + BLE режим/температури (module-6)
 - Аларма (module-8)
 - Офлайн: backend сервира frontend
 - Автоматично WiFi / MQTT reconnect

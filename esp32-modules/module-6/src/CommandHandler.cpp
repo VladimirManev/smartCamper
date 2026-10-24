@@ -34,25 +34,40 @@ void CommandHandler::begin() {
 }
 
 void CommandHandler::loop() {
-  if (mqttManager != nullptr && mqttManager->isMQTTConnected() && !isSubscribed) {
-    String commandTopic = MQTT_TOPIC_COMMANDS + moduleId + "/#";
-    bool subscribed = mqttManager->subscribeToCommands(moduleId);
+  if (mqttManager == nullptr) {
+    return;
+  }
 
-    if (subscribed) {
+  if (!mqttManager->isMQTTConnected()) {
+    isSubscribed = false;
+    return;
+  }
+
+  if (!isSubscribed) {
+    String commandTopic = MQTT_TOPIC_COMMANDS + moduleId + "/#";
+    if (mqttManager->subscribeToCommands(moduleId)) {
       isSubscribed = true;
       if (DEBUG_SERIAL) {
         Serial.println("Subscribed to commands: " + commandTopic);
       }
     }
   }
-
-  if (mqttManager != nullptr && !mqttManager->isMQTTConnected() && isSubscribed) {
-    isSubscribed = false;
-  }
 }
 
 void CommandHandler::handleFridgeCommand(const String &topicStr, const String &message) {
   if (fridgeManager == nullptr) {
+    return;
+  }
+
+  // .../fridge/power/on|off|toggle  (mains relay on this module)
+  if (topicStr.indexOf("/fridge/power/") >= 0) {
+    if (topicStr.endsWith("/on")) {
+      fridgeManager->setPower(true);
+    } else if (topicStr.endsWith("/off")) {
+      fridgeManager->setPower(false);
+    } else if (topicStr.endsWith("/toggle")) {
+      fridgeManager->togglePower();
+    }
     return;
   }
 

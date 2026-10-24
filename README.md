@@ -28,8 +28,8 @@ Intelligent system for managing the electrical system of a camper with three mai
   - **module-2** — LED strips, motion, ambient relay
   - **module-3** — floor heating + leveling
   - **module-4** — dampers + table motor
-  - **module-5** — appliance relays (fridge power, pump, inverter, …) + urine level + tablet backlight
-  - **module-6** — Victron Instant Readout (SmartShunt, MPPTs, Orion, AC charger) + AAOBOSI fridge BLE
+  - **module-5** — appliance relays (pump, inverter, …) + urine level + tablet backlight
+  - **module-6** — Victron Instant Readout + AAOBOSI fridge (mains relay + BLE)
   - **module-7** — clean water level
   - **module-8** — security alarm (zones, siren, CAN doors)
 
@@ -103,7 +103,7 @@ Bulgarian overview: `README_BG.md`.
 - Real-time sensors, lighting, climate, appliances
 - Victron energy snapshot (solar, shunt, Orion, **AC charger**)
 - Boiler enabled from inverter **or** live shore AC charger; auto-off only when both are gone
-- Fridge power (module-5 relay) + BLE mode/temps (module-6)
+- Fridge power + BLE mode/temps (module-6)
 - Security alarm (module-8)
 - Offline: backend serves the built frontend
 - Auto WiFi / MQTT reconnect on ESP32 modules

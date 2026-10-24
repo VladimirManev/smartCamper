@@ -3,7 +3,7 @@
 Dedicated ESP32 module that:
 
 1. Reads Victron **Instant Readout via Bluetooth** advertisements and publishes a full energy snapshot to MQTT every 2 seconds.
-2. Connects to the **AAOBOSI / Alpicool** compressor fridge over BLE GATT (mode + dual-zone setpoints). Fridge **power** stays on module-5 relay 2.
+2. Owns the **AAOBOSI / Alpicool** fridge: mains power relay (GPIO 14) + BLE GATT (mode + dual-zone setpoints).
 
 Keep the ESP32 within 1–3 m of the Victron devices **and** the fridge. Close the phone fridge app while this module is connected (one BLE client only).
 
@@ -15,7 +15,7 @@ See `FRIDGE_BLE.md` for fridge protocol details and MQTT command topics.
 | --------- | ----------- |
 | **ESP32** | Any ESP32 dev board with **4 MB flash** (WiFi + BLE) |
 | **Power** | 5 V USB or 3.3 V regulated supply |
-| **GPIO** | Optional fridge test buttons (see `Config.h`); not required for normal use |
+| **GPIO** | Fridge mains relay **14**, relay button **22**; optional BLE test buttons in `Config.h` |
 
 This module is separate from modules 1–5 so BLE does not interfere with time-critical relay/lighting logic.
 
@@ -218,7 +218,7 @@ mosquitto_pub -h 192.168.4.1 -t 'smartcamper/commands/module-6/force_update' -m 
 - **ModuleManager**: WiFi, MQTT, heartbeat, commands
 - **VictronManager**: BLE scan, per-device cache, JSON publish timer (`blockScanFor` only around fridge commands / write probes)
 - **VictronBleParser**: AES-128-CTR decrypt + Victron record parsers
-- **FridgeManager**: Alpicool GATT (service `1234`); long-lived status link; **on-demand** reconnect only before commands (fridge beeps on connect — see `FRIDGE_BLE.md`)
+- **FridgeManager**: local power relay + Alpicool GATT while relay ON (see `FRIDGE_BLE.md`)
 - **CommandHandler**: `force_update` + fridge MQTT commands
 
 ## Debug Flags (`src/Config.h`)

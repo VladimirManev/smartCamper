@@ -6552,6 +6552,28 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   transform: translate(-50%, -50%);
 }
 
+.fridge-ble-modal__age {
+  position: absolute;
+  left: 50%;
+  bottom: 0.35rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  transform: translateX(-50%);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(12, 16, 22, 0.45);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.fridge-ble-modal__age--stale {
+  color: rgba(255, 210, 160, 0.95);
+}
+
 .fridge-ble-modal__sync {
   position: absolute;
   left: 50%;

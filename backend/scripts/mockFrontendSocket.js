@@ -296,6 +296,7 @@ const STATIC = {
     type: "full",
     data: {
       connected: true,
+      powerRelay: "ON",
       mode: "eco",
       zone1: { temp: 4, setpoint: 5 },
       zone2: { temp: -12, setpoint: -18 },
@@ -1053,12 +1054,22 @@ function createInitialFridgeState() {
 }
 
 function emitFridgeStatus(socket, fridgeState) {
+  const powerRelay = fridgeState.powerRelay === "OFF" ? "OFF" : "ON";
   socket.emit("fridgeStatusUpdate", {
     type: "full",
     data: {
       ...fridgeState,
+      powerRelay,
+      haveStatus: true,
       updatedAt: Date.now() % 1000000,
+      receivedAt: Date.now(),
     },
+    timestamp: ts(),
+  });
+  // Mirror mains relay into appliance index 2 (same as real backend).
+  socket.emit("applianceStatusUpdate", {
+    type: "full",
+    data: { relays: { 2: { state: powerRelay } } },
     timestamp: ts(),
   });
 }
@@ -1126,7 +1137,7 @@ function emitApplianceStatus(socket, applianceState) {
   });
 }
 
-function handleMockApplianceCommand(socket, applianceState, payload) {
+function handleMockApplianceCommand(socket, applianceState, fridgeState, payload) {
   if (!payload || typeof payload !== "object") {
     return;
   }
@@ -1137,6 +1148,21 @@ function handleMockApplianceCommand(socket, applianceState, payload) {
 
   const relayActions = ["toggle", "on", "off"];
   if (!relayActions.includes(payload.action)) {
+    return;
+  }
+
+  // Fridge power is module-6 — keep fridge.powerRelay + appliance index 2 aligned.
+  if (payload.index === 2 && fridgeState) {
+    let next = fridgeState.powerRelay === "ON" ? "ON" : "OFF";
+    if (payload.action === "toggle") {
+      next = next === "ON" ? "OFF" : "ON";
+    } else if (payload.action === "on") {
+      next = "ON";
+    } else {
+      next = "OFF";
+    }
+    fridgeState.powerRelay = next;
+    emitFridgeStatus(socket, fridgeState);
     return;
   }
 
@@ -1247,7 +1273,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("applianceCommand", (payload) => {
-    handleMockApplianceCommand(socket, applianceState, payload);
+    handleMockApplianceCommand(socket, applianceState, fridgeState, payload);
     if (process.env.DEBUG_MOCK_SOCKET) {
       console.log("[mock] applianceCommand", payload);
     }

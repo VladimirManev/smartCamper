@@ -577,10 +577,17 @@ void VictronManager::blockScanFor(unsigned long durationMs) {
   }
 }
 
+void VictronManager::clearScanBlock() {
+  scanBlockedUntilMs = 0;
+}
+
 void VictronManager::setFridgeGattConnected(bool connected) {
   fridgeGattConnected = connected;
   if (connected) {
     // Brief quiet while bind/query settle after connect
     blockScanFor(FRIDGE_CMD_RADIO_QUIET_MS);
+  } else {
+    // Fridge link gone / connect failed — let Instant Readout resume now.
+    clearScanBlock();
   }
 }

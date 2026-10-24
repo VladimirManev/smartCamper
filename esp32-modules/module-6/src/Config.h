@@ -35,16 +35,21 @@
 #define BLE_SCAN_BURST_SEC 5   // Non-blocking scan burst, restarted from loop when idle
 
 // AAOBOSI / Alpicool fridge (GATT client; Victron owns BLEScan callbacks)
+// Power relay is local (moved from module-5). BLE connect only while relay ON —
+// failed connect() blocks ~30s and kills WiFi/MQTT/Victron.
 #define FRIDGE_ENABLED true
 #define FRIDGE_BLE_MAC "22:2a:06:a6:f3:48"
+#define FRIDGE_RELAY_PIN 14
+#define FRIDGE_RELAY_BTN_PIN 22 // physical toggle (was module-5 BUTTON_PIN_2)
 #define FRIDGE_QUERY_INTERVAL_MS 2000
-#define FRIDGE_RECONNECT_INTERVAL_MS 8000
-#define FRIDGE_QUERY_RESPONSE_MS 1800
-// Quiet Victron scan around fridge commands / write-path probe
-#define FRIDGE_CMD_RADIO_QUIET_MS 500
+#define FRIDGE_RECONNECT_INTERVAL_MS 10000
+#define FRIDGE_RECONNECT_MAX_MS 60000
+#define FRIDGE_RECONNECT_FAIL_FAST 3
+#define FRIDGE_QUERY_RESPONSE_MS 2000
+#define FRIDGE_CMD_RADIO_QUIET_MS 800
 
-// Optional local GPIO buttons (INPUT_PULLUP, press = pin to GND). Safe if unused.
-#define FRIDGE_BTN_POWER 32
+// Optional local GPIO buttons for BLE setpoint tests (INPUT_PULLUP → GND).
+#define FRIDGE_BTN_POWER 32 // BLE software power (settings patch), not mains relay
 #define FRIDGE_BTN_Z1_UP 33
 #define FRIDGE_BTN_Z1_DOWN 25
 #define FRIDGE_BTN_Z2_UP 26
