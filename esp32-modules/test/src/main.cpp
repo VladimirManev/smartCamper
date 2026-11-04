@@ -5,10 +5,12 @@
  * Contact (GPIO 32): internal pull-up. Wire the switch between the pin and GND.
  * LOW means the pin is tied to ground.
  *
- * Each DS18B20 needs its own data pin and an external 4.7k resistor from data
- * to 3.3V. The ESP32 internal pull-up is too weak for OneWire. Power the
- * sensors from 3.3V, not 5V. 12-bit conversion takes about 750 ms; both
- * sensors convert at the same time so a 1 s print interval still fits.
+ * Each DS18B20 needs its own data pin. VCC may be 5V (same as the other
+ * sensors in this project). The 4.7k pull-up must go from data to 3.3V, not
+ * to 5V: the ESP32 pin is not 5V tolerant, and the idle bus level is set by
+ * that resistor. The internal pull-up is too weak for OneWire. 12-bit
+ * conversion takes about 750 ms; both sensors convert at the same time so a
+ * 1 s print interval still fits.
  */
 
 #include <Arduino.h>
