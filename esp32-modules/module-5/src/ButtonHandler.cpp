@@ -91,6 +91,14 @@ void ButtonHandler::processButton(uint8_t btnIndex, unsigned long currentTime) {
     case BUTTON_PRESSED:
       if (!debouncedButtonState) {
         btn.state = BUTTON_IDLE;
+        if (btnIndex == BOILER_RELAY_INDEX) {
+          Serial.println("🔘 Boiler button released");
+          Serial.flush();
+          if (applianceManager) {
+            applianceManager->onBoilerButton();
+          }
+          break;
+        }
         // Toggle relay
         Serial.println("🔘 Button " + String(btnIndex) + " released - toggling relay " + String(relayIndex));
         Serial.flush();

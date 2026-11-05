@@ -11,6 +11,7 @@
 #include "ButtonHandler.h"
 #include "CommandHandler.h"
 #include "UrineLevelSensor.h"
+#include "BoilerController.h"
 
 class ApplianceManager {
 private:
@@ -19,6 +20,7 @@ private:
   ButtonHandler buttonHandler;
   UrineLevelSensor urineLevelSensor;
   CommandHandler commandHandler;
+  BoilerController boiler;
   
   // Static pointer for MQTT callback
   static ApplianceManager* currentInstance;
@@ -60,6 +62,9 @@ public:
   
   // Check if any button is pressed (for MQTT command blocking)
   bool isAnyButtonPressed() const;
+
+  // Hardware boiler button (enable / disable, not the element relay)
+  void onBoilerButton();
   
   // Status
   void printStatus() const;

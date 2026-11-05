@@ -16,9 +16,9 @@ void RelayController::begin() {
   // Initialize relay pins (skip fridge index — moved to module-6)
   for (uint8_t i = 0; i < NUM_RELAYS; i++) {
     relayStates[i] = false;
-    if (i == FRIDGE_RELAY_MOVED_INDEX) {
+    if (i == FRIDGE_RELAY_MOVED_INDEX || i == BOILER_RELAY_INDEX) {
       if (DEBUG_SERIAL) {
-        Serial.println("Relay " + String(i) + " - MOVED to module-6 (skipped)");
+        Serial.println("Relay " + String(i) + " - skipped (not driven here)");
       }
       continue;
     }
@@ -37,8 +37,7 @@ void RelayController::begin() {
 
 void RelayController::toggleRelay(uint8_t relayIndex) {
   if (relayIndex >= NUM_RELAYS) return;
-  if (relayIndex == FRIDGE_RELAY_MOVED_INDEX) {
-    Serial.println("🔌 Relay 2 ignored — fridge power is on module-6");
+  if (relayIndex == FRIDGE_RELAY_MOVED_INDEX || relayIndex == BOILER_RELAY_INDEX) {
     return;
   }
 
@@ -51,8 +50,7 @@ void RelayController::toggleRelay(uint8_t relayIndex) {
 
 void RelayController::setRelay(uint8_t relayIndex, bool state) {
   if (relayIndex >= NUM_RELAYS) return;
-  if (relayIndex == FRIDGE_RELAY_MOVED_INDEX) {
-    Serial.println("🔌 Relay 2 ignored — fridge power is on module-6");
+  if (relayIndex == FRIDGE_RELAY_MOVED_INDEX || relayIndex == BOILER_RELAY_INDEX) {
     return;
   }
 

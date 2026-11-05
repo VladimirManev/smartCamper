@@ -19,7 +19,15 @@ const applianceCommandHandler = (socket, aedes, data) => {
   let mqttPayload = "{}";
 
   const relayActions = ["toggle", "on", "off"];
-  if (
+  if (data.type === "boiler" && data.action === "setpoint") {
+    const value = Number(data.value);
+    if (!Number.isInteger(value) || value < 5 || value > 70) {
+      console.log("❌ Invalid boiler setpoint:", data.value);
+      return;
+    }
+    mqttTopic = "smartcamper/commands/module-5/boiler/setpoint";
+    mqttPayload = JSON.stringify({ value });
+  } else if (
     data.type === "relay" &&
     typeof data.index === "number" &&
     relayActions.includes(data.action)

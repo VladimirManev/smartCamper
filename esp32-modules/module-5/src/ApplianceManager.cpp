@@ -15,6 +15,7 @@ ApplianceManager::ApplianceManager(ModuleManager* moduleMgr)
     buttonHandler(&relayController),
     urineLevelSensor(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr),
     commandHandler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this, MODULE_ID),
+    boiler(moduleMgr ? &moduleMgr->getMQTTManager() : nullptr, this),
     pendingStatusUpdate(false) {
   
   // Validate input parameter
@@ -46,6 +47,7 @@ void ApplianceManager::begin() {
   buttonHandler.begin();
 
   urineLevelSensor.begin();
+  boiler.begin();
   
   // Set MQTT callback to ApplianceManager::handleMQTTMessage
   if (moduleManager) {
@@ -63,6 +65,7 @@ void ApplianceManager::begin() {
 void ApplianceManager::loop() {
   buttonHandler.loop();
   urineLevelSensor.loop();
+  boiler.loop();
   
   // Process pending status update
   // This prevents blocking PubSubClient which can cause publish failures
@@ -74,7 +77,12 @@ void ApplianceManager::loop() {
 
 void ApplianceManager::handleForceUpdate() {
   urineLevelSensor.forceUpdate();
+  boiler.onForceUpdate();
   pendingStatusUpdate = true;
+}
+
+void ApplianceManager::onBoilerButton() {
+  boiler.onButton();
 }
 
 // Static MQTT callback method (wrapper for MQTTManager)
@@ -155,6 +163,19 @@ void ApplianceManager::processApplianceCommand(char* topic, byte* payload, unsig
     }
 
     String action = relayCommand.substring(slashIndex + 1);
+
+    if (relayIndex == BOILER_RELAY_INDEX) {
+      if (action == "on") {
+        boiler.requestOn();
+      } else if (action == "off") {
+        boiler.requestOff();
+      } else if (action == "toggle") {
+        boiler.onButton();
+      } else if (DEBUG_SERIAL) {
+        Serial.println("❌ Unknown boiler action: " + action);
+      }
+      return;
+    }
     
     if (action == "toggle") {
       relayController.toggleRelay(relayIndex);
@@ -170,6 +191,19 @@ void ApplianceManager::processApplianceCommand(char* topic, byte* payload, unsig
         Serial.println("❌ Unknown action: " + action);
       }
     }
+    return;
+  }
+
+  if (commandPath == "boiler/setpoint") {
+    StaticJsonDocument<128> doc;
+    DeserializationError jsonError = deserializeJson(doc, message);
+    if (jsonError || (!doc["value"].is<int>() && !doc["value"].is<float>())) {
+      if (DEBUG_SERIAL) {
+        Serial.println("❌ Invalid boiler setpoint");
+      }
+      return;
+    }
+    boiler.setSetpoint(doc["value"].as<int>());
   }
 }
 
@@ -199,7 +233,11 @@ void ApplianceManager::publishFullStatus() {
       continue;
     }
     JsonObject relay = relays.createNestedObject(String(i));
-    relay["state"] = relayController.getRelayState(i) ? "ON" : "OFF";
+    if (i == BOILER_RELAY_INDEX) {
+      relay["state"] = boiler.isEnabled() ? "ON" : "OFF";
+    } else {
+      relay["state"] = relayController.getRelayState(i) ? "ON" : "OFF";
+    }
   }
   
   // Serialize JSON

@@ -3675,23 +3675,23 @@ body {
   font-weight: 700;
 }
 
-/* Autoterm power bars — match Comfort Control wedge (9 ascending ticks) */
+/* Autoterm power bars — Comfort Control wedge (10 ascending ticks, UI 1..10) */
 .autoterm-power-bars {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 0.28rem;
+  gap: 0.22rem;
   height: 2.6rem;
   width: var(--autoterm-power-bars-width, 7.5rem);
   min-width: var(--autoterm-power-bars-width, 7.5rem);
-  padding: 0 0.15rem;
+  padding: 0 0.1rem;
   box-sizing: border-box;
 }
 
 .autoterm-power-bars__bar {
   --bar-index: 0;
-  width: 0.42rem;
-  height: calc(0.55rem + var(--bar-index) * 0.22rem);
+  width: 0.38rem;
+  height: calc(0.5rem + var(--bar-index) * 0.2rem);
   border-radius: 0.12rem;
   box-sizing: border-box;
   border: 1.5px solid var(--color-text-primary);
@@ -6552,28 +6552,6 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
   transform: translate(-50%, -50%);
 }
 
-.fridge-ble-modal__age {
-  position: absolute;
-  left: 50%;
-  bottom: 0.35rem;
-  z-index: 2;
-  margin: 0;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  transform: translateX(-50%);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.78);
-  background: rgba(12, 16, 22, 0.45);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.fridge-ble-modal__age--stale {
-  color: rgba(255, 210, 160, 0.95);
-}
-
 .fridge-ble-modal__sync {
   position: absolute;
   left: 50%;
@@ -6640,6 +6618,12 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 .fridge-ble-modal__round.neumorphic-button .button-text {
   font-size: 0.68rem;
   letter-spacing: 0.04em;
+}
+
+.fridge-ble-modal__power-symbol {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
 }
 
 .fridge-ble-modal__round--step.neumorphic-button {
@@ -6734,6 +6718,122 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
   .fridge-ble-modal__round--step.neumorphic-button .button-text.fridge-ble-modal__step-glyph {
     font-size: 2.35rem;
+  }
+}
+
+.boiler-modal__temps {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.55rem 0.25rem 1.7rem;
+  pointer-events: none;
+}
+
+.boiler-modal__temp {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.boiler-modal__element {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 7px;
+  height: 16px;
+  z-index: 3;
+  color: #fb923c;
+  overflow: visible;
+  animation: boiler-element-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes boiler-element-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+    filter: drop-shadow(0 0 1px #f97316);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px #fb923c);
+  }
+}
+
+.boiler-modal .boiler-modal__fill--empty {
+  background: #1e3a8a;
+  animation: boiler-empty-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes boiler-empty-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.boiler-modal__error {
+  margin: 0;
+  min-height: 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--color-accent-red, #ef4444);
+  text-align: center;
+}
+
+.boiler-modal__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.boiler-modal .fridge-ble-modal__card {
+  width: 3.6rem;
+  height: 3.6rem;
+  min-width: 3.6rem;
+  min-height: 3.6rem;
+}
+
+.boiler-modal .fridge-ble-modal__round--step.neumorphic-button {
+  width: 3.5rem;
+  height: 3.5rem;
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+}
+
+.boiler-modal .autoterm-modal__power-value {
+  min-width: 3.4rem;
+  font-size: 1.35rem;
+}
+
+@media (max-width: 400px) {
+  .boiler-modal {
+    gap: 0.65rem;
+    min-height: 0;
+    padding-top: 0.15rem;
+  }
+
+  .boiler-modal__temp {
+    font-size: 1.05rem;
+  }
+
+  .boiler-modal .fridge-ble-modal__round--step.neumorphic-button {
+    width: 3.15rem;
+    height: 3.15rem;
+    min-width: 3.15rem;
+    min-height: 3.15rem;
   }
 }
 

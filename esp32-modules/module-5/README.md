@@ -23,6 +23,9 @@ ESP32 module for controlling six appliances via relays (Audio System, Water Pump
 | **Button 5** (Inverter)     | 33  | Input (Pull-up) | Manual toggle for relay 5      |
 | **Urine Level 50%**         | 4   | Input           | Toilet tank lower electrode    |
 | **Urine Level 100%**        | 5   | Input           | Toilet tank upper electrode    |
+| **Boiler electrode**        | 16  | Input           | Full-tank electrode. Pull-up only while reading. LOW = full |
+| **Boiler temp bottom**      | 18  | Input           | DS18B20, thermostat |
+| **Boiler temp top**         | 19  | Input           | DS18B20, display and 75°C limit |
 
 ### Appliance Details
 
@@ -77,9 +80,10 @@ Fridge **power + BLE** are on **module-6** (relay GPIO 14, button GPIO 22). See 
 | Topic                                                | Payload | Action              |
 | ---------------------------------------------------- | ------- | ------------------- |
 | `smartcamper/commands/module-5/relay/{index}/toggle` | `{}`    | Toggle relay        |
-| `smartcamper/commands/module-5/relay/{index}/on`     | `{}`    | Relay ON            |
-| `smartcamper/commands/module-5/relay/{index}/off`    | `{}`    | Relay OFF           |
-| `smartcamper/commands/module-5/force_update`         | `{}`    | Force status update |
+| `smartcamper/commands/module-5/relay/{index}/on`     | `{}`    | Relay ON. Index 4 enables the boiler |
+| `smartcamper/commands/module-5/relay/{index}/off`    | `{}`    | Relay OFF. Index 4 disables the boiler (opens the element) |
+| `smartcamper/commands/module-5/boiler/setpoint`      | `{"value": 60}` | Boiler setpoint 5–70°C. Not saved across restart |
+| `smartcamper/commands/module-5/force_update`         | `{}`    | Force status update, including one electrode read |
 
 ### Command Format
 
@@ -119,14 +123,45 @@ Two conductivity electrodes in the urine tank (same approach as module-1 gray wa
 
 Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
 
+### Boiler
+
+The element relay (GPIO 27) is closed only by the thermostat. Relay index 4 in `module-5/status` means the boiler is **enabled** (thermostat armed), not that the element is on. Element state is `relay` in the boiler topic.
+
+| GPIO | Role |
+| ---- | ---- |
+| 27 | Element relay. HIGH = on. Owned by `BoilerController`, not `RelayController` |
+| 26 | Button. Press enables the boiler, or disables it if it is already enabled |
+| 16 | Electrode at the top of the tank. Water pulls the pin to GND |
+| 18 | Bottom DS18B20. Turns the element off at the setpoint and on at setpoint − 3 |
+| 19 | Top DS18B20. Shown in the UI. Either sensor at 75°C stops the boiler |
+
+DS18B20 VCC is 5 V, same as the other sensors. The 4.7 kΩ pull-up goes from data to **3.3 V**, not to 5 V. A 12-bit conversion takes about 750 ms. The two sensors convert at the same time, and the wait is spread across `loop()` so the module does not freeze. Every 30 s the firmware takes 3 readings and keeps the median when at least 2 are inside −10…95°C. Integers are published only when they change.
+
+The electrode is read only before the element closes, once at boot, and on `force_update` (including MQTT reconnect, a new frontend connection, and the toilet modal poll). The internal pull-up is enabled for a few milliseconds per sample, then the pin is released. Three samples, majority wins.
+
+Two failed bursts on either sensor, a reading of 75°C or more on either sensor, or no water at the moment the element should close: the element opens, the boiler is disabled, and it stays off until the next on command. One missed burst keeps the last good temperature. Setpoint defaults to 60°C after every restart.
+
+Published topic `smartcamper/sensors/module-5/boiler`:
+
+```json
+{"enabled": false, "relay": false, "setpoint": 60, "top": null, "bottom": null, "full": true, "error": null}
+```
+
+`error` is `null`, `"empty"`, `"sensor"`, or `"overtemp"`. `full` is `null` only before the first electrode read.
+
+GPIO 16 is free on ESP32-WROOM. On a WROVER board it is wired to PSRAM and cannot be used.
+
 ## Backend Integration
 
-- **Relay status**: `smartcamper/sensors/module-5/status` → `applianceStatusUpdate`
+- **Relay status**: `smartcamper/sensors/module-5/status` → `applianceStatusUpdate`. Index 4 is boiler enabled, not element current
+- **Boiler**: `smartcamper/sensors/module-5/boiler` → `boilerStatusUpdate`
 - **Urine level**: `smartcamper/sensors/toilet/urine/level` → `sensorUpdate` with `{ toiletUrineLevel }`
-- **Force refresh**: `forceModuleUpdate` with `{ moduleId: "module-5" }` (relays + urine level)
+- **Force refresh**: `forceModuleUpdate` with `{ moduleId: "module-5" }` (relays, urine level, one electrode read)
 
 ## Frontend Integration
 
+- **Boiler card**: click opens the boiler modal. Long press turns the boiler off. Long press while off does nothing
+- **Boiler modal**: tank colored from the two temperatures (0°C dark blue, 80°C bright red). Half-full blinking blue water when `full` is false. Heating-element graphic only while `relay` is true
 - **Toilet card** in main menu — `ToiletUrineTank`, yellow liquid, **WC** label
 - **Detail modal** — polls module-5 every 5 s while open
 - **Status panel** (tablet) — included in rotating slides
@@ -134,7 +169,7 @@ Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
 
 ### Boiler ↔ 230 V (frontend rules)
 
-Logic is in the frontend only (`frontend/src/constants/appliances.js`) — module-5 does not enforce it. Physical boiler button still toggles freely.
+230 V logic is in the frontend only (`frontend/src/constants/appliances.js`). The physical button can still enable the boiler without inverter or shore power. The ESP does block enable when the tank is not full, a temperature sensor has failed, or either sensor is at 75°C or above.
 
 - **Enable turn-ON** when module-5 is online **and** at least one 230 V source is available:
   - inverter relay **ON**, or

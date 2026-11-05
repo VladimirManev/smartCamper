@@ -39,7 +39,7 @@
 
 ## WebSocket: от сървъра към клиента
 
-Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate`, `victronStatusUpdate`, `fridgeStatusUpdate` (подробности в английския `README.md`).
+Основни събития: `moduleStatusUpdate`, `sensorUpdate`, `ledStatusUpdate`, `floorHeatingStatusUpdate`, `levelingData`, `damperStatusUpdate`, `tableStatusUpdate`, `applianceStatusUpdate`, `boilerStatusUpdate`, `victronStatusUpdate`, `fridgeStatusUpdate` (подробности в английския `README.md`).
 
 ## История (SQLite)
 

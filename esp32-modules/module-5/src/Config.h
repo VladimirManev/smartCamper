@@ -34,7 +34,7 @@
 // Relay pins (for controlling appliances)
 #define RELAY_PIN_0 14 // GPIO pin for relay 0 (Audio System)
 #define RELAY_PIN_1 15 // GPIO pin for relay 1 (Water Pump)
-#define RELAY_PIN_2 16 // UNUSED — fridge power moved to module-6 GPIO 14
+#define RELAY_PIN_2 16 // UNUSED value — do not drive. GPIO 16 is the boiler electrode. Fridge power is module-6 GPIO 14.
 #define RELAY_PIN_3 23 // GPIO pin for relay 3 (WC Fan)
 #define RELAY_PIN_4 27 // GPIO pin for relay 4 (Boiler)
 #define RELAY_PIN_5 32 // GPIO pin for relay 5 (Inverter)
@@ -64,6 +64,24 @@
 #define URINE_LEVEL_READ_INTERVAL 30000   // 30 seconds
 #define URINE_LEVEL_MODE_SAMPLE_COUNT 10  // mode over ~5 minutes
 #define URINE_LEVEL_THRESHOLD 1.0         // publish on ≥1% change (0 / 50 / 100)
+
+// Boiler (relay index 4). Element relay is GPIO 27, owned by BoilerController.
+// Relay 4 state published in module status means "boiler enabled", not element current.
+#define BOILER_RELAY_INDEX 4
+#define BOILER_ELECTRODE_PIN 16    // INPUT_PULLUP only during a read. LOW = water present
+#define BOILER_TEMP_BOTTOM_PIN 18  // DS18B20, thermostat
+#define BOILER_TEMP_TOP_PIN 19     // DS18B20, display + 75°C limit
+#define BOILER_SETPOINT_DEFAULT 60
+#define BOILER_SETPOINT_MIN 5
+#define BOILER_SETPOINT_MAX 70
+#define BOILER_HYSTERESIS 3        // off at setpoint, on at setpoint - 3
+#define BOILER_OVERTEMP_C 75
+#define BOILER_TEMP_INTERVAL_MS 30000
+#define BOILER_TEMP_BURST_COUNT 3
+#define BOILER_TEMP_CONVERSION_MS 800
+#define BOILER_TEMP_MIN_VALID -10
+#define BOILER_TEMP_MAX_VALID 95
+#define BOILER_TEMP_MAX_FAILED_BURSTS 2
 
 // Appliance names (for identification)
 // Relay 0: Audio System

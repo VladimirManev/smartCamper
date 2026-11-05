@@ -18,6 +18,7 @@ import { useAutotermController } from "./hooks/useAutotermController";
 import { useTableController } from "./hooks/useTableController";
 import { useLeveling } from "./hooks/useLeveling";
 import { useApplianceController } from "./hooks/useApplianceController";
+import { useBoiler } from "./hooks/useBoiler";
 import { useFridge } from "./hooks/useFridge";
 import { StatusIcons } from "./components/StatusIcons";
 import { isModuleStatusIconsEnabled } from "./utils/moduleGating";
@@ -33,6 +34,7 @@ import { LEDGroupCard } from "./components/LEDGroupCard";
 import { FloorHeatingGroupCard } from "./components/FloorHeatingGroupCard";
 import { AutotermCard } from "./components/AutotermCard";
 import { AutotermModalContent } from "./components/AutotermModalContent";
+import { BoilerModalContent } from "./components/BoilerModalContent";
 import { TableGroupCard } from "./components/TableGroupCard";
 import { LevelingGroupCard } from "./components/LevelingGroupCard";
 import { LevelingGauge } from "./components/LevelingGauge";
@@ -67,7 +69,9 @@ import {
 import {
   APPLIANCE_INDEX,
   getApplianceToggleCommands,
+  hasBoilerAcSupply,
   isBoilerControlEnabled,
+  isBoilerOn,
   shouldAutoOffBoiler,
 } from "./constants/appliances";
 import { CardModal } from "./components/CardModal";
@@ -227,6 +231,7 @@ function App() {
 
   // Appliance controller
   const { appliances, sendApplianceCommand } = useApplianceController(socket);
+  const boiler = useBoiler(socket);
   const { status: fridgeStatus, sendFridgeCommand } = useFridge(socket);
 
   const {
@@ -1076,6 +1081,49 @@ function App() {
       );
     }
 
+    if (cardType === "boiler") {
+      const boilerEnabled = isBoilerOn(appliances);
+      return (
+        <BoilerModalContent
+          boiler={boiler}
+          enabled={boilerEnabled}
+          disabled={!isModule5Online}
+          powerDisabled={
+            !isBoilerControlEnabled(
+              appliances,
+              isModule5Online,
+              isAcChargerLive
+            )
+          }
+          onPower={() => {
+            if (!isModule5Online) return;
+            if (boilerEnabled) {
+              sendApplianceCommand({
+                type: "relay",
+                index: APPLIANCE_INDEX.boiler,
+                action: "off",
+              });
+              return;
+            }
+            if (!hasBoilerAcSupply(appliances, isAcChargerLive)) return;
+            sendApplianceCommand({
+              type: "relay",
+              index: APPLIANCE_INDEX.boiler,
+              action: "on",
+            });
+          }}
+          onSetpoint={(value) => {
+            if (!isModule5Online) return;
+            sendApplianceCommand({
+              type: "boiler",
+              action: "setpoint",
+              value,
+            });
+          }}
+        />
+      );
+    }
+
     if (cardType === "led" && modal.cardData) {
       const data = modal.cardData;
       if (data.type === "strip") {
@@ -1914,23 +1962,21 @@ function App() {
             <LEDCard
               name="Boiler"
               strip={appliances[4]}
-              onClick={() => handleApplianceToggle(4)}
-              onLongPress={() =>
-                activateFromMainMenu("led", "Boiler", {
-                  strip: appliances[4],
+              onClick={() => {
+                if (!isModule5Online) return;
+                activateFromMainMenu("boiler", "Boiler");
+              }}
+              onLongPress={() => {
+                if (!isModule5Online || !isBoilerOn(appliances)) return;
+                sendApplianceCommand({
                   type: "relay",
-                  index: 4,
-                })
-              }
+                  index: APPLIANCE_INDEX.boiler,
+                  action: "off",
+                });
+              }}
               type="relay"
               icon="boiler"
-              disabled={
-                !isBoilerControlEnabled(
-                  appliances,
-                  isModule5Online,
-                  isAcChargerLive
-                )
-              }
+              disabled={!isModule5Online}
             />
             <p className="card-label">Boiler</p>
           </div>

@@ -486,10 +486,92 @@ function handleTable(io, topicParts, message) {
 }
 
 /**
+ * Boiler thermostat status from module-5.
+ * Format: smartcamper/sensors/module-5/boiler (JSON)
+ */
+function handleBoiler(io, message) {
+  let status;
+  try {
+    status = JSON.parse(message);
+  } catch (error) {
+    console.log(`❌ Failed to parse boiler status JSON: ${error.message}`);
+    return true;
+  }
+
+  if (!status || typeof status !== "object" || Array.isArray(status)) {
+    console.log("❌ Invalid boiler status JSON: expected object");
+    return true;
+  }
+
+  if (typeof status.enabled !== "boolean" || typeof status.relay !== "boolean") {
+    console.log("❌ Invalid boiler status: enabled/relay");
+    return true;
+  }
+
+  const setpoint = Number(status.setpoint);
+  if (!Number.isInteger(setpoint) || setpoint < 5 || setpoint > 70) {
+    console.log("❌ Invalid boiler setpoint in status");
+    return true;
+  }
+
+  const temperatureOrNull = (value) => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const number = Number(value);
+    if (!Number.isInteger(number) || number < -40 || number > 125) {
+      return undefined;
+    }
+    return number;
+  };
+
+  const top = temperatureOrNull(status.top);
+  const bottom = temperatureOrNull(status.bottom);
+  if (top === undefined || bottom === undefined) {
+    console.log("❌ Invalid boiler temperature");
+    return true;
+  }
+
+  let full = null;
+  if (status.full !== null && status.full !== undefined) {
+    if (typeof status.full !== "boolean") {
+      console.log("❌ Invalid boiler full flag");
+      return true;
+    }
+    full = status.full;
+  }
+
+  const allowedErrors = [null, "empty", "sensor", "overtemp"];
+  const error =
+    status.error === undefined || status.error === null ? null : status.error;
+  if (!allowedErrors.includes(error)) {
+    console.log("❌ Invalid boiler error");
+    return true;
+  }
+
+  io.emit("boilerStatusUpdate", {
+    enabled: status.enabled,
+    relay: status.relay,
+    setpoint,
+    top,
+    bottom,
+    full,
+    error,
+    timestamp: new Date().toISOString(),
+  });
+
+  return true;
+}
+
+/**
  * Handle appliance status data
  * Format: smartcamper/sensors/module-5/status (JSON)
  */
 function handleAppliance(io, topicParts, message) {
+  if (topicParts.length >= 4 && topicParts[3] === "boiler") {
+    return handleBoiler(io, message);
+  }
+
   // Format: smartcamper/sensors/module-5/status (JSON)
   if (topicParts.length >= 4 && topicParts[3] === "status") {
     try {
