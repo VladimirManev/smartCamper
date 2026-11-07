@@ -125,6 +125,23 @@ export function BoilerModalContent({
             </svg>
           )}
         </div>
+        <div className="boiler-modal__setpoint">
+          <StepButton
+            label="Decrease temperature"
+            disabled={disabled || setpoint <= SETPOINT_MIN}
+            onClick={() => adjust(setpoint - 1)}
+          >
+            −
+          </StepButton>
+          <span className="autoterm-modal__power-value">{setpoint}°C</span>
+          <StepButton
+            label="Increase temperature"
+            disabled={disabled || setpoint >= SETPOINT_MAX}
+            onClick={() => adjust(setpoint + 1)}
+          >
+            +
+          </StepButton>
+        </div>
       </div>
 
       <div className="boiler-modal__footer">
@@ -149,21 +166,6 @@ export function BoilerModalContent({
               disabled={powerDisabled}
               onClick={onPower}
             />
-            <StepButton
-              label="Decrease temperature"
-              disabled={disabled || setpoint <= SETPOINT_MIN}
-              onClick={() => adjust(setpoint - 1)}
-            >
-              −
-            </StepButton>
-            <span className="autoterm-modal__power-value">{setpoint}°C</span>
-            <StepButton
-              label="Increase temperature"
-              disabled={disabled || setpoint >= SETPOINT_MAX}
-              onClick={() => adjust(setpoint + 1)}
-            >
-              +
-            </StepButton>
           </div>
         </div>
       </div>
