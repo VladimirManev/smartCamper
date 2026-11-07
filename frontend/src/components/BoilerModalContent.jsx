@@ -14,6 +14,8 @@ const COLOR_COLD = [8, 36, 110];
 const COLOR_HOT = [220, 32, 24];
 const COLOR_COLD_C = 18;
 const COLOR_HOT_C = 35;
+const BOTTOM_BLUE_START_C = 3;
+const BOTTOM_BLUE_FULL_C = 10;
 
 const ERROR_TEXT = {
   empty: "No water",
@@ -42,14 +44,33 @@ const ELEMENT_PATH = (() => {
   return commands.join(" ");
 })();
 
-function temperatureColor(celsius) {
+function temperatureRgb(celsius) {
   const span =
     (Math.min(COLOR_HOT_C, Math.max(COLOR_COLD_C, Number(celsius) || 0)) -
       COLOR_COLD_C) /
     (COLOR_HOT_C - COLOR_COLD_C);
-  const channel = (index) =>
-    Math.round(COLOR_COLD[index] + (COLOR_HOT[index] - COLOR_COLD[index]) * span);
-  return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+  return COLOR_COLD.map((cold, index) =>
+    Math.round(cold + (COLOR_HOT[index] - cold) * span)
+  );
+}
+
+function rgbString(channels) {
+  return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`;
+}
+
+function bottomRgb(topCelsius, bottomCelsius) {
+  const topChannels = temperatureRgb(topCelsius);
+  const gap = Math.abs(Number(topCelsius) - Number(bottomCelsius));
+  if (gap <= BOTTOM_BLUE_START_C) {
+    return topChannels;
+  }
+  const mix = Math.min(
+    1,
+    (gap - BOTTOM_BLUE_START_C) / (BOTTOM_BLUE_FULL_C - BOTTOM_BLUE_START_C)
+  );
+  return topChannels.map((channel, index) =>
+    Math.round(channel + (COLOR_COLD[index] - channel) * mix)
+  );
 }
 
 function formatTemp(value) {
@@ -101,9 +122,16 @@ export function BoilerModalContent({
 
   let fillStyle = { height: "0%" };
   if (full === true) {
-    const bottomColor =
-      bottom === null ? "rgb(30, 64, 140)" : temperatureColor(bottom);
-    const topColor = top === null ? bottomColor : temperatureColor(top);
+    const topChannels =
+      top === null
+        ? bottom === null
+          ? [30, 64, 140]
+          : temperatureRgb(bottom)
+        : temperatureRgb(top);
+    const bottomChannels =
+      top === null || bottom === null ? topChannels : bottomRgb(top, bottom);
+    const bottomColor = rgbString(bottomChannels);
+    const topColor = rgbString(topChannels);
     fillStyle = {
       height: "100%",
       background: `linear-gradient(to top, ${bottomColor}, ${topColor})`,
