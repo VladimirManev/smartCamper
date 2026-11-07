@@ -134,13 +134,13 @@ The element relay (GPIO 27) is closed only by the boiler controller. Relay index
 | 26 | Button. From off, starts maintain mode. From any mode, stops the boiler |
 | 16 | Electrode at the top of the tank. Water pulls the pin to GND |
 | 18 | Bottom DS18B20. Maintain mode turns the element off at the setpoint and on at setpoint − 3. One-shot mode stops at 30 or 60 |
-| 19 | Top DS18B20. Shown in the UI. Either sensor at 75°C stops the boiler |
+| 19 | Top DS18B20. Shown in the UI. A reading of 75°C stops the boiler. A missing top sensor does not |
 
-DS18B20 VCC is 5 V, same as the other sensors. The 4.7 kΩ pull-up goes from data to **3.3 V**, not to 5 V. A 12-bit conversion takes about 750 ms. The two sensors convert at the same time, and the wait is spread across `loop()` so the module does not freeze. Every 30 s the firmware takes 3 readings and keeps the median when at least 2 are inside −10…95°C. Integers are published only when they change.
+DS18B20 VCC is 5 V, same as the other sensors. The 4.7 kΩ pull-up goes from data to **3.3 V**, not to 5 V. A 12-bit conversion takes about 750 ms. The two sensors convert at the same time, and the wait is spread across `loop()` so the module does not freeze. Every 30 s the firmware takes 3 readings and keeps the median when at least 2 are inside −10…95°C. A failed read is tried twice more immediately before that sample counts as missed. Integers are published only when they change.
 
 The electrode is read only before the element closes, once at boot, and on `force_update` (including MQTT reconnect, a new frontend connection, and the toilet modal poll). The internal pull-up is enabled for a few milliseconds per sample, then the pin is released. Three samples, majority wins.
 
-Two failed bursts on either sensor, a reading of 75°C or more on either sensor, or no water at the moment the element should close: the element opens, the mode clears, and it stays off until the next command. One missed burst keeps the last good temperature. Setpoint defaults to 60°C after every restart, and one-shot mode is forgotten.
+Two failed bursts on the bottom sensor, a reading of 75°C or more on a sensor that did answer, or no water at the moment the element should close: the element opens, the mode clears, and it stays off until the next command. A missing top sensor clears the top temperature and does not stop the boiler. One missed burst keeps the last good temperature. Setpoint defaults to 60°C after every restart, and one-shot mode is forgotten.
 
 Maintain mode keeps reheating at setpoint − 3. One-shot mode heats until the bottom sensor reaches 30 or 60, then turns off and does not reheat. The module finishes a one-shot without the backend. Pressing the active one-shot target again, relay 4 off, or the hardware button stops it. Relay 4 on during a one-shot switches to maintain mode and keeps the stored setpoint.
 

@@ -74,12 +74,20 @@ private:
   bool burstActive;
   bool waitingConversion;
   bool immediateBurst;
+  bool bottomConverting;
+  bool topConverting;
+  bool bottomSampleDone;
+  bool topSampleDone;
+  uint8_t bottomTries;
+  uint8_t topTries;
   uint8_t burstIndex;
   unsigned long conversionStartedMs;
   unsigned long lastBurstMs;
   String lastPayload;
 
   void startBurst(unsigned long now);
+  void beginConversion(unsigned long now);
+  void collectSample();
   void finishBurst(unsigned long now);
   void applyControl();
   void trip(Error code);

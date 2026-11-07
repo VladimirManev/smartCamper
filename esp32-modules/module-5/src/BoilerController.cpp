@@ -29,6 +29,12 @@ BoilerController::BoilerController(MQTTManager* mqtt, ApplianceManager* appMgr)
     burstActive(false),
     waitingConversion(false),
     immediateBurst(false),
+    bottomConverting(false),
+    topConverting(false),
+    bottomSampleDone(false),
+    topSampleDone(false),
+    bottomTries(0),
+    topTries(0),
     burstIndex(0),
     conversionStartedMs(0),
     lastBurstMs(0),
@@ -82,10 +88,7 @@ void BoilerController::loop() {
   }
 
   if (!waitingConversion) {
-    bottomSensors.requestTemperatures();
-    topSensors.requestTemperatures();
-    waitingConversion = true;
-    conversionStartedMs = now;
+    beginConversion(now);
     return;
   }
 
@@ -93,10 +96,17 @@ void BoilerController::loop() {
     return;
   }
 
-  bottom.samples[burstIndex] = readCelsius(bottomSensors);
-  top.samples[burstIndex] = readCelsius(topSensors);
-  burstIndex++;
+  collectSample();
   waitingConversion = false;
+  if (!bottomSampleDone || !topSampleDone) {
+    return;
+  }
+
+  burstIndex++;
+  bottomTries = 0;
+  topTries = 0;
+  bottomSampleDone = false;
+  topSampleDone = false;
 
   if (burstIndex < BOILER_TEMP_BURST_COUNT) {
     return;
@@ -111,7 +121,7 @@ void BoilerController::requestOn() {
   top.failCount = 0;
   setMode(MODE_MAINTAIN);
   immediateBurst = true;
-  if (bottom.hasReading && top.hasReading) {
+  if (bottom.hasReading) {
     applyControl();
   }
   publish(true);
@@ -127,7 +137,7 @@ void BoilerController::requestOnce(int target) {
   onceTarget = target;
   setMode(MODE_ONCE);
   immediateBurst = true;
-  if (bottom.hasReading && top.hasReading) {
+  if (bottom.hasReading) {
     applyControl();
   }
   publish(true);
@@ -156,8 +166,7 @@ void BoilerController::setSetpoint(int value) {
     return;
   }
   setpoint = value;
-  if (mode == MODE_MAINTAIN && error == ERROR_NONE && bottom.hasReading &&
-      top.hasReading) {
+  if (mode == MODE_MAINTAIN && error == ERROR_NONE && bottom.hasReading) {
     applyControl();
   }
   publish(true);
@@ -183,9 +192,50 @@ void BoilerController::startBurst(unsigned long now) {
   burstActive = true;
   waitingConversion = false;
   burstIndex = 0;
+  bottomTries = 0;
+  topTries = 0;
+  bottomSampleDone = false;
+  topSampleDone = false;
   immediateBurst = false;
   clearSamples(bottom);
   clearSamples(top);
+}
+
+void BoilerController::beginConversion(unsigned long now) {
+  bottomConverting = !bottomSampleDone;
+  topConverting = !topSampleDone;
+  if (bottomConverting) {
+    bottomSensors.requestTemperatures();
+  }
+  if (topConverting) {
+    topSensors.requestTemperatures();
+  }
+  waitingConversion = true;
+  conversionStartedMs = now;
+}
+
+void BoilerController::collectSample() {
+  if (bottomConverting) {
+    bottomTries++;
+    float temp = readCelsius(bottomSensors);
+    if (!isnan(temp)) {
+      bottom.samples[burstIndex] = temp;
+      bottomSampleDone = true;
+    } else if (bottomTries >= BOILER_TEMP_READ_ATTEMPTS) {
+      bottomSampleDone = true;
+    }
+  }
+
+  if (topConverting) {
+    topTries++;
+    float temp = readCelsius(topSensors);
+    if (!isnan(temp)) {
+      top.samples[burstIndex] = temp;
+      topSampleDone = true;
+    } else if (topTries >= BOILER_TEMP_READ_ATTEMPTS) {
+      topSampleDone = true;
+    }
+  }
 }
 
 void BoilerController::finishBurst(unsigned long now) {
@@ -210,16 +260,20 @@ void BoilerController::finishBurst(unsigned long now) {
     top.failCount = 0;
     top.hasReading = true;
     top.reading = topRounded;
-  } else if (top.failCount < BOILER_TEMP_MAX_FAILED_BURSTS) {
-    top.failCount++;
+  } else {
+    if (top.failCount < BOILER_TEMP_MAX_FAILED_BURSTS) {
+      top.failCount++;
+    }
+    if (top.failCount >= BOILER_TEMP_MAX_FAILED_BURSTS) {
+      top.hasReading = false;
+    }
   }
 
   bool bottomHot = bottomOk && bottom.reading >= BOILER_OVERTEMP_C;
   bool topHot = topOk && top.reading >= BOILER_OVERTEMP_C;
   if (bottomHot || topHot) {
     trip(ERROR_OVERTEMP);
-  } else if (bottom.failCount >= BOILER_TEMP_MAX_FAILED_BURSTS ||
-             top.failCount >= BOILER_TEMP_MAX_FAILED_BURSTS) {
+  } else if (bottom.failCount >= BOILER_TEMP_MAX_FAILED_BURSTS) {
     trip(ERROR_SENSOR);
   } else {
     applyControl();
@@ -233,11 +287,12 @@ void BoilerController::applyControl() {
     setElement(false);
     return;
   }
-  if (!bottom.hasReading || !top.hasReading) {
+  if (!bottom.hasReading) {
     setElement(false);
     return;
   }
-  if (bottom.reading >= BOILER_OVERTEMP_C || top.reading >= BOILER_OVERTEMP_C) {
+  if (bottom.reading >= BOILER_OVERTEMP_C ||
+      (top.hasReading && top.reading >= BOILER_OVERTEMP_C)) {
     trip(ERROR_OVERTEMP);
     return;
   }
@@ -281,7 +336,6 @@ void BoilerController::trip(Error code) {
   setMode(MODE_OFF);
   if (code == ERROR_SENSOR) {
     bottom.hasReading = false;
-    top.hasReading = false;
   }
   setElement(false);
   if (DEBUG_SERIAL) {
