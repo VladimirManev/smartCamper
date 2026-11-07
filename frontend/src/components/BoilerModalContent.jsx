@@ -18,6 +18,27 @@ const ERROR_TEXT = {
   overtemp: "Overheating",
 };
 
+const ELEMENT_PATH = (() => {
+  const y = 9;
+  const amplitude = 5.5;
+  const xStart = 2;
+  const xEnd = 78;
+  const lead = 8;
+  const periods = 4;
+  const waveStart = xStart + lead;
+  const waveEnd = xEnd - lead;
+  const steps = periods * 16;
+  const commands = [`M${xStart} ${y}`, `L${waveStart} ${y}`];
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const x = waveStart + (waveEnd - waveStart) * t;
+    const waveY = y - Math.sin(t * periods * Math.PI * 2) * amplitude;
+    commands.push(`L${x.toFixed(2)} ${waveY.toFixed(2)}`);
+  }
+  commands.push(`L${xEnd} ${y}`);
+  return commands.join(" ");
+})();
+
 function temperatureColor(celsius) {
   const span = Math.min(80, Math.max(0, Number(celsius) || 0)) / 80;
   const channel = (index) =>
@@ -94,7 +115,7 @@ export function BoilerModalContent({
               aria-hidden="true"
             >
               <path
-                d="M6 13 Q14 3 22 13 T38 13 T54 13 T70 13"
+                d={ELEMENT_PATH}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
