@@ -169,7 +169,7 @@ GPIO 16 is free on ESP32-WROOM. On a WROVER board it is wired to PSRAM and canno
 - **Boiler modal**: the top of the tank follows temperature (18°C and below dark blue, 35°C and above bright red). The bottom shifts from that color toward dark blue as it differs from the top, starting at 3°C and fully blue at 10°C. Half-full blinking blue water when `full` is false. Heating-element graphic only while `relay` is true. Power starts or stops maintain mode. 30° and 60° start a one-shot; pressing the lit one stops the boiler. + and − change the maintain setpoint only while maintain mode is on. During a one-shot the number between them stays that setpoint. A preset button is inactive when the bottom sensor is already at that temperature. Power, 30°, and 60° need inverter or shore power to start, and loss of both stops an active mode
 - **Toilet card** in main menu — `ToiletUrineTank`, yellow liquid, **WC** label
 - **Detail modal** — polls module-5 every 5 s while open
-- **Status panel** (tablet) — rotating slide after the fridge. No + or −. Power, 30°, and 60° show the active mode and do not send commands. The setpoint is shown only in maintain mode
+- **Status panel** (tablet) — rotating slide after the toilet. No + or −. Power, 30°, and 60° show the active mode and do not send commands. The setpoint is shown only in maintain mode
 - **Tablet display backlight** (tablet landscape only): long-press clock → off; tap overlay → on; Settings auto-off; wake when a light zone turns on (module-2). Relay index **6** in `applianceStatusUpdate`, no dedicated appliance card.
 
 ### Boiler ↔ 230 V (frontend rules)

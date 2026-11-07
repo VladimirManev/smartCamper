@@ -1,5 +1,5 @@
 /**
- * Tablet Status panel — rotates battery, tanks, fridge, boiler, and doors every 4s.
+ * Tablet Status panel — rotates battery, tanks, boiler, fridge, and doors every 4s.
  * Swipe left/right to change slides manually (resets auto-rotate timer).
  */
 
@@ -17,8 +17,8 @@ const SLIDES = [
   "gray-water",
   "fresh-water",
   "toilet-urine",
-  "fridge",
   "boiler",
+  "fridge",
   "doors",
 ];
 const SLIDE_TITLES = [
@@ -26,8 +26,8 @@ const SLIDE_TITLES = [
   "Gray Water",
   "Fresh Water",
   "Toilet",
-  "Fridge",
   "Boiler",
+  "Fridge",
   "",
 ];
 const ROTATE_MS = 4000;
@@ -207,24 +207,24 @@ export function StatusModalContent({
         <div
           className={paneClass(4)}
           aria-hidden={activeIndex !== 4}
-          aria-label="Fridge"
-        >
-          <FridgeModalContent
-            status={fridgeStatus}
-            powerOn={fridgePowerOn}
-            disabled={fridgeDisabled}
-            readOnly
-          />
-        </div>
-        <div
-          className={paneClass(5)}
-          aria-hidden={activeIndex !== 5}
           aria-label="Boiler"
         >
           <BoilerModalContent
             boiler={boiler}
             enabled={boiler?.mode === "maintain"}
             disabled={boilerDisabled}
+            readOnly
+          />
+        </div>
+        <div
+          className={paneClass(5)}
+          aria-hidden={activeIndex !== 5}
+          aria-label="Fridge"
+        >
+          <FridgeModalContent
+            status={fridgeStatus}
+            powerOn={fridgePowerOn}
+            disabled={fridgeDisabled}
             readOnly
           />
         </div>
