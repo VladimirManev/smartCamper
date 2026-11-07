@@ -6788,7 +6788,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 .boiler-modal__setpoint {
   position: absolute;
   top: 50%;
-  left: calc(50% + 52px + 2.25rem);
+  left: calc(50% + 52px + 3.25rem);
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -6855,7 +6855,7 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
 
 @media (max-width: 400px) {
   .boiler-modal__setpoint {
-    left: calc(50% + 46px + 2.25rem);
+    left: calc(50% + 46px + 3.25rem);
   }
 
   .boiler-modal__temp {
