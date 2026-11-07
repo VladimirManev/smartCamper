@@ -80,9 +80,10 @@ Fridge **power + BLE** are on **module-6** (relay GPIO 14, button GPIO 22). See 
 | Topic                                                | Payload | Action              |
 | ---------------------------------------------------- | ------- | ------------------- |
 | `smartcamper/commands/module-5/relay/{index}/toggle` | `{}`    | Toggle relay        |
-| `smartcamper/commands/module-5/relay/{index}/on`     | `{}`    | Relay ON. Index 4 enables the boiler |
-| `smartcamper/commands/module-5/relay/{index}/off`    | `{}`    | Relay OFF. Index 4 disables the boiler (opens the element) |
-| `smartcamper/commands/module-5/boiler/setpoint`      | `{"value": 60}` | Boiler setpoint 5–70°C. Not saved across restart |
+| `smartcamper/commands/module-5/relay/{index}/on`     | `{}`    | Relay ON. Index 4 starts maintain mode |
+| `smartcamper/commands/module-5/relay/{index}/off`    | `{}`    | Relay OFF. Index 4 stops every boiler mode |
+| `smartcamper/commands/module-5/boiler/setpoint`      | `{"value": 60}` | Maintain setpoint 5–70°C. Not saved across restart |
+| `smartcamper/commands/module-5/boiler/once`          | `{"value": 30}` | One-shot heat to 30 or 60°C. Not saved across restart |
 | `smartcamper/commands/module-5/force_update`         | `{}`    | Force status update, including one electrode read |
 
 ### Command Format
@@ -125,27 +126,31 @@ Configuration in `src/Config.h`: `URINE_LEVEL_*` constants.
 
 ### Boiler
 
-The element relay (GPIO 27) is closed only by the thermostat. Relay index 4 in `module-5/status` means the boiler is **enabled** (thermostat armed), not that the element is on. Element state is `relay` in the boiler topic.
+The element relay (GPIO 27) is closed only by the boiler controller. Relay index 4 in `module-5/status` means a mode is active, not that the element is on. Element state is `relay` in the boiler topic.
 
 | GPIO | Role |
 | ---- | ---- |
 | 27 | Element relay. HIGH = on. Owned by `BoilerController`, not `RelayController` |
-| 26 | Button. Press enables the boiler, or disables it if it is already enabled |
+| 26 | Button. From off, starts maintain mode. From any mode, stops the boiler |
 | 16 | Electrode at the top of the tank. Water pulls the pin to GND |
-| 18 | Bottom DS18B20. Turns the element off at the setpoint and on at setpoint − 3 |
+| 18 | Bottom DS18B20. Maintain mode turns the element off at the setpoint and on at setpoint − 3. One-shot mode stops at 30 or 60 |
 | 19 | Top DS18B20. Shown in the UI. Either sensor at 75°C stops the boiler |
 
 DS18B20 VCC is 5 V, same as the other sensors. The 4.7 kΩ pull-up goes from data to **3.3 V**, not to 5 V. A 12-bit conversion takes about 750 ms. The two sensors convert at the same time, and the wait is spread across `loop()` so the module does not freeze. Every 30 s the firmware takes 3 readings and keeps the median when at least 2 are inside −10…95°C. Integers are published only when they change.
 
 The electrode is read only before the element closes, once at boot, and on `force_update` (including MQTT reconnect, a new frontend connection, and the toilet modal poll). The internal pull-up is enabled for a few milliseconds per sample, then the pin is released. Three samples, majority wins.
 
-Two failed bursts on either sensor, a reading of 75°C or more on either sensor, or no water at the moment the element should close: the element opens, the boiler is disabled, and it stays off until the next on command. One missed burst keeps the last good temperature. Setpoint defaults to 60°C after every restart.
+Two failed bursts on either sensor, a reading of 75°C or more on either sensor, or no water at the moment the element should close: the element opens, the mode clears, and it stays off until the next command. One missed burst keeps the last good temperature. Setpoint defaults to 60°C after every restart, and one-shot mode is forgotten.
+
+Maintain mode keeps reheating at setpoint − 3. One-shot mode heats until the bottom sensor reaches 30 or 60, then turns off and does not reheat. The module finishes a one-shot without the backend. Pressing the active one-shot target again, relay 4 off, or the hardware button stops it. Relay 4 on during a one-shot switches to maintain mode and keeps the stored setpoint.
 
 Published topic `smartcamper/sensors/module-5/boiler`:
 
 ```json
-{"enabled": false, "relay": false, "setpoint": 60, "top": null, "bottom": null, "full": true, "error": null}
+{"enabled": false, "mode": "off", "once": null, "relay": false, "setpoint": 60, "top": null, "bottom": null, "full": true, "error": null}
 ```
+
+`mode` is `"off"`, `"maintain"`, or `"once"`. `once` is `30`, `60`, or `null`. `enabled` is true whenever `mode` is not `"off"`.
 
 `error` is `null`, `"empty"`, `"sensor"`, or `"overtemp"`. `full` is `null` only before the first electrode read.
 
@@ -153,15 +158,15 @@ GPIO 16 is free on ESP32-WROOM. On a WROVER board it is wired to PSRAM and canno
 
 ## Backend Integration
 
-- **Relay status**: `smartcamper/sensors/module-5/status` → `applianceStatusUpdate`. Index 4 is boiler enabled, not element current
+- **Relay status**: `smartcamper/sensors/module-5/status` → `applianceStatusUpdate`. Index 4 is a boiler mode active, not element current
 - **Boiler**: `smartcamper/sensors/module-5/boiler` → `boilerStatusUpdate`
 - **Urine level**: `smartcamper/sensors/toilet/urine/level` → `sensorUpdate` with `{ toiletUrineLevel }`
 - **Force refresh**: `forceModuleUpdate` with `{ moduleId: "module-5" }` (relays, urine level, one electrode read)
 
 ## Frontend Integration
 
-- **Boiler card**: click opens the boiler modal. Long press turns the boiler off. Long press while off does nothing
-- **Boiler modal**: tank colored from the two temperatures (0°C dark blue, 80°C bright red). Half-full blinking blue water when `full` is false. Heating-element graphic only while `relay` is true. Buttons 30 and 60 set the setpoint
+- **Boiler card**: click opens the boiler modal. The card lights while maintain or one-shot is active. Long press turns the boiler off. Long press while off does nothing
+- **Boiler modal**: tank colored from the two temperatures (0°C dark blue, 80°C bright red). Half-full blinking blue water when `full` is false. Heating-element graphic only while `relay` is true. Power starts or stops maintain mode. 30° and 60° start a one-shot; pressing the lit one stops the boiler. During a one-shot, + and − are inactive and the number between them stays the maintain setpoint. A preset button is inactive when the bottom sensor is already at that temperature. Power, 30°, and 60° need inverter or shore power to start, and loss of both stops an active mode
 - **Toilet card** in main menu — `ToiletUrineTank`, yellow liquid, **WC** label
 - **Detail modal** — polls module-5 every 5 s while open
 - **Status panel** (tablet) — included in rotating slides

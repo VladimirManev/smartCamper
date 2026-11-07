@@ -1,6 +1,6 @@
 // Boiler thermostat. Owns the element relay (GPIO 27), two DS18B20 buses,
-// and the full-tank electrode. The published relay-4 state is "enabled"
-// (thermostat armed). The element is a separate flag.
+// and the full-tank electrode. Relay 4 is on while a mode is active
+// (maintain or one-shot). The element is a separate flag.
 
 #ifndef BOILER_CONTROLLER_H
 #define BOILER_CONTROLLER_H
@@ -22,6 +22,7 @@ public:
 
   void requestOn();
   void requestOff();
+  void requestOnce(int target);
   void onButton();
   void setSetpoint(int value);
   void onForceUpdate();
@@ -34,6 +35,12 @@ private:
     ERROR_EMPTY,
     ERROR_SENSOR,
     ERROR_OVERTEMP
+  };
+
+  enum Mode {
+    MODE_OFF,
+    MODE_MAINTAIN,
+    MODE_ONCE
   };
 
   struct TempChannel {
@@ -55,6 +62,8 @@ private:
   TempChannel top;
 
   bool enabled;
+  Mode mode;
+  int onceTarget;
   bool elementOn;
   bool enabledChanged;
   int setpoint;
@@ -74,8 +83,10 @@ private:
   void finishBurst(unsigned long now);
   void applyControl();
   void trip(Error code);
-  void setEnabled(bool on);
+  void setMode(Mode next);
   void setElement(bool on);
+  void closeElementIfFull();
+  const char* modeName() const;
   void publish(bool force);
 
   bool readElectrodeFull();

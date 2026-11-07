@@ -18,6 +18,8 @@ BoilerController::BoilerController(MQTTManager* mqtt, ApplianceManager* appMgr)
     bottomSensors(&bottomWire),
     topSensors(&topWire),
     enabled(false),
+    mode(MODE_OFF),
+    onceTarget(0),
     elementOn(false),
     enabledChanged(false),
     setpoint(BOILER_SETPOINT_DEFAULT),
@@ -107,7 +109,23 @@ void BoilerController::requestOn() {
   error = ERROR_NONE;
   bottom.failCount = 0;
   top.failCount = 0;
-  setEnabled(true);
+  setMode(MODE_MAINTAIN);
+  immediateBurst = true;
+  if (bottom.hasReading && top.hasReading) {
+    applyControl();
+  }
+  publish(true);
+}
+
+void BoilerController::requestOnce(int target) {
+  if (target != 30 && target != 60) {
+    return;
+  }
+  error = ERROR_NONE;
+  bottom.failCount = 0;
+  top.failCount = 0;
+  onceTarget = target;
+  setMode(MODE_ONCE);
   immediateBurst = true;
   if (bottom.hasReading && top.hasReading) {
     applyControl();
@@ -116,7 +134,7 @@ void BoilerController::requestOn() {
 }
 
 void BoilerController::requestOff() {
-  setEnabled(false);
+  setMode(MODE_OFF);
   setElement(false);
   error = ERROR_NONE;
   publish(true);
@@ -138,7 +156,8 @@ void BoilerController::setSetpoint(int value) {
     return;
   }
   setpoint = value;
-  if (enabled && error == ERROR_NONE && bottom.hasReading && top.hasReading) {
+  if (mode == MODE_MAINTAIN && error == ERROR_NONE && bottom.hasReading &&
+      top.hasReading) {
     applyControl();
   }
   publish(true);
@@ -210,7 +229,7 @@ void BoilerController::finishBurst(unsigned long now) {
 }
 
 void BoilerController::applyControl() {
-  if (!enabled || error != ERROR_NONE) {
+  if (mode == MODE_OFF || error != ERROR_NONE) {
     setElement(false);
     return;
   }
@@ -223,6 +242,17 @@ void BoilerController::applyControl() {
     return;
   }
 
+  if (mode == MODE_ONCE) {
+    if (bottom.reading >= onceTarget) {
+      requestOff();
+      return;
+    }
+    if (!elementOn) {
+      closeElementIfFull();
+    }
+    return;
+  }
+
   if (elementOn) {
     if (bottom.reading >= setpoint) {
       setElement(false);
@@ -231,20 +261,24 @@ void BoilerController::applyControl() {
   }
 
   if (bottom.reading <= setpoint - BOILER_HYSTERESIS) {
-    bool isFull = readElectrodeFull();
-    hasFull = true;
-    full = isFull;
-    if (!isFull) {
-      trip(ERROR_EMPTY);
-      return;
-    }
-    setElement(true);
+    closeElementIfFull();
   }
+}
+
+void BoilerController::closeElementIfFull() {
+  bool isFull = readElectrodeFull();
+  hasFull = true;
+  full = isFull;
+  if (!isFull) {
+    trip(ERROR_EMPTY);
+    return;
+  }
+  setElement(true);
 }
 
 void BoilerController::trip(Error code) {
   error = code;
-  setEnabled(false);
+  setMode(MODE_OFF);
   if (code == ERROR_SENSOR) {
     bottom.hasReading = false;
     top.hasReading = false;
@@ -255,12 +289,19 @@ void BoilerController::trip(Error code) {
   }
 }
 
-void BoilerController::setEnabled(bool on) {
-  if (enabled == on) {
+void BoilerController::setMode(Mode next) {
+  if (next != MODE_ONCE) {
+    onceTarget = 0;
+  }
+  bool nextEnabled = next != MODE_OFF;
+  if (mode == next && enabled == nextEnabled) {
     return;
   }
-  enabled = on;
-  enabledChanged = true;
+  mode = next;
+  if (enabled != nextEnabled) {
+    enabled = nextEnabled;
+    enabledChanged = true;
+  }
 }
 
 void BoilerController::setElement(bool on) {
@@ -278,6 +319,12 @@ void BoilerController::publish(bool force) {
   if (mqttManager != nullptr && mqttManager->isMQTTConnected()) {
     StaticJsonDocument<384> doc;
     doc["enabled"] = enabled;
+    doc["mode"] = modeName();
+    if (mode == MODE_ONCE) {
+      doc["once"] = onceTarget;
+    } else {
+      doc["once"] = nullptr;
+    }
     doc["relay"] = elementOn;
     doc["setpoint"] = setpoint;
     if (top.hasReading) {
@@ -386,6 +433,16 @@ void BoilerController::clearSamples(TempChannel& channel) {
   for (int i = 0; i < BOILER_TEMP_BURST_COUNT; i++) {
     channel.samples[i] = NAN;
   }
+}
+
+const char* BoilerController::modeName() const {
+  if (mode == MODE_MAINTAIN) {
+    return "maintain";
+  }
+  if (mode == MODE_ONCE) {
+    return "once";
+  }
+  return "off";
 }
 
 const char* BoilerController::errorName() const {

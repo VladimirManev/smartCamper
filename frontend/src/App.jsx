@@ -1082,12 +1082,15 @@ function App() {
     }
 
     if (cardType === "boiler") {
-      const boilerEnabled = isBoilerOn(appliances);
+      const boilerMode = boiler.mode === "maintain" || boiler.mode === "once" ? boiler.mode : "off";
+      const acSupply = hasBoilerAcSupply(appliances, isAcChargerLive);
       return (
         <BoilerModalContent
           boiler={boiler}
-          enabled={boilerEnabled}
+          enabled={boilerMode === "maintain"}
           disabled={!isModule5Online}
+          stepsDisabled={boilerMode === "once"}
+          acSupply={acSupply}
           powerDisabled={
             !isBoilerControlEnabled(
               appliances,
@@ -1097,7 +1100,7 @@ function App() {
           }
           onPower={() => {
             if (!isModule5Online) return;
-            if (boilerEnabled) {
+            if (boilerMode === "maintain") {
               sendApplianceCommand({
                 type: "relay",
                 index: APPLIANCE_INDEX.boiler,
@@ -1105,11 +1108,29 @@ function App() {
               });
               return;
             }
-            if (!hasBoilerAcSupply(appliances, isAcChargerLive)) return;
+            if (boilerMode !== "once" && !acSupply) return;
             sendApplianceCommand({
               type: "relay",
               index: APPLIANCE_INDEX.boiler,
               action: "on",
+            });
+          }}
+          onOnce={(value) => {
+            if (!isModule5Online) return;
+            if (boilerMode === "once" && boiler.once === value) {
+              sendApplianceCommand({
+                type: "relay",
+                index: APPLIANCE_INDEX.boiler,
+                action: "off",
+              });
+              return;
+            }
+            if (!acSupply) return;
+            if (boiler.bottom !== null && boiler.bottom >= value) return;
+            sendApplianceCommand({
+              type: "boiler",
+              action: "once",
+              value,
             });
           }}
           onSetpoint={(value) => {

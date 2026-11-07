@@ -56,16 +56,22 @@ function formatTemp(value) {
  * @param {Object} props.boiler
  * @param {boolean} props.enabled - thermostat armed (appliance relay 4)
  * @param {boolean} props.powerDisabled
+ * @param {boolean} props.stepsDisabled - one-shot is running
+ * @param {boolean} props.acSupply - inverter or shore power
  * @param {boolean} props.disabled - module offline
  * @param {Function} props.onPower
+ * @param {Function} props.onOnce
  * @param {Function} props.onSetpoint
  */
 export function BoilerModalContent({
   boiler,
   enabled = false,
   powerDisabled = false,
+  stepsDisabled = false,
+  acSupply = false,
   disabled = false,
   onPower,
+  onOnce,
   onSetpoint,
 }) {
   const setpoint = boiler?.setpoint ?? 60;
@@ -74,6 +80,12 @@ export function BoilerModalContent({
   const bottom = disabled ? null : boiler?.bottom;
   const relayOn = !disabled && boiler?.relay === true;
   const errorText = disabled ? null : ERROR_TEXT[boiler?.error] || null;
+  const presetDisabled = (value) => {
+    if (disabled) return true;
+    if (boiler?.mode === "once" && boiler?.once === value) return false;
+    if (bottom !== null && bottom !== undefined && bottom >= value) return true;
+    return !acSupply;
+  };
 
   const adjust = (next) => {
     if (disabled || next < SETPOINT_MIN || next > SETPOINT_MAX || next === setpoint) {
@@ -128,7 +140,7 @@ export function BoilerModalContent({
         <div className="boiler-modal__setpoint">
           <StepButton
             label="Decrease temperature"
-            disabled={disabled || setpoint <= SETPOINT_MIN}
+            disabled={disabled || stepsDisabled || setpoint <= SETPOINT_MIN}
             onClick={() => adjust(setpoint - 1)}
           >
             −
@@ -136,7 +148,7 @@ export function BoilerModalContent({
           <span className="autoterm-modal__power-value">{setpoint}°C</span>
           <StepButton
             label="Increase temperature"
-            disabled={disabled || setpoint >= SETPOINT_MAX}
+            disabled={disabled || stepsDisabled || setpoint >= SETPOINT_MAX}
             onClick={() => adjust(setpoint + 1)}
           >
             +
@@ -168,13 +180,15 @@ export function BoilerModalContent({
             />
             <PresetButton
               value={30}
-              disabled={disabled}
-              onClick={() => adjust(30)}
+              active={boiler?.mode === "once" && boiler?.once === 30}
+              disabled={presetDisabled(30)}
+              onClick={() => onOnce?.(30)}
             />
             <PresetButton
               value={60}
-              disabled={disabled}
-              onClick={() => adjust(60)}
+              active={boiler?.mode === "once" && boiler?.once === 60}
+              disabled={presetDisabled(60)}
+              onClick={() => onOnce?.(60)}
             />
           </div>
         </div>
@@ -227,7 +241,22 @@ function StepButton({ label, onClick, disabled = false, children }) {
   );
 }
 
-function PresetButton({ value, disabled, onClick }) {
+function PresetButton({ value, active = false, disabled, onClick }) {
+  const reactId = useId().replace(/:/g, "");
+  const gradientId = `boiler-preset-grad-${reactId}`;
+  const [accentBlue, setAccentBlue] = useState("#3b82f6");
+  const [accentBlueDark, setAccentBlueDark] = useState("#2563eb");
+
+  useEffect(() => {
+    const updateColors = () => {
+      setAccentBlue(getThemeColor("--color-accent-blue") || "#3b82f6");
+      setAccentBlueDark(getThemeColor("--color-accent-blue-dark") || "#2563eb");
+    };
+    updateColors();
+    const interval = setInterval(updateColors, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <button
       type="button"
@@ -236,9 +265,38 @@ function PresetButton({ value, disabled, onClick }) {
       }`}
       disabled={disabled}
       onClick={onClick}
-      aria-label={`Set temperature to ${value} degrees`}
+      aria-label={
+        active
+          ? `Stop heating to ${value} degrees`
+          : `Heat once to ${value} degrees`
+      }
+      aria-pressed={active}
     >
-      <span className="neumorphic-button fridge-ble-modal__round off">
+      <span
+        className={`neumorphic-button fridge-ble-modal__round${
+          active ? " on" : " off"
+        }`}
+      >
+        <svg className="horseshoe-progress" viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={accentBlue} />
+              <stop offset="100%" stopColor={accentBlueDark} />
+            </linearGradient>
+          </defs>
+          {active && (
+            <circle
+              className="horseshoe-fill"
+              cx="100"
+              cy="100"
+              r="80"
+              fill="none"
+              stroke={`url(#${gradientId})`}
+              strokeWidth="8"
+              strokeLinecap="round"
+            />
+          )}
+        </svg>
         <span className="button-text boiler-modal__preset-value">{value}°</span>
       </span>
     </button>

@@ -508,6 +508,22 @@ function handleBoiler(io, message) {
     return true;
   }
 
+  const mode =
+    status.mode === "maintain" || status.mode === "once" || status.mode === "off"
+      ? status.mode
+      : status.enabled
+        ? "maintain"
+        : "off";
+  let once = null;
+  if (mode === "once") {
+    const onceValue = Number(status.once);
+    if (onceValue !== 30 && onceValue !== 60) {
+      console.log("❌ Invalid boiler one-shot target");
+      return true;
+    }
+    once = onceValue;
+  }
+
   const setpoint = Number(status.setpoint);
   if (!Number.isInteger(setpoint) || setpoint < 5 || setpoint > 70) {
     console.log("❌ Invalid boiler setpoint in status");
@@ -550,7 +566,9 @@ function handleBoiler(io, message) {
   }
 
   io.emit("boilerStatusUpdate", {
-    enabled: status.enabled,
+    enabled: mode !== "off",
+    mode,
+    once,
     relay: status.relay,
     setpoint,
     top,

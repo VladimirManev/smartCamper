@@ -66,7 +66,7 @@
 #define URINE_LEVEL_THRESHOLD 1.0         // publish on ≥1% change (0 / 50 / 100)
 
 // Boiler (relay index 4). Element relay is GPIO 27, owned by BoilerController.
-// Relay 4 state published in module status means "boiler enabled", not element current.
+// Relay 4 state published in module status means a boiler mode is active, not element current.
 #define BOILER_RELAY_INDEX 4
 #define BOILER_ELECTRODE_PIN 16    // INPUT_PULLUP only during a read. LOW = water present
 #define BOILER_TEMP_BOTTOM_PIN 18  // DS18B20, thermostat

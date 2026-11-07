@@ -56,7 +56,7 @@ Emitted to all clients or to one client as noted in handlers:
 | `damperStatusUpdate`       | Damper angles (module-4)                        |
 | `tableStatusUpdate`        | Table state (module-4)                          |
 | `applianceStatusUpdate`    | Appliance relays (module-5). Boiler index 4 is enabled, not element current |
-| `boilerStatusUpdate`       | Boiler temps, setpoint, full, element, error (module-5) |
+| `boilerStatusUpdate`       | Boiler mode, temps, setpoint, full, element, error (module-5) |
 | `victronStatusUpdate`      | Victron energy snapshot (module-6)              |
 | `fridgeStatusUpdate`       | Fridge BLE status (module-6 Alpicool)           |
 

@@ -27,6 +27,14 @@ const applianceCommandHandler = (socket, aedes, data) => {
     }
     mqttTopic = "smartcamper/commands/module-5/boiler/setpoint";
     mqttPayload = JSON.stringify({ value });
+  } else if (data.type === "boiler" && data.action === "once") {
+    const value = Number(data.value);
+    if (value !== 30 && value !== 60) {
+      console.log("❌ Invalid boiler one-shot:", data.value);
+      return;
+    }
+    mqttTopic = "smartcamper/commands/module-5/boiler/once";
+    mqttPayload = JSON.stringify({ value });
   } else if (
     data.type === "relay" &&
     typeof data.index === "number" &&

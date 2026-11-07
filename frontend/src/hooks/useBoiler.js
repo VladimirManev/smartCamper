@@ -1,12 +1,14 @@
 /**
  * Boiler thermostat status from module-5.
- * Relay index 4 in appliance status is "enabled", not element current.
+ * Relay index 4 in appliance status is "a mode is active", not element current.
  */
 
 import { useEffect, useState } from "react";
 
 const DEFAULT_BOILER = {
   enabled: false,
+  mode: "off",
+  once: null,
   relay: false,
   setpoint: 60,
   top: null,
@@ -28,8 +30,18 @@ function temperatureOrNull(value) {
 
 function sanitizeBoiler(data) {
   const setpoint = Number(data.setpoint);
+  const mode =
+    data.mode === "maintain" || data.mode === "once" || data.mode === "off"
+      ? data.mode
+      : data.enabled === true
+        ? "maintain"
+        : "off";
+  const once = mode === "once" && (data.once === 30 || data.once === 60) ? data.once : null;
+  const resolvedMode = mode === "once" && once === null ? "off" : mode;
   return {
-    enabled: data.enabled === true,
+    enabled: resolvedMode !== "off",
+    mode: resolvedMode,
+    once,
     relay: data.relay === true,
     setpoint:
       Number.isInteger(setpoint) && setpoint >= 5 && setpoint <= 70

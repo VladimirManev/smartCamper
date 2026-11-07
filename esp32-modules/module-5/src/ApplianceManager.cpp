@@ -204,6 +204,19 @@ void ApplianceManager::processApplianceCommand(char* topic, byte* payload, unsig
       return;
     }
     boiler.setSetpoint(doc["value"].as<int>());
+    return;
+  }
+
+  if (commandPath == "boiler/once") {
+    StaticJsonDocument<128> doc;
+    DeserializationError jsonError = deserializeJson(doc, message);
+    if (jsonError || (!doc["value"].is<int>() && !doc["value"].is<float>())) {
+      if (DEBUG_SERIAL) {
+        Serial.println("❌ Invalid boiler one-shot");
+      }
+      return;
+    }
+    boiler.requestOnce(doc["value"].as<int>());
   }
 }
 
