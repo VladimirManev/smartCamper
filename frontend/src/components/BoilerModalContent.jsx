@@ -239,7 +239,7 @@ function PresetButton({ value, disabled, onClick }) {
       aria-label={`Set temperature to ${value} degrees`}
     >
       <span className="neumorphic-button fridge-ble-modal__round off">
-        <span className="button-text boiler-modal__preset-value">{value}</span>
+        <span className="button-text boiler-modal__preset-value">{value}°</span>
       </span>
     </button>
   );
