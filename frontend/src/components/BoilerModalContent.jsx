@@ -12,6 +12,8 @@ const SETPOINT_MAX = 70;
 const STEP_BUTTON_DEBOUNCE_MS = 120;
 const COLOR_COLD = [8, 36, 110];
 const COLOR_HOT = [220, 32, 24];
+const COLOR_COLD_C = 18;
+const COLOR_HOT_C = 35;
 
 const ERROR_TEXT = {
   empty: "No water",
@@ -41,7 +43,10 @@ const ELEMENT_PATH = (() => {
 })();
 
 function temperatureColor(celsius) {
-  const span = Math.min(80, Math.max(0, Number(celsius) || 0)) / 80;
+  const span =
+    (Math.min(COLOR_HOT_C, Math.max(COLOR_COLD_C, Number(celsius) || 0)) -
+      COLOR_COLD_C) /
+    (COLOR_HOT_C - COLOR_COLD_C);
   const channel = (index) =>
     Math.round(COLOR_COLD[index] + (COLOR_HOT[index] - COLOR_COLD[index]) * span);
   return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
