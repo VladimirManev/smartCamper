@@ -1881,39 +1881,7 @@ function App() {
             <p className="card-label">Gray Water</p>
           </div>
 
-          <div className="card-wrapper">
-            <FreshWaterTank
-              level={cleanWaterLevel}
-              disabled={!isModule7Online}
-              onClick={() => activateFromMainMenu("fresh-water", "Fresh Water")}
-              onLongPress={() =>
-                activateFromMainMenu("fresh-water", "Fresh Water")
-              }
-            />
-            <p className="card-label">Fresh Water</p>
-          </div>
-
-          <div className="card-wrapper">
-            <ToiletUrineTank
-              level={toiletUrineLevel}
-              disabled={!isModule5Online}
-              onClick={() => activateFromMainMenu("toilet-urine", "Toilet")}
-              onLongPress={() => activateFromMainMenu("toilet-urine", "Toilet")}
-            />
-            <p className="card-label">Toilet</p>
-          </div>
-
-          <div className="card-wrapper">
-            <BatteryCard
-              charge={batteryLevel}
-              disabled={!isModule6Online}
-              onClick={() => activateFromMainMenu("battery", "Battery")}
-              onLongPress={() => activateFromMainMenu("battery", "Battery")}
-            />
-            <p className="card-label">Battery</p>
-          </div>
-
-          <div className="card-wrapper">
+          <div className="card-wrapper card-wrapper--alarm-row">
             <AlarmCard
               name="Alarm"
               onClick={() => activateFromMainMenu("alarm", "Alarm")}
@@ -1922,7 +1890,7 @@ function App() {
             <p className="card-label">Alarm</p>
           </div>
 
-          <div className="card-wrapper">
+          <div className="card-wrapper card-wrapper--alarm-row">
             <PerimeterCard
               name="Perimeter"
               onClick={() => activateFromMainMenu("perimeter", "Perimeter")}
@@ -1936,7 +1904,7 @@ function App() {
             <p className="card-label">Perimeter</p>
           </div>
 
-          <div className="card-wrapper">
+          <div className="card-wrapper card-wrapper--alarm-row">
             <LEDCard
               name="Fridge"
               strip={appliances[APPLIANCE_INDEX.fridge]}
@@ -1958,28 +1926,7 @@ function App() {
             <p className="card-label">Fridge</p>
           </div>
 
-          <div className="card-wrapper">
-            <LEDCard
-              name="Inverter"
-              strip={appliances[5]}
-              onClick={() => handleApplianceToggle(5)}
-              onLongPress={() =>
-                activateFromMainMenu("led", "Inverter", {
-                  strip: appliances[5],
-                  type: "relay",
-                  index: 5,
-                })
-              }
-              type="relay"
-              icon="inverter"
-              disabled={!isModule5Online}
-            />
-            <p className="card-label">Inverter</p>
-          </div>
-        </div>
-
-        <div className="main-menu-grid main-menu-grid--appliances">
-          <div className="card-wrapper">
+          <div className="card-wrapper card-wrapper--alarm-row">
             <LEDCard
               name="Boiler"
               strip={appliances[4]}
@@ -2000,6 +1947,59 @@ function App() {
               disabled={!isModule5Online}
             />
             <p className="card-label">Boiler</p>
+          </div>
+
+          <div className="card-wrapper card-wrapper--tanks">
+            <FreshWaterTank
+              level={cleanWaterLevel}
+              disabled={!isModule7Online}
+              onClick={() => activateFromMainMenu("fresh-water", "Fresh Water")}
+              onLongPress={() =>
+                activateFromMainMenu("fresh-water", "Fresh Water")
+              }
+            />
+            <p className="card-label">Fresh Water</p>
+          </div>
+
+          <div className="card-wrapper card-wrapper--tanks">
+            <ToiletUrineTank
+              level={toiletUrineLevel}
+              disabled={!isModule5Online}
+              onClick={() => activateFromMainMenu("toilet-urine", "Toilet")}
+              onLongPress={() => activateFromMainMenu("toilet-urine", "Toilet")}
+            />
+            <p className="card-label">Toilet</p>
+          </div>
+
+          <div className="card-wrapper card-wrapper--tanks">
+            <BatteryCard
+              charge={batteryLevel}
+              disabled={!isModule6Online}
+              onClick={() => activateFromMainMenu("battery", "Battery")}
+              onLongPress={() => activateFromMainMenu("battery", "Battery")}
+            />
+            <p className="card-label">Battery</p>
+          </div>
+        </div>
+
+        <div className="main-menu-grid main-menu-grid--appliances">
+          <div className="card-wrapper">
+            <LEDCard
+              name="Inverter"
+              strip={appliances[5]}
+              onClick={() => handleApplianceToggle(5)}
+              onLongPress={() =>
+                activateFromMainMenu("led", "Inverter", {
+                  strip: appliances[5],
+                  type: "relay",
+                  index: 5,
+                })
+              }
+              type="relay"
+              icon="inverter"
+              disabled={!isModule5Online}
+            />
+            <p className="card-label">Inverter</p>
           </div>
 
           <div className="card-wrapper">

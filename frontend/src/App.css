@@ -5084,13 +5084,21 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     z-index: 2;
   }
 
-  /* Rows 1–2: groups + status + sensors (6 + 4), auto left→right */
+  /* Rows 1–2 stay groups and sensors. Row 3 is alarm, perimeter, fridge, boiler. */
   .app.app--tablet-landscape .tablet-split__left-inner .main-menu-grid--primary {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.3rem 0.45rem;
     width: 100%;
     justify-items: center;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-menu-grid--primary > .card-wrapper--tanks {
+    order: 1;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-menu-grid--primary > .card-wrapper--alarm-row {
+    order: 2;
   }
 
   /* Row 4: four appliances, centered on the six-column row */
