@@ -1034,6 +1034,8 @@ function App() {
             appliances[APPLIANCE_INDEX.fridge]?.state === "ON"
           }
           fridgeDisabled={!isModule6Online}
+          boiler={boiler}
+          boilerDisabled={!isModule5Online}
           doors={doors}
           onActiveSlideChange={handleStatusSlideChange}
         />

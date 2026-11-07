@@ -1,5 +1,5 @@
 /**
- * Tablet Status panel — rotates battery, tanks, fridge, and doors every 4s.
+ * Tablet Status panel — rotates battery, tanks, fridge, boiler, and doors every 4s.
  * Swipe left/right to change slides manually (resets auto-rotate timer).
  */
 
@@ -9,6 +9,7 @@ import { GrayWaterModalContent } from "./GrayWaterModalContent";
 import { FreshWaterModalContent } from "./FreshWaterModalContent";
 import { ToiletUrineModalContent } from "./ToiletUrineModalContent";
 import { FridgeModalContent } from "./FridgeModalContent";
+import { BoilerModalContent } from "./BoilerModalContent";
 import { CamperDoorsStage, DEFAULT_DOORS } from "./CamperDoorsStage";
 
 const SLIDES = [
@@ -17,6 +18,7 @@ const SLIDES = [
   "fresh-water",
   "toilet-urine",
   "fridge",
+  "boiler",
   "doors",
 ];
 const SLIDE_TITLES = [
@@ -25,6 +27,7 @@ const SLIDE_TITLES = [
   "Fresh Water",
   "Toilet",
   "Fridge",
+  "Boiler",
   "",
 ];
 const ROTATE_MS = 4000;
@@ -59,6 +62,8 @@ function wrapIndex(index) {
  * @param {Object} [props.fridgeStatus]
  * @param {boolean} [props.fridgePowerOn]
  * @param {boolean} [props.fridgeDisabled]
+ * @param {Object} [props.boiler]
+ * @param {boolean} [props.boilerDisabled]
  * @param {Object} [props.doors] - { driver, passenger, sliding, rear }
  * @param {(title: string) => void} [props.onActiveSlideChange]
  */
@@ -85,6 +90,8 @@ export function StatusModalContent({
   fridgeStatus,
   fridgePowerOn = false,
   fridgeDisabled = false,
+  boiler,
+  boilerDisabled = false,
   doors = DEFAULT_DOORS,
   onActiveSlideChange,
 }) {
@@ -212,6 +219,18 @@ export function StatusModalContent({
         <div
           className={paneClass(5)}
           aria-hidden={activeIndex !== 5}
+          aria-label="Boiler"
+        >
+          <BoilerModalContent
+            boiler={boiler}
+            enabled={boiler?.mode === "maintain"}
+            disabled={boilerDisabled}
+            readOnly
+          />
+        </div>
+        <div
+          className={paneClass(6)}
+          aria-hidden={activeIndex !== 6}
           aria-label="Camper doors"
         >
           <div className="status-modal__doors">

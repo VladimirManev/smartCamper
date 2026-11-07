@@ -85,6 +85,7 @@ function formatTemp(value) {
  * @param {boolean} props.stepsDisabled - not in maintain mode
  * @param {boolean} props.acSupply - inverter or shore power
  * @param {boolean} props.disabled - module offline
+ * @param {boolean} [props.readOnly] - status slide: show the mode, do not send commands
  * @param {Function} props.onPower
  * @param {Function} props.onOnce
  * @param {Function} props.onSetpoint
@@ -96,6 +97,7 @@ export function BoilerModalContent({
   stepsDisabled = false,
   acSupply = false,
   disabled = false,
+  readOnly = false,
   onPower,
   onOnce,
   onSetpoint,
@@ -170,23 +172,29 @@ export function BoilerModalContent({
             </svg>
           )}
         </div>
-        <div className="boiler-modal__setpoint">
-          <StepButton
-            label="Decrease temperature"
-            disabled={disabled || stepsDisabled || setpoint <= SETPOINT_MIN}
-            onClick={() => adjust(setpoint - 1)}
-          >
-            −
-          </StepButton>
-          <span className="autoterm-modal__power-value">{setpoint}°C</span>
-          <StepButton
-            label="Increase temperature"
-            disabled={disabled || stepsDisabled || setpoint >= SETPOINT_MAX}
-            onClick={() => adjust(setpoint + 1)}
-          >
-            +
-          </StepButton>
-        </div>
+        {(!readOnly || boiler?.mode === "maintain") && (
+          <div className="boiler-modal__setpoint">
+            {!readOnly && (
+              <StepButton
+                label="Decrease temperature"
+                disabled={disabled || stepsDisabled || setpoint <= SETPOINT_MIN}
+                onClick={() => adjust(setpoint - 1)}
+              >
+                −
+              </StepButton>
+            )}
+            <span className="autoterm-modal__power-value">{setpoint}°C</span>
+            {!readOnly && (
+              <StepButton
+                label="Increase temperature"
+                disabled={disabled || stepsDisabled || setpoint >= SETPOINT_MAX}
+                onClick={() => adjust(setpoint + 1)}
+              >
+                +
+              </StepButton>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="boiler-modal__footer">
@@ -209,18 +217,21 @@ export function BoilerModalContent({
             <PowerButton
               active={enabled}
               disabled={powerDisabled}
+              readOnly={readOnly}
               onClick={onPower}
             />
             <PresetButton
               value={30}
               active={boiler?.mode === "once" && boiler?.once === 30}
               disabled={presetDisabled(30)}
+              readOnly={readOnly}
               onClick={() => onOnce?.(30)}
             />
             <PresetButton
               value={60}
               active={boiler?.mode === "once" && boiler?.once === 60}
               disabled={presetDisabled(60)}
+              readOnly={readOnly}
               onClick={() => onOnce?.(60)}
             />
           </div>
@@ -274,7 +285,7 @@ function StepButton({ label, onClick, disabled = false, children }) {
   );
 }
 
-function PresetButton({ value, active = false, disabled, onClick }) {
+function PresetButton({ value, active = false, disabled, readOnly = false, onClick }) {
   const reactId = useId().replace(/:/g, "");
   const gradientId = `boiler-preset-grad-${reactId}`;
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
@@ -294,14 +305,20 @@ function PresetButton({ value, active = false, disabled, onClick }) {
     <button
       type="button"
       className={`fridge-ble-modal__card${
-        disabled ? " fridge-ble-modal__card--disabled" : ""
-      }`}
-      disabled={disabled}
-      onClick={onClick}
+        !readOnly && disabled ? " fridge-ble-modal__card--disabled" : ""
+      }${readOnly ? " boiler-modal__control--static" : ""}`}
+      disabled={!readOnly && disabled}
+      onClick={readOnly ? undefined : onClick}
+      aria-disabled={readOnly ? true : undefined}
+      tabIndex={readOnly ? -1 : undefined}
       aria-label={
-        active
-          ? `Stop heating to ${value} degrees`
-          : `Heat once to ${value} degrees`
+        readOnly
+          ? active
+            ? `Heating once to ${value} degrees`
+            : `${value} degrees`
+          : active
+            ? `Stop heating to ${value} degrees`
+            : `Heat once to ${value} degrees`
       }
       aria-pressed={active}
     >
@@ -336,7 +353,7 @@ function PresetButton({ value, active = false, disabled, onClick }) {
   );
 }
 
-function PowerButton({ active, disabled, onClick }) {
+function PowerButton({ active, disabled, readOnly = false, onClick }) {
   const reactId = useId().replace(/:/g, "");
   const gradientId = `boiler-btn-grad-${reactId}`;
   const [accentBlue, setAccentBlue] = useState("#3b82f6");
@@ -356,11 +373,21 @@ function PowerButton({ active, disabled, onClick }) {
     <button
       type="button"
       className={`fridge-ble-modal__card${
-        disabled ? " fridge-ble-modal__card--disabled" : ""
-      }`}
-      disabled={disabled}
-      onClick={onClick}
-      aria-label={active ? "Turn boiler off" : "Turn boiler on"}
+        !readOnly && disabled ? " fridge-ble-modal__card--disabled" : ""
+      }${readOnly ? " boiler-modal__control--static" : ""}`}
+      disabled={!readOnly && disabled}
+      onClick={readOnly ? undefined : onClick}
+      aria-disabled={readOnly ? true : undefined}
+      tabIndex={readOnly ? -1 : undefined}
+      aria-label={
+        readOnly
+          ? active
+            ? "Maintain temperature"
+            : "Boiler off"
+          : active
+            ? "Turn boiler off"
+            : "Turn boiler on"
+      }
       aria-pressed={active}
     >
       <span
