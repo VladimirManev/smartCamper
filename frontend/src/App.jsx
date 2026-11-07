@@ -1957,9 +1957,7 @@ function App() {
             />
             <p className="card-label">Fridge</p>
           </div>
-        </div>
 
-        <div className="main-menu-grid main-menu-grid--appliances">
           <div className="card-wrapper">
             <LEDCard
               name="Inverter"
@@ -1978,7 +1976,9 @@ function App() {
             />
             <p className="card-label">Inverter</p>
           </div>
+        </div>
 
+        <div className="main-menu-grid main-menu-grid--appliances">
           <div className="card-wrapper">
             <LEDCard
               name="Boiler"

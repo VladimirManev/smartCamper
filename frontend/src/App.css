@@ -433,9 +433,19 @@ body {
   justify-items: center;
 }
 
-/* Phone: flatten sub-grids so cards stay in .main-content auto-fit grid */
-.app:not(.app--tablet-landscape) .main-menu-grid {
+/* Phone: primary cards stay in the auto-fit grid. The appliance row is its own centered line. */
+.app:not(.app--tablet-landscape) .main-menu-grid--primary {
   display: contents;
+}
+
+.app:not(.app--tablet-landscape) .main-menu-grid--appliances {
+  display: grid;
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  justify-items: center;
+  column-gap: 0.5rem;
 }
 
 /* Phone portrait: compact header↔menu spacing + grid row-gap; extra padding-top for air under status */
@@ -5083,14 +5093,19 @@ button.led-modal-arc-dimmer__bulb.neumorphic-button {
     justify-items: center;
   }
 
-  /* Row 3: alarm; appliances follow on row 4 */
+  /* Row 4: four appliances, centered on the six-column row */
   .app.app--tablet-landscape .tablet-split__left-inner .main-menu-grid--appliances {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 0.3rem 0.45rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.45rem;
     width: 100%;
-    justify-items: center;
     margin-top: 0.35rem;
+  }
+
+  .app.app--tablet-landscape .tablet-split__left-inner .main-content .main-menu-grid--appliances > .card-wrapper {
+    flex: 0 0 calc((100% - 5 * 0.45rem) / 6);
+    width: calc((100% - 5 * 0.45rem) / 6);
+    max-width: calc((100% - 5 * 0.45rem) / 6);
   }
 
   .app.app--tablet-landscape .tablet-split__left-inner .main-content .card-wrapper {
