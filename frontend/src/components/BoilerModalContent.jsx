@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from "react";
+import { ModalStatSlots } from "./ModalStatSlots";
 import { getThemeColor } from "../utils/getThemeColor";
 
 const SETPOINT_MIN = 5;
@@ -126,33 +127,45 @@ export function BoilerModalContent({
         </div>
       </div>
 
-      {errorText && (
-        <p className="boiler-modal__error" role="alert">
-          {errorText}
-        </p>
-      )}
-
-      <div className="boiler-modal__controls">
-        <PowerButton
-          active={enabled}
-          disabled={powerDisabled}
-          onClick={onPower}
-        />
-        <StepButton
-          label="Decrease temperature"
-          disabled={disabled || setpoint <= SETPOINT_MIN}
-          onClick={() => adjust(setpoint - 1)}
-        >
-          −
-        </StepButton>
-        <span className="autoterm-modal__power-value">{setpoint}°C</span>
-        <StepButton
-          label="Increase temperature"
-          disabled={disabled || setpoint >= SETPOINT_MAX}
-          onClick={() => adjust(setpoint + 1)}
-        >
-          +
-        </StepButton>
+      <div className="boiler-modal__footer">
+        <div className="boiler-modal__footer-spacer" aria-hidden="true">
+          <ModalStatSlots
+            items={[
+              { label: "Level", value: "100%" },
+              { label: "Temp", value: "00.0°C" },
+            ]}
+          />
+        </div>
+        <div className="boiler-modal__panel">
+          <p
+            className="boiler-modal__error"
+            role={errorText ? "alert" : undefined}
+          >
+            {errorText ?? ""}
+          </p>
+          <div className="boiler-modal__controls">
+            <PowerButton
+              active={enabled}
+              disabled={powerDisabled}
+              onClick={onPower}
+            />
+            <StepButton
+              label="Decrease temperature"
+              disabled={disabled || setpoint <= SETPOINT_MIN}
+              onClick={() => adjust(setpoint - 1)}
+            >
+              −
+            </StepButton>
+            <span className="autoterm-modal__power-value">{setpoint}°C</span>
+            <StepButton
+              label="Increase temperature"
+              disabled={disabled || setpoint >= SETPOINT_MAX}
+              onClick={() => adjust(setpoint + 1)}
+            >
+              +
+            </StepButton>
+          </div>
+        </div>
       </div>
     </div>
   );
