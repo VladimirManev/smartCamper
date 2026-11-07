@@ -1883,6 +1883,29 @@ function App() {
           </div>
 
           <div className="card-wrapper">
+            <LEDCard
+              name="Boiler"
+              strip={appliances[4]}
+              onClick={() => {
+                if (!isModule5Online) return;
+                activateFromMainMenu("boiler", "Boiler");
+              }}
+              onLongPress={() => {
+                if (!isModule5Online || !isBoilerOn(appliances)) return;
+                sendApplianceCommand({
+                  type: "relay",
+                  index: APPLIANCE_INDEX.boiler,
+                  action: "off",
+                });
+              }}
+              type="relay"
+              icon="boiler"
+              disabled={!isModule5Online}
+            />
+            <p className="card-label">Boiler</p>
+          </div>
+
+          <div className="card-wrapper">
             <BatteryCard
               charge={batteryLevel}
               disabled={!isModule6Online}
@@ -1956,29 +1979,6 @@ function App() {
               disabled={!isModule5Online}
             />
             <p className="card-label">Inverter</p>
-          </div>
-
-          <div className="card-wrapper">
-            <LEDCard
-              name="Boiler"
-              strip={appliances[4]}
-              onClick={() => {
-                if (!isModule5Online) return;
-                activateFromMainMenu("boiler", "Boiler");
-              }}
-              onLongPress={() => {
-                if (!isModule5Online || !isBoilerOn(appliances)) return;
-                sendApplianceCommand({
-                  type: "relay",
-                  index: APPLIANCE_INDEX.boiler,
-                  action: "off",
-                });
-              }}
-              type="relay"
-              icon="boiler"
-              disabled={!isModule5Online}
-            />
-            <p className="card-label">Boiler</p>
           </div>
 
           <div className="card-wrapper">
