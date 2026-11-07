@@ -56,7 +56,7 @@ function formatTemp(value) {
  * @param {Object} props.boiler
  * @param {boolean} props.enabled - thermostat armed (appliance relay 4)
  * @param {boolean} props.powerDisabled
- * @param {boolean} props.stepsDisabled - one-shot is running
+ * @param {boolean} props.stepsDisabled - not in maintain mode
  * @param {boolean} props.acSupply - inverter or shore power
  * @param {boolean} props.disabled - module offline
  * @param {Function} props.onPower

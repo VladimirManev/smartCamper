@@ -1089,7 +1089,7 @@ function App() {
           boiler={boiler}
           enabled={boilerMode === "maintain"}
           disabled={!isModule5Online}
-          stepsDisabled={boilerMode === "once"}
+          stepsDisabled={boilerMode !== "maintain"}
           acSupply={acSupply}
           powerDisabled={
             !isBoilerControlEnabled(
