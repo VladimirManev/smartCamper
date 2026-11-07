@@ -166,6 +166,16 @@ export function BoilerModalContent({
               disabled={powerDisabled}
               onClick={onPower}
             />
+            <PresetButton
+              value={30}
+              disabled={disabled}
+              onClick={() => adjust(30)}
+            />
+            <PresetButton
+              value={60}
+              disabled={disabled}
+              onClick={() => adjust(60)}
+            />
           </div>
         </div>
       </div>
@@ -213,6 +223,24 @@ function StepButton({ label, onClick, disabled = false, children }) {
       aria-label={label}
     >
       <span className="button-text fridge-ble-modal__step-glyph">{children}</span>
+    </button>
+  );
+}
+
+function PresetButton({ value, disabled, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`fridge-ble-modal__card${
+        disabled ? " fridge-ble-modal__card--disabled" : ""
+      }`}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={`Set temperature to ${value} degrees`}
+    >
+      <span className="neumorphic-button fridge-ble-modal__round off">
+        <span className="button-text boiler-modal__preset-value">{value}</span>
+      </span>
     </button>
   );
 }

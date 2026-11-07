@@ -161,7 +161,7 @@ GPIO 16 is free on ESP32-WROOM. On a WROVER board it is wired to PSRAM and canno
 ## Frontend Integration
 
 - **Boiler card**: click opens the boiler modal. Long press turns the boiler off. Long press while off does nothing
-- **Boiler modal**: tank colored from the two temperatures (0°C dark blue, 80°C bright red). Half-full blinking blue water when `full` is false. Heating-element graphic only while `relay` is true
+- **Boiler modal**: tank colored from the two temperatures (0°C dark blue, 80°C bright red). Half-full blinking blue water when `full` is false. Heating-element graphic only while `relay` is true. Buttons 30 and 60 set the setpoint
 - **Toilet card** in main menu — `ToiletUrineTank`, yellow liquid, **WC** label
 - **Detail modal** — polls module-5 every 5 s while open
 - **Status panel** (tablet) — included in rotating slides
