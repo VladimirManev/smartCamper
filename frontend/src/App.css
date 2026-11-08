@@ -2769,7 +2769,7 @@ body {
 }
 
 .status-modal__doors-van-layer.perimeter-modal__van-layer {
-  transform: scale(1.25) translateY(-12%);
+  transform: scale(1.25) translateY(-6%);
 }
 
 .scenes-modal {
