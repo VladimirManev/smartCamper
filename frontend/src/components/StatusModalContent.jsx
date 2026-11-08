@@ -28,7 +28,7 @@ const SLIDE_TITLES = [
   "Toilet",
   "Boiler",
   "Fridge",
-  "",
+  "Alarm",
 ];
 const ROTATE_MS = 4000;
 const SWIPE_MIN_PX = 45;
