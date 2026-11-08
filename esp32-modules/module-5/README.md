@@ -136,7 +136,7 @@ The element relay (GPIO 27) is closed only by the boiler controller. Relay index
 | 18 | Bottom DS18B20. Maintain mode turns the element off at the setpoint and on at setpoint − 3. One-shot mode stops at 30 or 60 |
 | 19 | Top DS18B20. Shown in the UI. A reading of 75°C stops the boiler. A missing top sensor does not |
 
-DS18B20 VCC is 5 V, same as the other sensors. The 4.7 kΩ pull-up goes from data to **3.3 V**, not to 5 V. A 12-bit conversion takes about 750 ms. The two sensors convert at the same time, and the wait is spread across `loop()` so the module does not freeze. Every 30 s the firmware takes 3 readings and keeps the median when at least 2 are inside −10…95°C. A failed read is tried twice more immediately before that sample counts as missed. Integers are published only when they change.
+DS18B20 VCC is 5 V, same as the other sensors. The 4.7 kΩ pull-up goes from data to **3.3 V**, not to 5 V. GPIO 18 and 19 also keep the ESP32 internal pull-up on, in parallel with that resistor. A 12-bit conversion takes about 750 ms. The two sensors convert at the same time, and the wait is spread across `loop()` so the module does not freeze. Every 30 s the firmware takes 3 readings and keeps the median when at least 2 are inside −10…95°C. A failed read is tried twice more immediately before that sample counts as missed. Integers are published only when they change.
 
 The electrode is read only before the element closes, once at boot, and on `force_update` (including MQTT reconnect, a new frontend connection, and the toilet modal poll). The internal pull-up is enabled for a few milliseconds per sample, then the pin is released. Three samples, majority wins.
 

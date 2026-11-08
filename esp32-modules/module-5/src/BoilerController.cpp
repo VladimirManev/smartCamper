@@ -56,6 +56,11 @@ void BoilerController::begin() {
 
   bottomSensors.begin();
   topSensors.begin();
+  // OneWire::begin() leaves the pin floating. The internal pull-up stays on
+  // in parallel with the external resistor. Bit timing switches only the
+  // output driver and does not clear this pull.
+  pinMode(BOILER_TEMP_BOTTOM_PIN, INPUT_PULLUP);
+  pinMode(BOILER_TEMP_TOP_PIN, INPUT_PULLUP);
   bottomSensors.setResolution(12);
   topSensors.setResolution(12);
   bottomSensors.setWaitForConversion(false);
