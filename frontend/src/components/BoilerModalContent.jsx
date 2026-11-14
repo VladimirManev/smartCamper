@@ -9,7 +9,9 @@ import { getThemeColor } from "../utils/getThemeColor";
 
 const SETPOINT_MIN = 5;
 const SETPOINT_MAX = 70;
-const STEP_BUTTON_DEBOUNCE_MS = 120;
+const SETPOINT_IDLE_MS = 1500;
+const HOLD_DELAY_MS = 400;
+const HOLD_REPEAT_MS = 100;
 const COLOR_COLD = [8, 36, 110];
 const COLOR_HOT = [220, 32, 24];
 const COLOR_COLD_C = 18;
@@ -103,6 +105,36 @@ export function BoilerModalContent({
   onSetpoint,
 }) {
   const setpoint = boiler?.setpoint ?? 60;
+  const [draft, setDraft] = useState(null);
+  const draftRef = useRef(null);
+  const setpointRef = useRef(setpoint);
+  const idleTimerRef = useRef(null);
+  const onSetpointRef = useRef(onSetpoint);
+  setpointRef.current = setpoint;
+  onSetpointRef.current = onSetpoint;
+  const shownSetpoint = draft ?? setpoint;
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(idleTimerRef.current);
+      const value = draftRef.current;
+      if (value !== null && value !== setpointRef.current) {
+        onSetpointRef.current?.(value);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      draft !== null &&
+      boiler?.setpoint === draft &&
+      idleTimerRef.current === null
+    ) {
+      draftRef.current = null;
+      setDraft(null);
+    }
+  }, [boiler?.setpoint, draft]);
+
   const full = disabled ? null : boiler?.full;
   const top = disabled ? null : boiler?.top;
   const bottom = disabled ? null : boiler?.bottom;
@@ -115,11 +147,30 @@ export function BoilerModalContent({
     return !acSupply;
   };
 
-  const adjust = (next) => {
-    if (disabled || next < SETPOINT_MIN || next > SETPOINT_MAX || next === setpoint) {
-      return;
-    }
-    onSetpoint?.(next);
+  const scheduleSetpoint = () => {
+    clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => {
+      idleTimerRef.current = null;
+      const value = draftRef.current;
+      if (value === null || value === setpointRef.current) {
+        if (value !== null && value === setpointRef.current) {
+          draftRef.current = null;
+          setDraft(null);
+        }
+        return;
+      }
+      onSetpointRef.current?.(value);
+    }, SETPOINT_IDLE_MS);
+  };
+
+  const stepSetpoint = (delta) => {
+    if (disabled || stepsDisabled) return;
+    const current = draftRef.current ?? setpointRef.current;
+    const next = Math.min(SETPOINT_MAX, Math.max(SETPOINT_MIN, current + delta));
+    if (next === current) return;
+    draftRef.current = next;
+    setDraft(next);
+    scheduleSetpoint();
   };
 
   let fillStyle = { height: "0%" };
@@ -176,21 +227,21 @@ export function BoilerModalContent({
           <div className="boiler-modal__setpoint">
             {!readOnly && (
               <StepButton
-                label="Decrease temperature"
-                disabled={disabled || stepsDisabled || setpoint <= SETPOINT_MIN}
-                onClick={() => adjust(setpoint - 1)}
-              >
-                −
-              </StepButton>
-            )}
-            <span className="autoterm-modal__power-value">{setpoint}°C</span>
-            {!readOnly && (
-              <StepButton
                 label="Increase temperature"
-                disabled={disabled || stepsDisabled || setpoint >= SETPOINT_MAX}
-                onClick={() => adjust(setpoint + 1)}
+                disabled={disabled || stepsDisabled || shownSetpoint >= SETPOINT_MAX}
+                onStep={() => stepSetpoint(1)}
               >
                 +
+              </StepButton>
+            )}
+            <span className="autoterm-modal__power-value">{shownSetpoint}°C</span>
+            {!readOnly && (
+              <StepButton
+                label="Decrease temperature"
+                disabled={disabled || stepsDisabled || shownSetpoint <= SETPOINT_MIN}
+                onStep={() => stepSetpoint(-1)}
+              >
+                −
               </StepButton>
             )}
           </div>
@@ -241,18 +292,47 @@ export function BoilerModalContent({
   );
 }
 
-function StepButton({ label, onClick, disabled = false, children }) {
-  const lastFireRef = useRef(0);
-  const pointerHandledRef = useRef(false);
+function StepButton({ label, onStep, disabled = false, children }) {
+  const onStepRef = useRef(onStep);
+  const disabledRef = useRef(disabled);
+  const delayRef = useRef(null);
+  const repeatRef = useRef(null);
+  const holdingRef = useRef(false);
+  const fromPointerRef = useRef(false);
+  onStepRef.current = onStep;
+  disabledRef.current = disabled;
 
-  const fire = () => {
-    if (disabled || !onClick) return;
-    const now = Date.now();
-    if (now - lastFireRef.current < STEP_BUTTON_DEBOUNCE_MS) {
-      return;
-    }
-    lastFireRef.current = now;
-    onClick();
+  const stop = () => {
+    holdingRef.current = false;
+    clearTimeout(delayRef.current);
+    clearInterval(repeatRef.current);
+    delayRef.current = null;
+    repeatRef.current = null;
+  };
+
+  useEffect(() => stop, []);
+
+  useEffect(() => {
+    if (disabled) stop();
+  }, [disabled]);
+
+  const start = (event) => {
+    if (disabledRef.current || holdingRef.current) return;
+    if (event.button != null && event.button !== 0) return;
+    fromPointerRef.current = true;
+    holdingRef.current = true;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onStepRef.current();
+    delayRef.current = setTimeout(() => {
+      if (!holdingRef.current) return;
+      repeatRef.current = setInterval(() => {
+        if (disabledRef.current) {
+          stop();
+          return;
+        }
+        onStepRef.current();
+      }, HOLD_REPEAT_MS);
+    }, HOLD_DELAY_MS);
   };
 
   return (
@@ -262,20 +342,15 @@ function StepButton({ label, onClick, disabled = false, children }) {
         disabled ? " fridge-ble-modal__round--inactive" : ""
       }`}
       style={{ touchAction: "manipulation" }}
-      onPointerUp={(event) => {
-        if (disabled) return;
-        if (event.pointerType === "touch" || event.pointerType === "pen") {
-          event.preventDefault();
-          pointerHandledRef.current = true;
-          fire();
-        }
-      }}
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerCancel={stop}
       onClick={() => {
-        if (pointerHandledRef.current) {
-          pointerHandledRef.current = false;
+        if (fromPointerRef.current) {
+          fromPointerRef.current = false;
           return;
         }
-        fire();
+        if (!disabledRef.current) onStepRef.current();
       }}
       disabled={disabled}
       aria-label={label}
