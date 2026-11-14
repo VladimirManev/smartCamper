@@ -267,7 +267,7 @@ bool PacketDecoder::parseStatusReply(const uint8_t* frame, size_t len, AutotermP
 }
 
 bool PacketDecoder::parseSettingsReply(const uint8_t* frame, size_t len, AutotermParsedSettings& out) {
-  out = {false, "unknown", 0, 0xFF};
+  out = {false, "unknown", 0xFF, 0xFF};
   if (frame == nullptr || len < 7 || frame[0] != 0xAA || frame[4] != 0x02) {
     return false;
   }
@@ -283,7 +283,7 @@ bool PacketDecoder::parseSettingsReply(const uint8_t* frame, size_t len, Autoter
   const uint8_t* p = frame + 5;
   out.mode = modeWord(p[2]);
   out.setTempC = p[3];
-  out.power = (p[5] != 0xFF) ? p[5] : 0;
+  out.power = p[5];  // 0..9 wire level, or 0xFF if n/a
   out.valid = true;
   return true;
 }

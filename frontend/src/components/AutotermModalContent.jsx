@@ -1,7 +1,7 @@
 /**
  * Autoterm heater modal:
  * - Status + card-style power button → Mode (Manual | Comfort | Eco)
- * - Manual: power 1–9 + damper presets/cards (former Airflow)
+ * - Manual: power 1–10 (wire 0–9) + damper presets/cards (former Airflow)
  * - Comfort / Eco: target temp + read-only power bars + read-only dampers
  * - Panel vent/thermostat lock: stop only
  */
@@ -87,16 +87,19 @@ function StepButton({ label, onClick, disabled = false, children }) {
   );
 }
 
-/** Autoterm-style power bars: 9 ascending ticks, filled up to `level`. */
+const MIN_POWER = 1;
+const MAX_POWER = 10; // Comfort Control / Autoterm: 10 levels (wire 0..9)
+
+/** Autoterm-style power bars: 10 ascending ticks, filled up to `level` (1..10). */
 function PowerLevelBars({ level = 1 }) {
-  const clamped = Math.min(9, Math.max(1, Number(level) || 1));
+  const clamped = Math.min(MAX_POWER, Math.max(MIN_POWER, Number(level) || 1));
   return (
     <div
       className="autoterm-power-bars"
       role="img"
-      aria-label={`Power level ${clamped} of 9`}
+      aria-label={`Power level ${clamped} of ${MAX_POWER}`}
     >
-      {Array.from({ length: 9 }, (_, i) => {
+      {Array.from({ length: MAX_POWER }, (_, i) => {
         const n = i + 1;
         const filled = n <= clamped;
         return (
@@ -134,7 +137,7 @@ function PowerStepper({
     <div className="autoterm-modal__stepper">
       <StepButton
         label={decreaseLabel}
-        disabled={!canEdit || level <= 1}
+        disabled={!canEdit || level <= MIN_POWER}
         onClick={onDecrease}
       >
         −
@@ -142,7 +145,7 @@ function PowerStepper({
       <PowerLevelBars level={level} />
       <StepButton
         label={increaseLabel}
-        disabled={!canEdit || level >= 9}
+        disabled={!canEdit || level >= MAX_POWER}
         onClick={onIncrease}
       >
         +
@@ -236,7 +239,7 @@ export function AutotermModalContent({
     heaterTemp != null ? `${heaterTemp}°C` : "—";
 
   const adjustPower = (next) => {
-    if (next < 1 || next > 9 || !canEditPower) {
+    if (next < MIN_POWER || next > MAX_POWER || !canEditPower) {
       return;
     }
     if (isOff) {

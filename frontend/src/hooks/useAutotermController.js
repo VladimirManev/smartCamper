@@ -36,7 +36,7 @@ export const useAutotermController = (socket) => {
         state: data.state || "unknown",
         mode: data.mode || "unknown",
         power:
-          typeof data.power === "number" && data.power >= 1 && data.power <= 9
+          typeof data.power === "number" && data.power >= 1 && data.power <= 10
             ? data.power
             : 5,
         errorCode:

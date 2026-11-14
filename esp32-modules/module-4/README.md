@@ -120,7 +120,7 @@ pio device monitor
 | ----- | ------- | ---- |
 | `smartcamper/sensors/module-4/damper/{index}/angle` | `{"angle": 45}` | When servo reaches target |
 | `smartcamper/sensors/module-4/table/direction` | `{"direction":"up","autoMoving":true}` | On change (`up` / `down` / `stopped`) |
-| `smartcamper/sensors/module-4/autoterm/status` | `{"state":"running","mode":"by-power","power":5,"errorCode":0,"heaterTemp":45,"battery":13.4,"controlLocked":false}` | On change; `error` string when `errorCode` ≠ 0 |
+| `smartcamper/sensors/module-4/autoterm/status` | `{"state":"running","mode":"by-power","power":5,"errorCode":0,"heaterTemp":45,"battery":13.4,"controlLocked":false}` | On change; `power` is UI 1..10 (wire 0..9); `error` string when `errorCode` ≠ 0 |
 
 ### Subscribed (Commands)
 
@@ -132,8 +132,8 @@ pio device monitor
 | `smartcamper/commands/module-4/table/stop` | `{"type":"table","action":"stop"}` | Stop |
 | `smartcamper/commands/module-4/table/move_up_auto` | `{"type":"table","action":"move_up_auto"}` | Auto up for `TABLE_AUTO_MOVE_DURATION` (20 s) |
 | `smartcamper/commands/module-4/table/move_down_auto` | `{"type":"table","action":"move_down_auto"}` | Auto down for 20 s |
-| `smartcamper/commands/module-4/autoterm/start` | `{"type":"autoterm","action":"start","power":5}` | START by-power (refused if vent/thermostat active) |
-| `smartcamper/commands/module-4/autoterm/set_power` | `{"type":"autoterm","action":"set_power","power":7}` | Change power while by-power running |
+| `smartcamper/commands/module-4/autoterm/start` | `{"type":"autoterm","action":"start","power":5}` | START by-power; `power` 1..10 (refused if vent/thermostat active) |
+| `smartcamper/commands/module-4/autoterm/set_power` | `{"type":"autoterm","action":"set_power","power":7}` | Change power 1..10 while by-power running |
 | `smartcamper/commands/module-4/autoterm/stop` | `{"type":"autoterm","action":"stop"}` | STOP (any mode) |
 | `smartcamper/commands/module-4/force_update` | `{}` | Republish damper + table + autoterm status |
 

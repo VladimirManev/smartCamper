@@ -9,11 +9,11 @@
 
 class AutotermCommands {
  public:
-  // START heat, mode by-power, vent off, power 1..9. Returns frame length (13).
-  static size_t buildStartByPower(uint8_t power, uint8_t* out, size_t outCap);
+  // START heat, mode by-power, vent off, wirePower 0..9. Returns frame length (13).
+  static size_t buildStartByPower(uint8_t wirePower, uint8_t* out, size_t outCap);
 
-  // Change settings while running: by-power, vent off, power 1..9. Returns 13.
-  static size_t buildSetPower(uint8_t power, uint8_t* out, size_t outCap);
+  // Change settings while running: by-power, vent off, wirePower 0..9. Returns 13.
+  static size_t buildSetPower(uint8_t wirePower, uint8_t* out, size_t outCap);
 
   // Ventilation only, level 1..9. Returns 11.
   // Air 2D form: AA 03 04 00 23 FF FF <level> FF <crc>

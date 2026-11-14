@@ -34,7 +34,7 @@ struct AutotermParsedStatus {
 struct AutotermParsedSettings {
   bool valid;
   const char* mode;  // by-heater-T, by-panel-T, by-air-T, by-power, unknown
-  uint8_t power;     // 0 if unknown
+  uint8_t power;     // wire 0..9, or 0xFF if n/a
   uint8_t setTempC;  // 0xFF if n/a
 };
 

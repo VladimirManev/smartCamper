@@ -10,7 +10,26 @@
 
 namespace {
 
-constexpr uint8_t kDefaultPower = 5;
+// App / MQTT power is 1..10 (Comfort Control style). Wire protocol is 0..9.
+constexpr uint8_t kDefaultPowerUi = 5;
+constexpr uint8_t kMinPowerUi = 1;
+constexpr uint8_t kMaxPowerUi = 10;
+
+uint8_t wireToUiPower(uint8_t wire) {
+  return static_cast<uint8_t>(wire + 1);
+}
+
+uint8_t uiToWirePower(uint8_t ui) {
+  return static_cast<uint8_t>(ui - 1);
+}
+
+bool isUiPower(uint8_t ui) {
+  return ui >= kMinPowerUi && ui <= kMaxPowerUi;
+}
+
+bool isWirePower(uint8_t wire) {
+  return wire <= 9;  // 0..9; 0xFF is not a wire level
+}
 
 bool pinsAreDistinct(int8_t a, int8_t b, int8_t c, int8_t d) {
   const int8_t pins[] = {a, b, c, d};
@@ -46,7 +65,7 @@ AutotermBridge::AutotermBridge()
       mqttManager_(nullptr),
       state_("unknown"),
       mode_("unknown"),
-      power_(kDefaultPower),
+      power_(kDefaultPowerUi),
       errorCode_(0),
       heaterTempC_(-127),
       batteryV_(-1.0f),
@@ -148,13 +167,14 @@ void AutotermBridge::onHeaterFrame(const uint8_t* frame, size_t len) {
 
   AutotermParsedSettings settings;
   if (PacketDecoder::parseSettingsReply(frame, len, settings)) {
-    if (mode_ != settings.mode ||
-        (settings.power >= 1 && settings.power <= 9 && power_ != settings.power) || !hasStatus_) {
+    const bool hasWirePower = isWirePower(settings.power);
+    const uint8_t uiPower = hasWirePower ? wireToUiPower(settings.power) : power_;
+    if (mode_ != settings.mode || (hasWirePower && power_ != uiPower) || !hasStatus_) {
       dirty_ = true;
     }
     mode_ = settings.mode;
-    if (settings.power >= 1 && settings.power <= 9) {
-      power_ = settings.power;
+    if (hasWirePower) {
+      power_ = uiPower;
     }
     hasStatus_ = true;
   }
@@ -249,11 +269,12 @@ bool AutotermBridge::cmdStart(uint8_t power) {
     }
     return false;
   }
-  if (power < 1 || power > 9) {
-    power = power_ >= 1 && power_ <= 9 ? power_ : kDefaultPower;
+  if (!isUiPower(power)) {
+    power = isUiPower(power_) ? power_ : kDefaultPowerUi;
   }
   uint8_t frame[16];
-  const size_t len = AutotermCommands::buildStartByPower(power, frame, sizeof(frame));
+  const size_t len =
+      AutotermCommands::buildStartByPower(uiToWirePower(power), frame, sizeof(frame));
   if (len == 0 || !injectTwice(frame, len)) {
     return false;
   }
@@ -261,7 +282,7 @@ bool AutotermBridge::cmdStart(uint8_t power) {
   mode_ = "by-power";
   dirty_ = true;
   if (DEBUG_SERIAL) {
-    Serial.printf("INJECT: START by-power %u\n", power);
+    Serial.printf("INJECT: START by-power UI %u (wire %u)\n", power, uiToWirePower(power));
   }
   return true;
 }
@@ -276,11 +297,12 @@ bool AutotermBridge::cmdSetPower(uint8_t power) {
   if (strcmp(mode_, "by-power") != 0 && strcmp(mode_, "unknown") != 0) {
     return false;
   }
-  if (power < 1 || power > 9) {
+  if (!isUiPower(power)) {
     return false;
   }
   uint8_t frame[16];
-  const size_t len = AutotermCommands::buildSetPower(power, frame, sizeof(frame));
+  const size_t len =
+      AutotermCommands::buildSetPower(uiToWirePower(power), frame, sizeof(frame));
   if (len == 0 || !injectTwice(frame, len)) {
     return false;
   }
@@ -288,7 +310,7 @@ bool AutotermBridge::cmdSetPower(uint8_t power) {
   mode_ = "by-power";
   dirty_ = true;
   if (DEBUG_SERIAL) {
-    Serial.printf("INJECT: SET power %u\n", power);
+    Serial.printf("INJECT: SET power UI %u (wire %u)\n", power, uiToWirePower(power));
   }
   return true;
 }

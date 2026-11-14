@@ -21,7 +21,7 @@ const autotermCommandHandler = (socket, aedes, data) => {
     mqttPayload = JSON.stringify({ type: "autoterm", action: "stop" });
   } else if (action === "start") {
     const power = typeof data.power === "number" ? data.power : 5;
-    if (power < 1 || power > 9) {
+    if (power < 1 || power > 10) {
       console.log("❌ Invalid autoterm start power:", power);
       return;
     }
@@ -32,7 +32,7 @@ const autotermCommandHandler = (socket, aedes, data) => {
       power,
     });
   } else if (action === "set_power") {
-    if (typeof data.power !== "number" || data.power < 1 || data.power > 9) {
+    if (typeof data.power !== "number" || data.power < 1 || data.power > 10) {
       console.log("❌ Invalid autoterm set_power:", data.power);
       return;
     }

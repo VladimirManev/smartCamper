@@ -14,22 +14,23 @@ size_t AutotermCommands::finishFrame(uint8_t* out, size_t headerAndPayloadLen, s
   return headerAndPayloadLen + 2;
 }
 
-size_t AutotermCommands::buildStartByPower(uint8_t power, uint8_t* out, size_t outCap) {
-  if (power < 1 || power > 9 || out == nullptr || outCap < 13) {
+size_t AutotermCommands::buildStartByPower(uint8_t wirePower, uint8_t* out, size_t outCap) {
+  // Wire power 0..9 (UI 1..10 = wire+1).
+  if (wirePower > 9 || out == nullptr || outCap < 13) {
     return 0;
   }
   // Captured form: AA 03 06 00 01 FF FF 04 FF 02 <pwr> <crc>
-  const uint8_t body[] = {0xAA, 0x03, 0x06, 0x00, 0x01, 0xFF, 0xFF, 0x04, 0xFF, 0x02, power};
+  const uint8_t body[] = {0xAA, 0x03, 0x06, 0x00, 0x01, 0xFF, 0xFF, 0x04, 0xFF, 0x02, wirePower};
   memcpy(out, body, sizeof(body));
   return finishFrame(out, sizeof(body), outCap);
 }
 
-size_t AutotermCommands::buildSetPower(uint8_t power, uint8_t* out, size_t outCap) {
-  if (power < 1 || power > 9 || out == nullptr || outCap < 13) {
+size_t AutotermCommands::buildSetPower(uint8_t wirePower, uint8_t* out, size_t outCap) {
+  if (wirePower > 9 || out == nullptr || outCap < 13) {
     return 0;
   }
   // Captured form: AA 03 06 00 02 FF FF 04 FF 02 <pwr> <crc>
-  const uint8_t body[] = {0xAA, 0x03, 0x06, 0x00, 0x02, 0xFF, 0xFF, 0x04, 0xFF, 0x02, power};
+  const uint8_t body[] = {0xAA, 0x03, 0x06, 0x00, 0x02, 0xFF, 0xFF, 0x04, 0xFF, 0x02, wirePower};
   memcpy(out, body, sizeof(body));
   return finishFrame(out, sizeof(body), outCap);
 }
