@@ -125,9 +125,9 @@ void FridgeManager::applyPowerRelay(bool on, bool publish) {
                 FRIDGE_RELAY_PIN);
 
   if (!on) {
-    if (connected) {
-      demoteLink("power relay OFF");
-    }
+    // Always tear down GATT — do not leave queries running on a dying link
+    // (that briefly kills Victron/WiFi even without a new connect()).
+    demoteLink("power relay OFF");
     resetReconnectBackoff();
   } else {
     resetReconnectBackoff();
@@ -480,6 +480,10 @@ bool FridgeManager::enableNotifications() {
 }
 
 bool FridgeManager::openSession() {
+  if (!powerRelayOn) {
+    Serial.println("fridge connect skipped — mains relay OFF");
+    return false;
+  }
   if (victronManager == nullptr || !victronManager->isBleReady()) {
     return false;
   }
@@ -493,7 +497,7 @@ bool FridgeManager::openSession() {
     gClient = BLEDevice::createClient();
   }
   // Note: this Arduino-ESP32 BLEClient has no setConnectTimeout(); connect() may
-  // block ~30s when the fridge is powered off — backoff + clearScanBlock mitigate.
+  // block ~30s when the fridge is powered off — never call while relay OFF.
   if (gClient->isConnected()) {
     gClient->disconnect();
     delay(200);
@@ -504,7 +508,21 @@ bool FridgeManager::openSession() {
     Serial.println("fridge connect failed");
     connected = false;
     victronManager->setFridgeGattConnected(false);
+    if (!powerRelayOn) {
+      victronManager->clearScanBlock();
+      return false;
+    }
     noteConnectFailure();
+    return false;
+  }
+
+  // Relay may have been switched OFF during the blocking connect().
+  if (!powerRelayOn) {
+    Serial.println("fridge connect aborted — relay OFF during attempt");
+    gClient->disconnect();
+    connected = false;
+    victronManager->setFridgeGattConnected(false);
+    victronManager->clearScanBlock();
     return false;
   }
 
@@ -550,7 +568,11 @@ bool FridgeManager::openSession() {
 }
 
 bool FridgeManager::ensureLinkForCommand() {
-  // User-initiated — try soon even if background backoff is long (fridge was OFF).
+  if (!powerRelayOn) {
+    Serial.println("fridge ensureLink: mains relay OFF");
+    return false;
+  }
+  // User-initiated — try soon even if background backoff is long.
   resetReconnectBackoff();
 
   if (gClient != nullptr && gClient->isConnected() && connected &&
@@ -716,11 +738,15 @@ void FridgeManager::loop() {
     return;
   }
 
-  if (!connected) {
-    // Do not BLE-connect while mains relay is OFF (protect WiFi/MQTT/Victron).
-    if (!powerRelayOn) {
-      return;
+  // Hard gate: with mains OFF there must be no GATT activity and no connect().
+  if (!powerRelayOn) {
+    if (connected || (gClient != nullptr && gClient->isConnected())) {
+      demoteLink("power relay OFF (loop)");
     }
+    return;
+  }
+
+  if (!connected) {
     if (victronManager != nullptr && victronManager->isBleReady() &&
         millis() - lastReconnectAttemptMs >= reconnectIntervalMs) {
       openSession();

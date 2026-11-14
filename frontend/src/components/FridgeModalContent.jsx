@@ -1,27 +1,28 @@
 /**
- * Fridge BLE controls — power (module-5 relay) + mode + zone setpoints.
+ * Fridge BLE controls — power (module-6 mains relay) + mode + zone setpoints.
  *
  * Physical layout: left compartment is colder (BLE zone 2), right is warmer (zone 1).
  * Tap a zone badge to show +/−; draft updates locally; after idle 1.5s one absolute
- * setpoint is sent. A spinner covers the wait for ESP connect → write → disconnect.
+ * setpoint is sent. A spinner covers BLE mode/zone sync and mains relay confirmation.
  * Stale status (no fresh MQTT) shows dashes. `readOnly` — carousel display only.
  */
 
 import { useEffect, useId, useRef, useState } from "react";
 import fridgePhoto from "../assets/fridge.png";
 import { getThemeColor } from "../utils/getThemeColor";
-import { FRIDGE_STALE_MS } from "../hooks/useFridge";
 
 const EDIT_IDLE_MS = 1500;
 /** Ephemeral GATT session can take several seconds. */
 const CONFIRM_TIMEOUT_MS = 20000;
+/** Mains relay MQTT round-trip; do not wait for BLE temps. */
+const POWER_CONFIRM_TIMEOUT_MS = 15000;
 const ERROR_SHOW_MS = 4000;
 
 /**
  * @param {Object} props
  * @param {Object} props.status - from useFridge
  * @param {boolean} props.powerOn - module-6 fridge mains relay ON
- * @param {Function} [props.onPowerToggle] - toggles module-5 relay
+ * @param {Function} [props.onPowerToggle] - toggles module-6 mains relay
  * @param {boolean} [props.powerDisabled]
  * @param {Function} [props.onMode] - (action: 'eco'|'max'|'toggle') => void
  * @param {Function} [props.onZoneSet] - (zone: 1|2, temp: number) => void
@@ -42,8 +43,6 @@ export function FridgeModalContent({
   const mode = fresh ? status?.mode : null;
   const z1 = fresh ? status?.zone1 || {} : { temp: null, setpoint: null };
   const z2 = fresh ? status?.zone2 || {} : { temp: null, setpoint: null };
-  const ageMs = status?.ageMs;
-  const lastIntervalMs = status?.lastIntervalMs;
 
   /** @type {[null|1|2, Function]} BLE zone being edited */
   const [editingZone, setEditingZone] = useState(null);
@@ -59,6 +58,7 @@ export function FridgeModalContent({
   const pendingRef = useRef(null);
   const onZoneSetRef = useRef(onZoneSet);
   const onModeRef = useRef(onMode);
+  const onPowerToggleRef = useRef(onPowerToggle);
 
   useEffect(() => {
     editRef.current = { zone: editingZone, draft: draftSet };
@@ -71,6 +71,10 @@ export function FridgeModalContent({
   useEffect(() => {
     onModeRef.current = onMode;
   }, [onMode]);
+
+  useEffect(() => {
+    onPowerToggleRef.current = onPowerToggle;
+  }, [onPowerToggle]);
 
   const clearHideTimer = () => {
     if (hideTimerRef.current) {
@@ -114,7 +118,12 @@ export function FridgeModalContent({
     }, ERROR_SHOW_MS);
   };
 
-  const beginPending = (kind, payload) => {
+  /**
+   * @param {'zone'|'mode'|'power'} kind
+   * @param {Object} payload
+   * @param {{ timeoutMs?: number, timeoutMessage?: string }} [options]
+   */
+  const beginPending = (kind, payload, options = {}) => {
     clearHideTimer();
     clearConfirmTimer();
     clearErrorTimer();
@@ -125,9 +134,11 @@ export function FridgeModalContent({
     setDraftSet(null);
     editRef.current = { zone: null, draft: null };
 
+    const timeoutMs = options.timeoutMs ?? CONFIRM_TIMEOUT_MS;
+    const timeoutMessage = options.timeoutMessage ?? "Connection failed";
     confirmTimerRef.current = setTimeout(() => {
-      showSyncError("Connection failed");
-    }, CONFIRM_TIMEOUT_MS);
+      showSyncError(timeoutMessage);
+    }, timeoutMs);
   };
 
   /** Idle debounce expired — send absolute setpoint and wait for status confirm. */
@@ -147,10 +158,21 @@ export function FridgeModalContent({
     hideTimerRef.current = setTimeout(commitZone, EDIT_IDLE_MS);
   };
 
-  // Confirm pending zone/mode against live status
+  // Confirm pending zone/mode/power against live props
   useEffect(() => {
     const pending = pendingRef.current;
     if (!pending || syncState !== "pending") {
+      return;
+    }
+
+    if (pending.kind === "power") {
+      // Relay ack only — do not wait for BLE temperatures.
+      if (powerOn === pending.wantOn) {
+        clearConfirmTimer();
+        pendingRef.current = null;
+        setSyncState("idle");
+        setSyncError("");
+      }
       return;
     }
 
@@ -174,7 +196,7 @@ export function FridgeModalContent({
         setSyncError("");
       }
     }
-  }, [status, syncState]);
+  }, [status, syncState, powerOn]);
 
   // Flush draft on unmount only if not already pending a sync
   useEffect(() => {
@@ -195,8 +217,18 @@ export function FridgeModalContent({
   const fridgeOff = !powerOn;
   const isSyncing = syncState === "pending";
 
+  // Power OFF cancels zone/mode edits; keep power pending until relay ack / timeout.
   useEffect(() => {
-    if (!fridgeOff || (editingZone == null && !isSyncing)) {
+    if (!fridgeOff) {
+      return;
+    }
+    if (pendingRef.current?.kind === "power") {
+      if (editingZone != null) {
+        clearEditor();
+      }
+      return;
+    }
+    if (editingZone == null && !isSyncing) {
       return;
     }
     clearHideTimer();
@@ -217,21 +249,6 @@ export function FridgeModalContent({
     !readOnly && !fridgeOff && !disabled && !isSyncing;
   const canChangeMode = !fridgeOff && !disabled && !isSyncing;
   const badgeDimmed = fridgeOff || disabled || isSyncing;
-
-  const ageLabel = (() => {
-    if (status?.receivedAt == null) {
-      return "No data";
-    }
-    if (!fresh) {
-      const staleSec = Math.round((ageMs ?? FRIDGE_STALE_MS) / 1000);
-      return `Stale · ${staleSec}s ago`;
-    }
-    const ageSec = Math.max(0, Math.round((ageMs ?? 0) / 1000));
-    if (lastIntervalMs != null) {
-      return `${ageSec}s ago · every ~${Math.round(lastIntervalMs / 1000)}s`;
-    }
-    return `${ageSec}s ago`;
-  })();
 
   const openEditor = (zone, setpoint) => {
     if (readOnly || fridgeOff || disabled || isSyncing) {
@@ -291,6 +308,21 @@ export function FridgeModalContent({
     }
     beginPending("mode", { mode: action });
     onModeRef.current(action);
+  };
+
+  const requestPowerToggle = () => {
+    if (readOnly || powerDisabled || isSyncing || !onPowerToggleRef.current) {
+      return;
+    }
+    beginPending(
+      "power",
+      { wantOn: !powerOn },
+      {
+        timeoutMs: POWER_CONFIRM_TIMEOUT_MS,
+        timeoutMessage: "No response",
+      }
+    );
+    onPowerToggleRef.current();
   };
 
   const setLabelFor = (zone, liveSetpoint) => {
@@ -390,24 +422,15 @@ export function FridgeModalContent({
             <span className="fridge-ble-modal__sync-text">{syncError}</span>
           </div>
         )}
-
-        <p
-          className={`fridge-ble-modal__age${
-            fresh ? "" : " fridge-ble-modal__age--stale"
-          }`}
-          aria-live="polite"
-        >
-          {ageLabel}
-        </p>
       </div>
 
       {!readOnly && (
         <div className="fridge-ble-modal__actions">
           <FridgeCardButton
-            label={powerOn ? "ON" : "OFF"}
+            label={<PowerSymbolIcon />}
             active={powerOn}
             disabled={powerDisabled || isSyncing}
-            onClick={onPowerToggle}
+            onClick={requestPowerToggle}
             ariaLabel={powerOn ? "Turn fridge off" : "Turn fridge on"}
           />
 
@@ -507,6 +530,31 @@ function StepButton({ label, onClick, children }) {
     >
       <span className="button-text fridge-ble-modal__step-glyph">{children}</span>
     </button>
+  );
+}
+
+function PowerSymbolIcon() {
+  return (
+    <svg
+      className="fridge-ble-modal__power-symbol"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      {/* Remote-style power: vertical stem + 3/4 arc (⏻) */}
+      <path
+        d="M12 3v8"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.05 6.05a7 7 0 1 0 9.9 0"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

@@ -57,7 +57,7 @@ Frontend fridge long-press still emits appliance relay index 2; backend routes i
 
 | Path | Behavior |
 |------|----------|
-| Power OFF | Drop GATT; **no** background `connect()` (blocks ~30 s and kills WiFi/MQTT/Victron). |
+| Power OFF | Drop GATT immediately; **no** status queries and **no** `connect()` (blocking connect kills WiFi/MQTT/Victron). |
 | Power ON | Status GATT + query every `FRIDGE_QUERY_INTERVAL_MS`; auto-reconnect with backoff if the link drops. |
 | Commands | Probe write path; reconnect if needed; ATT **Write Request**; confirm query. |
 | Victron scan | Brief `blockScanFor` around connect/writes; cleared on failure / power OFF. |
